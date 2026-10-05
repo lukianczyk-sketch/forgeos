@@ -1,0 +1,40 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+# ForgeOS — an RL Forge Works product.
+# Image is published to ghcr.io/<github-owner>/forgeos
+name: forgeos
+description: ForgeOS by RL Forge Works — secure, Windows-friendly Linux with a built-in private AI helper.
+
+# Base: Bazzite (Universal Blue, Fedora Atomic, KDE desktop) — already ships
+# Steam + Proton, codecs, and broad hardware support. Atomic = locked,
+# read-only core with one-click rollback.
+base-image: ghcr.io/ublue-os/bazzite
+image-version: stable
+
+modules:
+  # ForgeOS's own system files (Clean Sweep button, branding config, policies)
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # Make sure the Clean Sweep tool is executable inside the image
+  - type: script
+    scripts:
+      - forgeos-setup.sh
+
+  # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.
+  - type: default-flatpaks
+    configurations:
+      - notify: true
+        scope: system
+        install:
+          - com.brave.Browser             # Fast browser, ads & trackers blocked out of the box
+          - com.usebottles.bottles        # Run Windows programs (Wine, one click per app)
+          - com.heroicgameslauncher.hgl   # Epic, GOG & Amazon games (Steam is built into the base)
+          - com.jeffser.Alpaca            # Private on-device AI helper (Ollama-based, offline)
+          - com.github.tchx84.Flatseal    # See/limit what each app is allowed to touch
+      - scope: user
+
+  # Image signing — systems only accept updates signed with our key
+  - type: signing

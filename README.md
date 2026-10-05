@@ -1,43 +1,30 @@
-# forgeos &nbsp; [![bluebuild build badge](https://github.com/lukianczyk-sketch/forgeos/actions/workflows/build.yml/badge.svg)](https://github.com/lukianczyk-sketch/forgeos/actions/workflows/build.yml)
+# ForgeOS — by RL Forge Works
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
+Secure, fast, Windows-friendly Linux with a built-in private AI helper.
 
-After setup, it is recommended you update this README to describe your custom image.
+- **Base:** Bazzite (Universal Blue / Fedora Atomic, KDE desktop: taskbar + Start menu)
+- **Games:** Steam + Proton built in; Heroic for Epic / GOG / Amazon
+- **Windows programs:** Bottles (Wine) — one click per program
+- **Browser:** Brave (ads and trackers blocked)
+- **AI helper:** Alpaca (on-device, private, offline)
+- **Security:** read-only core, signed updates, one-click rollback, sandboxed apps (Flatseal to manage), full-disk encryption at install
+- **Clean Sweep button:** "I think I've been hacked" — resets the system to genuine ForgeOS, removes hidden auto-start programs and remote-access keys, resets app permissions, forces new passwords. Personal files are kept; anything removed goes to `/var/lib/forgeos/quarantine/`.
 
-## Installation
+## Install (switch an existing Fedora Atomic / Bazzite machine)
 
-> [!WARNING]  
-> [This is an experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable), try at your own discretion.
-
-To rebase an existing atomic Fedora installation to the latest build:
-
-- First rebase to the unsigned image, to get the proper signing keys and policies installed:
-  ```
-  rpm-ostree rebase ostree-unverified-registry:ghcr.io/lukianczyk-sketch/forgeos:latest
-  ```
-- Reboot to complete the rebase:
-  ```
-  systemctl reboot
-  ```
-- Then rebase to the signed image, like so:
-  ```
-  rpm-ostree rebase ostree-image-signed:docker://ghcr.io/lukianczyk-sketch/forgeos:latest
-  ```
-- Reboot again to complete the installation
-  ```
-  systemctl reboot
-  ```
-
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
-
-## ISO
-
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
-
-## Verification
-
-These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:
-
-```bash
-cosign verify --key cosign.pub ghcr.io/lukianczyk-sketch/forgeos
 ```
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/OWNER/forgeos:latest
+systemctl reboot
+rpm-ostree rebase ostree-image-signed:docker://ghcr.io/OWNER/forgeos:latest
+systemctl reboot
+```
+
+Replace `OWNER` with the GitHub account that hosts this repo. A USB installer (ISO) comes later — see the BlueBuild ISO guide.
+
+## Verify an image
+
+```
+cosign verify --key cosign.pub ghcr.io/OWNER/forgeos
+```
+
+Built with [BlueBuild](https://blue-build.org/). Licensed Apache-2.0 (build config); included software keeps its own licenses.

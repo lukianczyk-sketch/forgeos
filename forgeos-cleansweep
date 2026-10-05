@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# ForgeOS Clean Sweep — "I think I've been hacked" button.
+# Resets the system back to the genuine, signed ForgeOS image and removes the
+# usual places malware hides to restart itself. Personal files are KEPT, but
+# anything removed is moved to a quarantine folder (never silently deleted).
+#
+# Must run as root (the desktop button uses pkexec).
+set -uo pipefail
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+QUAR="/var/lib/forgeos/quarantine/${STAMP}"
+LOG="/var/log/forgeos-cleansweep-${STAMP}.log"
+
+say()  { echo "[Clean Sweep] $*" | tee -a "$LOG"; }
+quarantine() {  # quarantine <path>  — moves it, keeping its full path inside QUAR
+  local p="$1"
+  [ -e "$p" ] || [ -L "$p" ] || return 0
+  mkdir -p "${QUAR}$(dirname "$p")"
+  mv -f -- "$p" "${QUAR}${p}" && say "Quarantined: $p"
+}
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Clean Sweep must run as administrator." >&2
+  exit 1
+fi
+
+mkdir -p "$QUAR" /var/log
+chmod 700 /var/lib/forgeos /var/lib/forgeos/quarantine "$QUAR"
+say "Started $(date). Quarantine folder: $QUAR"
+
+# 1. While still online, stage a fresh, signature-verified copy of ForgeOS
+#    for next boot. Then cut the attacker off by going offline.
+if command -v rpm-ostree >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  REF="$(rpm-ostree status --json | jq -r '.deployments[] | select(.booted) | ."container-image-reference" // empty')"
+  case "$REF" in
+    ostree-image-signed:*) ;;
+    ostree-unverified-registry:*) REF="ostree-image-signed:docker://${REF#ostree-unverified-registry:}" ;;
+    *) REF="" ;;
+  esac
+  if [ -n "$REF" ]; then
+    if rpm-ostree rebase "$REF" >>"$LOG" 2>&1; then
+      say "Fresh verified ForgeOS image staged for next restart."
+    else
+      say "Could not download a fresh image (no internet?). Cleanup continues; run Clean Sweep again later while online."
+    fi
+  fi
+fi
+
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli networking off && say "Network disconnected."
+fi
+
+# 2. Remove anything layered on top of the genuine system image.
+if command -v rpm-ostree >/dev/null 2>&1; then
+  rpm-ostree cancel >/dev/null 2>&1 || true
+  rpm-ostree reset >>"$LOG" 2>&1 && say "Removed added system packages/overrides."
+fi
+
+# 3. Remove system-wide auto-start hiding spots (anything not shipped with ForgeOS).
+#    On Fedora Atomic the factory copy of /etc lives in /usr/etc.
+SYS_DIRS=(
+  /etc/systemd/system /etc/xdg/autostart /etc/profile.d /etc/sudoers.d
+  /etc/ssh/sshd_config.d /etc/cron.d /etc/cron.hourly /etc/cron.daily
+  /etc/cron.weekly /etc/cron.monthly /etc/yum.repos.d /etc/udev/rules.d
+)
+for d in "${SYS_DIRS[@]}"; do
+  [ -d "$d" ] || continue
+  while IFS= read -r -d '' f; do
+    factory="/usr${f}"
+    if [ ! -e "$factory" ] && [ ! -L "$factory" ]; then
+      quarantine "$f"                         # added after install
+    elif [ -f "$f" ] && ! cmp -s "$f" "$factory"; then
+      quarantine "$f"; cp -a "$factory" "$f"  # changed: restore factory copy
+    fi
+  done < <(find "$d" -mindepth 1 \( -type f -o -type l \) -print0 2>/dev/null)
+done
+for f in /etc/ld.so.preload /etc/rc.local /etc/rc.d/rc.local /etc/crontab; do
+  if [ -e "$f" ] && { [ ! -e "/usr$f" ] || ! cmp -s "$f" "/usr$f"; }; then
+    quarantine "$f"; [ -e "/usr$f" ] && cp -a "/usr$f" "$f"
+  fi
+done
+quarantine /var/spool/cron
+mkdir -p /var/spool/cron && chmod 700 /var/spool/cron
+
+# 4. Per-user hiding spots + lock out stolen access.
+while IFS=: read -r user _ uid _ _ home _; do
+  [ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] && [ -d "$home" ] || continue
+  for p in "$home/.config/autostart" "$home/.config/systemd/user" \
+           "$home/.ssh/authorized_keys" "$home/.config/plasma-workspace/env" \
+           "$home/.config/plasma-workspace/shutdown"; do
+    quarantine "$p"
+  done
+  passwd -e "$user" >/dev/null 2>&1 && say "User '$user' must choose a new password at next login."
+done < /etc/passwd
+quarantine /root/.ssh/authorized_keys
+
+# 5. Reset app permissions to safe defaults and drop leftover runtimes.
+if command -v flatpak >/dev/null 2>&1; then
+  flatpak override --reset >>"$LOG" 2>&1 || true
+  flatpak uninstall --unused -y --noninteractive >>"$LOG" 2>&1 || true
+  say "App permissions reset to defaults."
+fi
+
+# 6. Scan personal files for known malware, if the scanner is installed.
+if command -v clamscan >/dev/null 2>&1; then
+  say "Scanning home folders for malware (this can take a while)..."
+  clamscan -r -i --move="${QUAR}/infected" /home >>"$LOG" 2>&1 || true
+fi
+
+say "Done. Restart the computer to finish. Network stays OFF until you turn it back on."
+say "Removed items are kept in $QUAR. Full log: $LOG"
+exit 0

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Desktop button wrapper: confirm, run Clean Sweep as admin, offer restart.
+set -uo pipefail
+
+MSG="Clean Sweep will:
+
+• Disconnect the internet
+• Reset the system back to genuine ForgeOS
+• Remove hidden auto-start programs and remote-access keys
+• Reset app permissions and make everyone choose a new password
+
+Your personal files are KEPT. Anything removed is saved in quarantine.
+
+Continue?"
+
+ask()  { if command -v kdialog >/dev/null; then kdialog --title "ForgeOS Clean Sweep" --warningyesno "$1"; else zenity --question --title="ForgeOS Clean Sweep" --text="$1"; fi; }
+info() { if command -v kdialog >/dev/null; then kdialog --title "ForgeOS Clean Sweep" --msgbox "$1"; else zenity --info --title="ForgeOS Clean Sweep" --text="$1"; fi; }
+
+ask "$MSG" || exit 0
+
+if pkexec /usr/bin/forgeos-cleansweep; then
+  if ask "Clean Sweep finished.
+
+Restart now to complete it? (Internet stays off until you turn it back on.)"; then
+    systemctl reboot
+  fi
+else
+  info "Clean Sweep could not finish. Check the log in /var/log (forgeos-cleansweep-*.log)."
+fi
