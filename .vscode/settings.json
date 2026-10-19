@@ -1,0 +1,7 @@
+{
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[shellscript]": { "editor.tabSize": 2, "editor.insertSpaces": true },
+  "[yaml]": { "editor.tabSize": 2, "editor.insertSpaces": true }
+}
