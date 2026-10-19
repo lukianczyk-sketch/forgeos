@@ -17,9 +17,9 @@ When a ForgeOS user opens **"ForgeOS AI Setup"**, it checks how much graphics me
 ## Model choice (Apache-2.0 models only)
 | Detected VRAM | Model tag | Approx. download |
 |---|---|---|
-| 20 GB or more | `qwen3.6:27b` | ~17 GB |
+| 20 GB or more | `qwen3.6:27b` | ~19 GB |
 | 12 – 19.9 GB | `gpt-oss:20b` | ~14 GB |
-| under 12 GB, or no GPU found | `gemma4:e2b` | ~4 GB |
+| under 12 GB, or no GPU found | `gemma4:e2b` | ~5 GB |
 
 Keep these three tags and sizes in ONE place at the top of the script (variables), so they're easy to change later.
 
@@ -35,9 +35,15 @@ Do not write any code in this step.
 
 ## Step 2 — Build-time Ollama install
 Create `files/scripts/install-ollama.sh` that runs at **image build time**:
-- Variable `OLLAMA_VERSION` pinned to the version from Step 1 (no "latest").
-- Downloads that release file for linux-amd64 with `curl -fL`, extracts it into `/usr` (so `/usr/bin/ollama` exists), then deletes the download.
-- Prints `ollama --version` at the end.
+- Variable `OLLAMA_VERSION="v0.40.6"` (pinned — confirmed in Step 1, no "latest").
+- Make sure `zstd` exists first: `command -v zstd || dnf install -y zstd`.
+- Download BOTH into a temp folder with `curl -fL`:
+  `https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/ollama-linux-amd64.tar.zst`
+  and `https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/sha256sum.txt`
+- **Security check:** verify the download against `sha256sum.txt` (only the `ollama-linux-amd64.tar.zst` line) with `sha256sum -c`. If it doesn't match, the script must FAIL (exit 1) — never install an unverified download.
+- Extract into `/usr` with `tar --zstd -xf <file> -C /usr` (so `/usr/bin/ollama` exists), then delete the temp folder.
+- Prints `ollama --version` at the end (if it errors because no server is running, `ollama -v` output or `/usr/bin/ollama --help | head -1` is fine — just prove the binary runs).
+- Note: AMD GPU support (`ollama-linux-amd64-rocm.tar.zst`, ~1 GB more) is NOT part of this job — skip it.
 Then add `install-ollama.sh` to the `script` module list in `recipes/recipe.yml`, **above** `forgeos-setup.sh`.
 
 ## Step 3 — Ollama background service
@@ -54,7 +60,7 @@ Create `files/system/usr/bin/forgeos-ai-setup` (bash) with these functions:
   3. else AMD: largest value from `/sys/class/drm/card*/device/mem_info_vram_total` (bytes → MB);
   4. else print `0`.
 - `choose_model <vram_mb>` — prints the model tag using the table above.
-- `model_size <tag>` — prints the approx. download size text.
+- `model_size <tag>` — prints the approx. download size text (use the sizes in the table above: ~19 GB, ~14 GB, ~5 GB).
 - Option `--dry-run` → prints `VRAM: <n> MB` and `Model: <tag> (<size>)` and exits 0 without downloading anything.
 No downloading yet in this step.
 
