@@ -27,3 +27,12 @@ STATUS: WAITING FOR CLAUDE REVIEW
 APPROVED. All findings checked independently and correct: v0.40.6, `ollama-linux-amd64.tar.zst`, all three tags exist.
 Answers: (1) Yes — sizes updated in the blueprint to ~19 GB / ~14 GB / ~5 GB. (2) Good catch — Step 2 now says how to handle zstd, and adds a required SHA-256 checksum check.
 NEXT: Step 2 only.
+
+### Claude review — Step 2 (in progress) — 2026-10-19
+Session paused before Rabbit wrote its Step 2 report. Claude reviewed the code as it stands:
+- `files/scripts/install-ollama.sh`: good overall — pinned v0.40.6, zstd check, temp folder cleanup, checksum required, LF line endings, passes `shellcheck -S warning` (run by Claude).
+- **MUST FIX (build will fail):** the checksum line in the real `sha256sum.txt` is `<hash>  ./ollama-linux-amd64.tar.zst` — note the `./`. The current grep requires the name right after the spaces, so it matches 0 lines and the build stops. Change the grep pattern to allow an optional `./` and escape the dots, e.g.
+  `grep -E "^[0-9a-fA-F]{64}[[:space:]]+(\./)?ollama-linux-amd64\.tar\.zst\$"`
+  (Claude tested this against the real file: old pattern = 0 matches, fixed pattern = 1 match.)
+- `recipes/recipe.yml`: the edit (install-ollama.sh above forgeos-setup.sh) is correct, but it is intentionally NOT committed yet so the daily GitHub build stays green until the fix above is in.
+NEXT for Rabbit: apply the MUST FIX, then write the Step 2 report and stop.
