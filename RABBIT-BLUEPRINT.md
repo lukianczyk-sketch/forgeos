@@ -17,11 +17,13 @@ When a ForgeOS user opens **"ForgeOS AI Setup"**, it checks how much graphics me
 ## Model choice (Apache-2.0 models only)
 | Detected VRAM | Model tag | Approx. download |
 |---|---|---|
-| 20 GB or more | `qwen3.6:27b` | ~19 GB |
+| 20 GB or more | `qwen3.8:27b` | ~18 GB |
 | 12 – 19.9 GB | `gpt-oss:20b` | ~14 GB |
-| under 12 GB, or no GPU found | `gemma4:e2b` | ~5 GB |
+| 8 – 11.9 GB | `gemma4:e4b` | ~7 GB |
+| under 8 GB, or no GPU found | `gemma4:e2b` | ~5 GB |
 
-Keep these three tags and sizes in ONE place at the top of the script (variables), so they're easy to change later.
+Keep these four tags and sizes in ONE place at the top of the script (variables), so they're easy to change later.
+(Claude update 2026-10-22: upgraded to the best free models available today — `qwen3.8:27b` replaces `qwen3.6:27b` (newer, Apache-2.0, better on every published benchmark); added the `gemma4:e4b` tier for 8–12 GB cards. All four tags checked live on ollama.com/library; all Apache-2.0.)
 
 ---
 
@@ -35,7 +37,7 @@ Do not write any code in this step.
 
 ## Step 2 — Build-time Ollama install
 Create `files/scripts/install-ollama.sh` that runs at **image build time**:
-- Variable `OLLAMA_VERSION="v0.40.6"` (pinned — confirmed in Step 1, no "latest").
+- Variable `OLLAMA_VERSION="v0.40.8"` (pinned, no "latest"). Claude update 2026-10-22: v0.40.8 is the newest stable release (2026-10-21); was v0.40.6.
 - Make sure `zstd` exists first: `command -v zstd || dnf install -y zstd`.
 - Download BOTH into a temp folder with `curl -fL`:
   `https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/ollama-linux-amd64.tar.zst`
@@ -60,7 +62,7 @@ Create `files/system/usr/bin/forgeos-ai-setup` (bash) with these functions:
   3. else AMD: largest value from `/sys/class/drm/card*/device/mem_info_vram_total` (bytes → MB);
   4. else print `0`.
 - `choose_model <vram_mb>` — prints the model tag using the table above.
-- `model_size <tag>` — prints the approx. download size text (use the sizes in the table above: ~19 GB, ~14 GB, ~5 GB).
+- `model_size <tag>` — prints the approx. download size text (use the sizes in the table above: ~18 GB, ~14 GB, ~7 GB, ~5 GB).
 - Option `--dry-run` → prints `VRAM: <n> MB` and `Model: <tag> (<size>)` and exits 0 without downloading anything.
 No downloading yet in this step.
 
