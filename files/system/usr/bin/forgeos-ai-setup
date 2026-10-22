@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# ForgeOS AI Setup — the "pick a model" brain (Step 4).
+# Detects graphics memory, recommends the best free local AI model that fits,
+# and reports its approximate download size. No downloading in this step yet.
+set -euo pipefail
+
+# --- Model table: keep tags + sizes in ONE place so they're easy to change ---
+MODEL_LARGE="qwen3.8:27b"   # 20 GB or more VRAM
+SIZE_LARGE="~18 GB"
+MODEL_MEDIUM="gpt-oss:20b"  # 12 - 19.9 GB VRAM
+SIZE_MEDIUM="~14 GB"
+MODEL_SMALL="gemma4:e4b"    # 8 - 11.9 GB VRAM
+SIZE_SMALL="~7 GB"
+MODEL_MINI="gemma4:e2b"     # under 8 GB, or no GPU found
+SIZE_MINI="~5 GB"
+
+# VRAM thresholds in MB (decimal gigabytes: 8 / 12 / 20)
+VRAM_LARGE_MB=20000
+VRAM_MEDIUM_MB=12000
+VRAM_SMALL_MB=8000
+
+# Prints total VRAM in MB.
+detect_vram_mb() {
+    # 1) Test override (for automated tests).
+    if [[ -n "${FORGEOS_FAKE_VRAM_MB:-}" ]]; then
+        printf '%s\n' "$FORGEOS_FAKE_VRAM_MB"
+        return 0
+    fi
+
+    local vram=""
+
+    # 2) NVIDIA: total memory of the largest GPU (MB).
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        vram=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null \
+            | awk 'NF { gsub(/[^0-9]/, "", $1); if ($1 + 0 > max) max = $1 + 0 } END { print max + 0 }') || vram=""
+        if [[ "$vram" =~ ^[0-9]+$ ]] && (( vram > 0 )); then
+            printf '%s\n' "$vram"
+            return 0
+        fi
+    fi
+
+    # 3) AMD: largest card's mem_info_vram_total (bytes -> MB).
+    local best=0 f val
+    for f in /sys/class/drm/card*/device/mem_info_vram_total; do
+        [[ -r "$f" ]] || continue
+        val=$(cat -- "$f" 2>/dev/null) || continue
+        [[ "$val" =~ ^[0-9]+$ ]] || continue
+        if (( val > best )); then
+            best=$val
+        fi
+    done
+    if (( best > 0 )); then
+        printf '%s\n' $(( best / 1024 / 1024 ))
+        return 0
+    fi
+
+    # 4) No GPU found.
+    printf '0\n'
+}
+
+# Prints the model tag for a given VRAM amount (MB).
+choose_model() {
+    local vram_mb=$1
+    if (( vram_mb >= VRAM_LARGE_MB )); then
+        printf '%s\n' "$MODEL_LARGE"
+    elif (( vram_mb >= VRAM_MEDIUM_MB )); then
+        printf '%s\n' "$MODEL_MEDIUM"
+    elif (( vram_mb >= VRAM_SMALL_MB )); then
+        printf '%s\n' "$MODEL_SMALL"
+    else
+        printf '%s\n' "$MODEL_MINI"
+    fi
+}
+
+# Prints the approximate download size text for a model tag.
+model_size() {
+    local tag=$1
+    case "$tag" in
+        "$MODEL_LARGE")  printf '%s\n' "$SIZE_LARGE" ;;
+        "$MODEL_MEDIUM") printf '%s\n' "$SIZE_MEDIUM" ;;
+        "$MODEL_SMALL")  printf '%s\n' "$SIZE_SMALL" ;;
+        "$MODEL_MINI")   printf '%s\n' "$SIZE_MINI" ;;
+        *)              printf 'unknown size\n' ;;
+    esac
+}
+
+main() {
+    if [[ "${1:-}" == "--dry-run" ]]; then
+        local vram_mb model
+        vram_mb=$(detect_vram_mb)
+        model=$(choose_model "$vram_mb")
+        printf 'VRAM: %s MB\n' "$vram_mb"
+        printf 'Model: %s (%s)\n' "$model" "$(model_size "$model")"
+        return 0
+    fi
+
+    echo "forgeos-ai-setup: interactive download mode is not implemented yet (Step 6)." >&2
+    echo "usage: forgeos-ai-setup --dry-run" >&2
+    return 1
+}
+
+main "$@"

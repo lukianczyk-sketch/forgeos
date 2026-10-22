@@ -54,3 +54,51 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - OLLAMA_VERSION = v0.40.8 (checksum line verified on the real release).
 NEXT for Rabbit: Step 4 only — use the NEW 4-row model table.
 
+## Step 4 — The "pick a model" brain — 2026-10-22
+Files changed: `files/system/usr/bin/forgeos-ai-setup` (new)
+What I did:
+- Created forgeos-ai-setup per the blueprint, using the NEW 4-row table (`qwen3.8:27b` / `gpt-oss:20b` / `gemma4:e4b` / `gemma4:e2b`). All four tags + sizes are kept in ONE place at the top as variables (`MODEL_*`/`SIZE_*`), plus the VRAM thresholds as variables, so they're easy to change later.
+- `detect_vram_mb`: 1) `FORGEOS_FAKE_VRAM_MB` override (for tests); 2) NVIDIA via `nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits`, largest GPU wins; 3) AMD via `/sys/class/drm/card*/device/mem_info_vram_total` (bytes → MB, largest card wins); 4) prints `0`. Every probe is guarded so a failing/absent source falls through instead of crashing under `set -euo pipefail`.
+- `choose_model <vram_mb>`: decimal-MB thresholds 20000 / 12000 / 8000, so the Step 5 test values map exactly — 0 & 4096 → `gemma4:e2b`; 11999 → `gemma4:e4b`; 12000, 16384, 19999 → `gpt-oss:20b`; 20000, 24576 → `qwen3.8:27b`.
+- `model_size <tag>` prints the table's size text (`~18 GB` / `~14 GB` / `~7 GB` / `~5 GB`).
+- `--dry-run` prints exactly `VRAM: <n> MB` and `Model: <tag> (<size>)`, exits 0, downloads nothing — there is no download code anywhere in this step.
+What I ran + output:
+- Recursive listing of `files/system/` → `usr/bin/` contains only the protected `forgeos-cleansweep` / `forgeos-cleansweep-gui`; no collision with the new file (and neither was touched).
+- Read the new script back in full — 101 lines, shebang + `set -euo pipefail` at top, content matches intent.
+- `git status --short` → single entry: `?? files/system/usr/bin/forgeos-ai-setup`. `git check-attr text eol -- files/system/usr/bin/forgeos-ai-setup` → `text: auto`, `eol: lf` (LF guaranteed in the commit via `.gitattributes`).
+- Did NOT run shellcheck or execute the script — no real bash/shellcheck on this Windows machine (`Get-Command bash` only finds the Microsoft Store stub; shellcheck absent). Logic reviewed by hand only; real verification is left to you/Claude and the Step 5 CI workflow.
+Questions / unsure about:
+1. Normal run (no `--dry-run`) currently prints "interactive download mode is not implemented yet (Step 6)" + usage on stderr and exits 1 — the blueprint says no downloading in this step but doesn't define normal-run behavior. OK, or do you want something else?
+2. Exec bit: `core.filemode=false` on this machine, so git won't record a mode change from here; Step 7's `chmod 0755 /usr/bin/forgeos-ai-setup` in forgeos-setup.sh will set the final permissions in the image (that's why I didn't fight with local chmod).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 4 — 2026-10-22: 3 MUST FIX
+Good: clean structure, model table at top, thresholds right. I tested every boundary (0, 7999, 8000, 11999, 12000, 19999, 20000, 24576 MB) — the right model is picked each time.
+Found by my tests + shellcheck:
+**MUST FIX:**
+1. `model_size` has no case for `$MODEL_MINI` → under-8 GB computers show "Model: gemma4:e2b (unknown size)" (shellcheck also warns SIZE_MINI is unused). Add: `"$MODEL_MINI")   printf '%s\n' "$SIZE_MINI" ;;`
+2. NVIDIA branch: if `nvidia-smi` exists but fails/reports nothing, awk prints `0` and the script stops there (never checks AMD). Only return when the value is greater than 0:
+   `if [[ "$vram" =~ ^[0-9]+$ ]] && (( vram > 0 )); then`
+3. Windows can't mark the file executable, so add it to the existing chmod line in `files/scripts/forgeos-setup.sh`:
+   `chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup`
+Change nothing else. Then write a short "Step 4 fix" report and stop.
+
+## Step 4 fix — Claude's 3 MUST FIXes — 2026-10-22
+Files changed: `files/system/usr/bin/forgeos-ai-setup` (line 36, line 82), `files/scripts/forgeos-setup.sh` (line 5)
+What I did: Applied all three fixes exactly as specified — nothing else.
+1. `model_size`: added the missing case `"$MODEL_MINI")   printf '%s\n' "$SIZE_MINI" ;;` before the `*)` fallback — under-8 GB computers now show "Model: gemma4:e2b (~5 GB)" instead of "(unknown size)", and `SIZE_MINI` is no longer unused (shellcheck warning resolved).
+2. NVIDIA branch: guard is now `if [[ "$vram" =~ ^[0-9]+$ ]] && (( vram > 0 )); then` — if `nvidia-smi` exists but fails or reports nothing (awk prints `0`), the script falls through to the AMD check instead of stopping at 0.
+3. `forgeos-setup.sh`: extended the existing chmod line to `chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup` (the cleansweep files themselves were not touched).
+What I ran + output:
+- Read back all three changed regions — each matches your spec exactly (line 36 = new `> 0` guard; lines 79–83 = four explicit cases + fallback, column-aligned with the others; forgeos-setup.sh line 5 = extended chmod).
+- `git status --short` → ` M PROGRESS.md`, ` M files/scripts/forgeos-setup.sh`, `?? files/system/usr/bin/forgeos-ai-setup`; git's "CRLF will be replaced by LF" warning on forgeos-setup.sh is the known `.gitattributes` behavior (`eol: lf` verified in earlier steps).
+- Did NOT run shellcheck/bash — still unavailable on this Windows machine; left to you/Claude.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 4 — 2026-10-22: APPROVED
+- `shellcheck -S warning` (forgeos-ai-setup + forgeos-setup.sh): PASS — SIZE_MINI warning gone.
+- Boundary tests 0/7999/8000/11999/12000/19999/20000/24576 MB → e2b(~5 GB)/e2b/e4b(~7 GB)/e4b/gpt-oss(~14 GB)/gpt-oss/qwen3.8(~18 GB)/qwen3.8 — all correct, no "unknown size".
+- Broken nvidia-smi now falls through instead of stopping. chmod line includes forgeos-ai-setup.
+NEXT for Rabbit: Step 5 only.
+
