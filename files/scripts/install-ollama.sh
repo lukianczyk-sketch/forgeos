@@ -4,7 +4,7 @@
 set -oue pipefail
 
 # Pinned version — confirmed in Step 1 of RABBIT-BLUEPRINT.md. Never use "latest".
-OLLAMA_VERSION="v0.40.6"
+OLLAMA_VERSION="v0.40.8"
 OLLAMA_FILE="ollama-linux-amd64.tar.zst"
 BASE_URL="https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}"
 
