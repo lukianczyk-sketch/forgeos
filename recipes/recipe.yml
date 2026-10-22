@@ -18,9 +18,11 @@ modules:
       - source: system
         destination: /
 
-  # Make sure the Clean Sweep tool is executable inside the image
+  # Build-time setup: install Ollama (pinned version, checksum-verified), then
+  # make sure the Clean Sweep tool is executable inside the image
   - type: script
     scripts:
+      - install-ollama.sh
       - forgeos-setup.sh
 
   # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.

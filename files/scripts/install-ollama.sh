@@ -19,8 +19,9 @@ curl -fL -o "${TMP_DIR}/${OLLAMA_FILE}" "${BASE_URL}/${OLLAMA_FILE}"
 curl -fL -o "${TMP_DIR}/sha256sum.txt" "${BASE_URL}/sha256sum.txt"
 
 # Security check: verify the download against the official sha256sum.txt.
-# The txt lists every release asset, so keep only our file's line (exact name).
-grep -E "^[0-9a-fA-F]{64}[[:space:]]+${OLLAMA_FILE}\$" "${TMP_DIR}/sha256sum.txt" > "${TMP_DIR}/expected.sha256"
+# The txt lists every release asset; its lines look like "<hash>  ./ollama-linux-amd64.tar.zst",
+# so allow an optional "./" prefix and match the exact file name (dots escaped).
+grep -E "^[0-9a-fA-F]{64}[[:space:]]+(\./)?ollama-linux-amd64\.tar\.zst\$" "${TMP_DIR}/sha256sum.txt" > "${TMP_DIR}/expected.sha256"
 if [ "$(wc -l < "${TMP_DIR}/expected.sha256")" -ne 1 ]; then
     echo "ERROR: expected exactly one sha256 line for ${OLLAMA_FILE} — refusing to install an unverified download." >&2
     exit 1
