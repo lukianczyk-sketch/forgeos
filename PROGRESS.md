@@ -74,3 +74,15 @@ NEXT for Rabbit: apply the MUST FIX, then STOP (no new report needed — Claude 
 - MUST FIX applied: Gear Lever comment now correct; nothing else changed.
 - Re-checked on disk: YAML parses, install list == approved 25 IDs exactly (order + case), 0 CR bytes.
 NEXT for Rabbit: Step 2 only (start a fresh Cline task).
+
+## Step 2 — Automatic check for the app list — 2026-10-23
+Rabbit wrote `tests/test-flatpak-list.sh` (122 lines, bash + awk + grep only) and added the one step to `.github/workflows/tests.yml`, exactly as the blueprint says. Rabbit then got stuck on PowerShell quoting while checking line endings, so Claude stopped the task before the report and finished verification on Linux (below).
+
+### Claude review — Step 2 — 2026-10-23: APPROVED
+- Line endings: both files were saved with CRLF by the editor; Claude converted to LF (`sed -i 's/\r$//'`), 0 CR bytes now. No code changed.
+- `shellcheck -S warning tests/test-flatpak-list.sh`: PASS.
+- Real recipe: 4/4 PASS, `RESULT: all checks passed`, exit 0.
+- Negative tests (temp copies, then deleted): missing `org.kde.kcalc` → FAIL check 1; duplicate `org.kde.okular` → FAIL check 2; `org.mozilla.Thunderbird` → FAIL check 3 (and check 1); bad ID `elisa` → FAIL check 4; missing file → FAIL, exit 1. CRLF recipe and an entry with no comment → still PASS (correct).
+- Workflow YAML parses; new step is last, runs `bash tests/test-flatpak-list.sh`.
+- Nice touches: awk stops the install block on dedent (so `- scope: user` is never read as an app), optional path argument, tolerant of CRLF.
+STATUS: JOB 2 COMPLETE — committing, then tag v0.3.0 after the GitHub builds are green.

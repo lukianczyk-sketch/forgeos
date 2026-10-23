@@ -20,7 +20,7 @@
 - Finished jobs: `blueprints/job1-ai-setup.md` + `blueprints/job1-progress.md`.
 
 ## Next steps
-1. Job 2 "New Apps" (IN PROGRESS): add 20 verified free Flathub apps to `default-flatpaks` + `tests/test-flatpak-list.sh`. Then tag v0.3.0.
+1. Job 2 "New Apps": DONE — 25 verified free Flathub apps + tests/test-flatpak-list.sh. Tag v0.3.0.
 2. Job 3 "Clean Sweep" upgrade (blueprint in Claude project; upgrade v1, keep names; v1 behavior becomes `reset-system`).
 3. Later: branding / Windows-style layout, USB installer (ISO), AMD + NVIDIA variants, real-machine test.
 

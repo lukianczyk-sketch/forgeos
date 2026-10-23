@@ -35,3 +35,6 @@ jobs:
 
       - name: Run forgeos-ai-setup dry-run tests
         run: bash tests/test-ai-setup.sh
+
+      - name: Check default Flatpak app list
+        run: bash tests/test-flatpak-list.sh
