@@ -36,6 +36,30 @@ modules:
           - com.heroicgameslauncher.hgl   # Epic, GOG & Amazon games (Steam is built into the base)
           - com.jeffser.Alpaca            # Private on-device AI helper (Ollama-based, offline)
           - com.github.tchx84.Flatseal    # See/limit what each app is allowed to touch
+          # Office & email
+          - org.onlyoffice.desktopeditors   # Office suite — opens Word/Excel/PowerPoint files
+          - org.mozilla.thunderbird         # Email client
+          # Photo & video
+          - org.gimp.GIMP                   # Full-featured photo editor
+          - com.github.PintaProject.Pinta   # Lighter, easier photo editor
+          - org.kde.kdenlive                # Video editor
+          - com.obsproject.Studio           # Screen recording & live streaming
+          - org.kde.haruna                  # Modern video player
+          - org.kde.elisa                   # Music player
+          - org.kde.gwenview                # Photo viewer / slideshow
+          # Safety
+          - org.keepassxc.KeePassXC         # Password manager (local, encrypted)
+          - org.gnome.World.PikaBackup      # Back up files to a USB stick or other drive
+          # Tools
+          - io.missioncenter.MissionCenter  # Windows-style Task Manager
+          - org.localsend.localsend_app     # Share files with nearby devices — no internet needed
+          - com.rustdesk.RustDesk           # Free remote control of other computers
+          - com.github.jeromerobert.pdfarranger   # Reorder, merge & split PDF pages
+          - org.kde.okular                  # Document viewer (PDF, e-books and more)
+          - org.kde.skanpage                # Scan documents with a scanner
+          - org.kde.kcalc                   # Calculator with formulas
+          - org.kde.filelight               # See what is using your disk space
+          - it.mijorus.gearlever            # Install & manage AppImage apps (adds them to the menu)
       - scope: user
 
   # Image signing — systems only accept updates signed with our key
