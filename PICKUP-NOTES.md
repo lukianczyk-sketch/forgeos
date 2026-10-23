@@ -13,16 +13,19 @@
 ## Status (updated 2026-10-23)
 - v0.2.0 tagged (commit 7f24744): Job 1 "ForgeOS AI Setup" complete — Ollama v0.40.8 baked in (checksum-verified), local-only ollama.service, `forgeos-ai-setup` picks best Apache-2.0 model by VRAM and downloads only on Yes, menu entry + one-time first-login offer. GitHub `tests` + `bluebuild` both green.
 - Clean Sweep v1 in image (`forgeos-cleansweep` + `-gui`).
-- Default Flatpaks so far: Brave, Bottles, Heroic, Alpaca, Flatseal.
+- v0.3.0 (deeb157): Job 2 "New Apps" — 25 verified free Flathub apps + tests/test-flatpak-list.sh.
+- v0.4.0 (955b6e1): Job 4 "Cool Stuff" — KDE Connect (dnf `kde-connect`), Speech Note, Easy Effects, Moonlight, Impression (29 Flatpaks total); menu buttons "Android Apps Setup" (`ujust setup-waydroid`) and "Game Streaming Setup" (`ujust setup-sunshine`); tests/test-cool-stuff.sh. tests + bluebuild green.
 
 ## How we work
 - Rabbit Team (Cline + LM Studio on Robert's PC) writes all code from `RABBIT-BLUEPRINT.md` (current job), one step at a time, logs to `PROGRESS.md`. Claude reviews, then commits + pushes.
-- Finished jobs: `blueprints/job1-ai-setup.md` + `blueprints/job1-progress.md`.
+- Finished jobs: `blueprints/job1-*`, `blueprints/job2-*`, `blueprints/job4-*` (blueprint + progress log each).
 
 ## Next steps
-1. Job 2 "New Apps": DONE — 25 verified free Flathub apps + tests/test-flatpak-list.sh. Tag v0.3.0.
-2. Job 3 "Clean Sweep" upgrade (blueprint in Claude project; upgrade v1, keep names; v1 behavior becomes `reset-system`).
-3. Later: branding / Windows-style layout, USB installer (ISO), AMD + NVIDIA variants, real-machine test.
+Robert approved the "what Windows/Linux should have built in" roadmap (details in the Claude project: forgeos-feature-roadmap.md). Order:
+1. Job 3 "Clean Sweep" upgrade (upgrade v1, keep names; v1 behavior becomes `reset-system`).
+2. Job 5 Undo Button (turn on Bazzite's snapper /var/home snapshots + one timeline button).
+3. Job 6 Panic Button → Job 7 Privacy Report → Job 8 Scam Shield → Job 9 Ask Your PC → Job 10 Will It Run? → Job 11 Find Anything → Job 12 GhostFinder → Job 13 Family Mode.
+4. Later: branding / Windows-style layout, USB installer (ISO), AMD + NVIDIA variants, real-machine test.
 
 ## Known gaps / to verify at test time
 - Alpaca may need its Ollama plugin for fully local models.
