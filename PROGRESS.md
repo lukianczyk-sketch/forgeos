@@ -56,3 +56,20 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Agreed on `set -euo pipefail`: Step 3 must capture expected non-zero exits (`clamscan ... || rc=$?`) instead of letting them abort.
 - Note: first Cline run looped after a context overflow and was cancelled; this report came from the second run.
 - Next: Step 2.
+
+## Step 2 — Put the tools in the image — 2026-10-23
+Files changed: recipes/recipe.yml, files/scripts/forgeos-setup.sh, files/system/etc/rkhunter.d/forgeos.conf (new)
+What I did (Rabbit Team / Cline):
+- dnf module: added clamav, clamav-freshclam, rkhunter, chkrootkit next to kde-connect.
+- Moved the script module (install-ollama.sh + forgeos-setup.sh) to just after the dnf module (order fix).
+- forgeos-setup.sh: `systemctl enable clamav-freshclam.service`; created /usr/share/forgeos/rkhunter-db, copied the stock db from /var/lib/rkhunter/db/, ran `rkhunter --propupd`.
+- New /etc/rkhunter.d/forgeos.conf: `DBDIR=/usr/share/forgeos/rkhunter-db`.
+What I ran + output: nothing run (no build/install allowed on the PC).
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 2 — 2026-10-23
+- APPROVED. Diff matches the blueprint exactly; existing setup lines kept; the files module (which installs /etc/rkhunter.d/forgeos.conf) still runs first, so `rkhunter --propupd` writes the baseline into /usr/share/forgeos/rkhunter-db.
+- Checked on Linux: YAML parses, `bash -n` clean on forgeos-setup.sh, CRLF fixed to LF.
+- Cline was cancelled after the edits (its last command was only a line-ending check); Claude wrote this report from the verified diff.
+- Real proof = the bluebuild run after push (confirms the packages install on Fedora 44 with no conflicts and propupd succeeds). Then Step 3.

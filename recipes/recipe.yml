@@ -18,18 +18,24 @@ modules:
       - source: system
         destination: /
 
-  # Build-time setup: install Ollama (pinned version, checksum-verified), then
-  # make sure the Clean Sweep tool is executable inside the image
-  - type: script
-    scripts:
-      - install-ollama.sh
-      - forgeos-setup.sh
-
   # Phone <-> PC link: texts, notifications, shared clipboard, send files
+  # + Clean Sweep security tools (Step 2): ClamAV with daily signature updates, rkhunter, chkrootkit
   - type: dnf
     install:
       packages:
         - kde-connect
+        - clamav
+        - clamav-freshclam
+        - rkhunter
+        - chkrootkit
+
+  # Build-time setup: install Ollama (pinned version, checksum-verified), then
+  # make sure the Clean Sweep tool is executable inside the image.
+  # Runs AFTER the dnf module so the security packages exist when forgeos-setup.sh runs (order fix, 2026-10-23).
+  - type: script
+    scripts:
+      - install-ollama.sh
+      - forgeos-setup.sh
 
   # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.
   - type: default-flatpaks

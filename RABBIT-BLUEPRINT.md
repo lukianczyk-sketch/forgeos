@@ -55,8 +55,9 @@ STOP.
 
 ## Step 2 — Put the tools in the image
 - `recipes/recipe.yml` → the existing `dnf` module (next to `kde-connect`): add `clamav`, `clamav-freshclam`, `rkhunter`, `chkrootkit`.
+- **Order fix (Claude, 2026-10-23):** move the `type: script` module (install-ollama.sh + forgeos-setup.sh) to just AFTER the `dnf` module, so the packages exist when forgeos-setup.sh runs. Don't change anything else in those modules.
 - In `files/scripts/forgeos-setup.sh`, enable `clamav-freshclam.service` so virus signatures update daily (the database lives in `/var/lib/clamav`, which is writable).
-- Run `rkhunter --propupd` at build time so the rkhunter baseline matches the clean image.
+- **rkhunter baseline must live in /usr** (image `/var` is only copied on first install, so a /var baseline goes stale after every update and causes false alarms). Add `files/system/etc/rkhunter.d/forgeos.conf` with `DBDIR=/usr/share/forgeos/rkhunter-db`. In forgeos-setup.sh: `mkdir -p /usr/share/forgeos/rkhunter-db`, copy the stock db files from `/var/lib/rkhunter/db/` into it, then run `rkhunter --propupd` so the baseline matches the clean image.
 STOP.
 
 ## Step 3 — `forgeos-cleansweep scan`
