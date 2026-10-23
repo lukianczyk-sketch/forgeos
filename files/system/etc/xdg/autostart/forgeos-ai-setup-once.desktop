@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=ForgeOS AI Setup (first login)
+Exec=/usr/bin/forgeos-ai-setup-once
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

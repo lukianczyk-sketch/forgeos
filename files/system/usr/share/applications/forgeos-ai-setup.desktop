@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ForgeOS AI Setup
+Comment=Check your graphics memory and download a free local AI model that fits
+Exec=/usr/bin/forgeos-ai-setup
+Icon=applications-science
+Categories=System;
+Terminal=false

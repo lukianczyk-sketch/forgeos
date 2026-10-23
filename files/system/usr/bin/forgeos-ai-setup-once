@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ForgeOS AI Setup — first-login offer (Step 7).
+# Started by /etc/xdg/autostart/forgeos-ai-setup-once.desktop at session start.
+# Offers the setup exactly once per user, and only if no model was chosen yet.
+# The "ForgeOS AI Setup" menu entry stays available for manual runs afterwards.
+set -euo pipefail
+
+cfg_dir="${HOME:?HOME must be set}/.config/forgeos"
+offered_file="${cfg_dir}/ai-setup-offered"
+model_file="${cfg_dir}/ai-model"
+
+# Already offered to this user, or a model already chosen -> stay quiet.
+if [[ -e "$offered_file" || -e "$model_file" ]]; then
+    exit 0
+fi
+
+# Make the offer (it asks Yes/No itself and downloads only on Yes).
+/usr/bin/forgeos-ai-setup || true
+
+# Mark it: this user has had their one first-login offer.
+mkdir -p -- "$cfg_dir"
+: > "$offered_file"

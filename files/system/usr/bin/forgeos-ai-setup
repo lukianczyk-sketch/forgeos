@@ -109,15 +109,15 @@ say() {
     local kind=$1 text=$2
     if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null 2>&1; then
         if [[ "$kind" == "error" ]]; then
-            kdialog --title "ForgeOS AI Setup" --error "$text"
+            kdialog --title "ForgeOS AI Setup" --error "$text" || true
         else
-            kdialog --title "ForgeOS AI Setup" --msgbox "$text"
+            kdialog --title "ForgeOS AI Setup" --msgbox "$text" || true
         fi
     elif [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v zenity >/dev/null 2>&1; then
         if [[ "$kind" == "error" ]]; then
-            zenity --error --text="$text" --title="ForgeOS AI Setup"
+            zenity --error --text="$text" --title="ForgeOS AI Setup" || true
         else
-            zenity --info --text="$text" --title="ForgeOS AI Setup"
+            zenity --info --text="$text" --title="ForgeOS AI Setup" || true
         fi
     else
         echo "$text"
