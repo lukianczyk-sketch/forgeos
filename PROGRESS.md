@@ -91,3 +91,15 @@ Checked on disk (Linux):
 - Your question: correct — PROGRESS.md and RABBIT-BLUEPRINT.md were Claude's job setup (Job 2 docs moved to blueprints/). Good catch flagging it instead of touching them.
 NEXT for Rabbit: Step 2 only (start a fresh Cline task).
 
+## Step 2 — "Android Apps" and "Game Streaming" menu buttons + automatic check — 2026-10-23
+Rabbit created `files/system/usr/share/applications/forgeos-android-apps.desktop`, `forgeos-game-streaming.desktop`, `tests/test-cool-stuff.sh` (128 lines, bash + awk + grep only) and added the one CI step to `.github/workflows/tests.yml`, exactly as the blueprint says. Rabbit then kept running extra Windows line-ending checks, so Claude stopped the task before the report and finished verification on Linux (below).
+
+### Claude review — Step 2 — 2026-10-23: APPROVED
+- Both .desktop files match the blueprint character-for-character. CI step matches exactly and is last; nothing else in tests.yml changed.
+- Line endings: the editor saved the 3 new files with CRLF in the working copy; Claude converted to LF (`sed -i 's/\r$//'`), 0 CR bytes now. (.gitattributes `eol=lf` also normalizes on commit.) No code changed.
+- `shellcheck -S warning tests/test-cool-stuff.sh`: PASS.
+- Real repo: 5 PASS + 1 SKIP (desktop-file-validate not on Claude's box; CI installs it), `RESULT: all checks passed`, exit 0.
+- Negative tests (temp copy, deleted after): CR added → FAIL check 2; wrong Exec line → FAIL check 3; `kde-connect` renamed in recipe → FAIL check 5; exit 1. Missing .desktop file → FAIL check 1.
+- Nice touches: optional repo-root argument, dnf block ends cleanly at the next module, tolerant of CRLF recipe.
+STATUS: JOB 4 COMPLETE — committing, then tag v0.4.0 after the GitHub builds are green.
+

@@ -38,3 +38,8 @@ jobs:
 
       - name: Check default Flatpak app list
         run: bash tests/test-flatpak-list.sh
+
+      - name: Check Cool Stuff menu buttons and KDE Connect
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-cool-stuff.sh

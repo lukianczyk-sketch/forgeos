@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Game Streaming Setup
+Comment=Stream your PC games to a phone, tablet or TV (Sunshine + Moonlight)
+Exec=konsole --hold -e ujust setup-sunshine
+Icon=applications-games
+Categories=Game;
+Keywords=stream;sunshine;moonlight;games;tv;
+Terminal=false

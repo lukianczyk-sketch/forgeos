@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Android Apps Setup
+Comment=Set up Android apps on ForgeOS (Waydroid)
+Exec=konsole --hold -e ujust setup-waydroid
+Icon=waydroid
+Categories=System;
+Keywords=android;phone;apps;waydroid;
+Terminal=false
