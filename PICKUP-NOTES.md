@@ -10,17 +10,19 @@
 - Own browser = ship a fast hardened one (Brave) now. A ForgeOS-branded Chromium build is a possible later step (Chromium is open source). Don't use Microsoft/Windows logos or look-alike trademarks.
 - OS image + source must be public (GPL / free GHCR hosting). Robert's money apps stay private.
 
-## Built so far (v0.1, not yet built on GitHub)
-- recipes/recipe.yml — base ghcr.io/ublue-os/bazzite:stable, default Flatpaks (Brave, Bottles, Heroic, Alpaca, Flatseal), signing.
-- files/system/usr/bin/forgeos-cleansweep — root script. Order: stage fresh signed image (online) → network off → rpm-ostree reset → quarantine non-factory files in /etc persistence dirs (compared against /usr/etc) → per-user autostart/systemd-user/authorized_keys → passwd -e users → flatpak override --reset → clamscan if present. Log: /var/log/forgeos-cleansweep-*.log
-- files/system/usr/bin/forgeos-cleansweep-gui + .desktop — confirm dialog (kdialog/zenity), pkexec, offer reboot.
-- Scripts pass bash -n and shellcheck (-S warning). NOT yet tested on a real machine.
+## Status (updated 2026-10-23)
+- v0.2.0 tagged (commit 7f24744): Job 1 "ForgeOS AI Setup" complete — Ollama v0.40.8 baked in (checksum-verified), local-only ollama.service, `forgeos-ai-setup` picks best Apache-2.0 model by VRAM and downloads only on Yes, menu entry + one-time first-login offer. GitHub `tests` + `bluebuild` both green.
+- Clean Sweep v1 in image (`forgeos-cleansweep` + `-gui`).
+- Default Flatpaks so far: Brave, Bottles, Heroic, Alpaca, Flatseal.
+
+## How we work
+- Rabbit Team (Cline + LM Studio on Robert's PC) writes all code from `RABBIT-BLUEPRINT.md` (current job), one step at a time, logs to `PROGRESS.md`. Claude reviews, then commits + pushes.
+- Finished jobs: `blueprints/job1-ai-setup.md` + `blueprints/job1-progress.md`.
 
 ## Next steps
-1. Robert creates the GitHub repo + signing key (BlueBuild Workshop: https://workshop.blue-build.org/), repo name `forgeos`, public.
-2. Push these files, first GitHub Actions build.
-3. Test on a spare PC / USB / VM: rebase, check apps, run Clean Sweep.
-4. Then: branding (logo, wallpaper, boot splash), Windows-like layout tweaks, Alpaca + Ollama local model setup, ClamAV, ISO installer + free hosting for it, NVIDIA variant (base bazzite-nvidia).
+1. Job 2 "New Apps" (IN PROGRESS): add 20 verified free Flathub apps to `default-flatpaks` + `tests/test-flatpak-list.sh`. Then tag v0.3.0.
+2. Job 3 "Clean Sweep" upgrade (blueprint in Claude project; upgrade v1, keep names; v1 behavior becomes `reset-system`).
+3. Later: branding / Windows-style layout, USB installer (ISO), AMD + NVIDIA variants, real-machine test.
 
 ## Known gaps / to verify at test time
 - Alpaca may need its Ollama plugin for fully local models.

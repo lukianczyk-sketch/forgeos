@@ -4,7 +4,7 @@ You are the Rabbit Team, lead coder for ForgeOS at RL Forge Works.
 Robert is the boss. Claude is the senior engineer who reviews ALL of your work.
 
 ## Always
-1. Your instructions are in RABBIT-BLUEPRINT.md. Read it before every task.
+1. Your instructions are in RABBIT-BLUEPRINT.md (the current job). Read it before every task. Old jobs are in blueprints/ — never edit them.
 2. Do ONE blueprint step at a time, then STOP.
 3. After each step, append a report to PROGRESS.md using the format at the bottom of the blueprint, ending with: STATUS: WAITING FOR CLAUDE REVIEW
 4. Never start the next step until Robert tells you Claude approved it.

@@ -1,103 +1,86 @@
-# RABBIT BLUEPRINT — ForgeOS Job 1: "ForgeOS AI Setup"
+# RABBIT BLUEPRINT — ForgeOS Job 2: "New Apps"
 
 **For:** Rabbit Team (Cline in VS Code). **Reviewer:** Claude.
 **Repo:** `lukianczyk-sketch/forgeos` (BlueBuild image, base `ghcr.io/ublue-os/bazzite:stable`).
+Job 1 (AI Setup) is finished and tagged `v0.2.0`. Its blueprint and progress log are in `blueprints/` — do not edit them.
 
 ## Rules (read every time)
 1. Do **ONE step only**, then stop. Write what you did in `PROGRESS.md` (format at the bottom) and wait for Claude's OK before the next step.
 2. **Free only.** No paid tools, services, keys or accounts.
-3. Don't touch files a step doesn't name. Never edit `cosign.pub`, `.github/` (except where a step says), or anything under `files/system/usr/bin/forgeos-cleansweep*`.
-4. Bash scripts start with `#!/usr/bin/env bash` and `set -euo pipefail` (build scripts: `set -oue pipefail`), and must pass `shellcheck -S warning`.
-5. Never claim "tested" or "passed" unless you actually ran it — say exactly what you ran and paste the output.
-6. The AI may **suggest** only. Nothing downloads or changes without the user clicking **Yes**.
+3. Only change the files the step names. Never edit `cosign.pub`, `blueprints/`, or anything under `files/system/usr/bin/forgeos-cleansweep*`.
+4. Bash scripts start with `#!/usr/bin/env bash` and `set -euo pipefail`, use LF line endings, and must pass `shellcheck -S warning`.
+5. Never claim "tested" or "passed" unless you actually ran it — paste the exact command and its output.
+6. Do NOT install or download any program on Robert's PC. Do NOT write Windows-only test harnesses. If a check needs Linux, say so and Claude will run it.
+7. Use the app IDs below **exactly** (capital letters matter). Claude already checked every one live on Flathub — do not swap any ID for one you "remember".
 
 ## Goal
-When a ForgeOS user opens **"ForgeOS AI Setup"**, it checks how much graphics memory (VRAM) the computer has, recommends the best free local AI model that fits, shows its download size, and downloads it **only if the user says yes**. The model then works in Alpaca (already in the image).
+Every ForgeOS user gets a full set of the best free apps on first boot, so a person coming from Windows has everything they need without hunting: office, email, photo/video tools, passwords, backups, a Windows-style Task Manager, and more. All apps are Flatpaks from Flathub (sandboxed, auto-updating), installed by the existing `default-flatpaks` module in `recipes/recipe.yml`.
 
-## Model choice (Apache-2.0 models only)
-| Detected VRAM | Model tag | Approx. download |
+## The approved app list (Claude-verified on Flathub 2026-10-23: free/open-source license, verified publisher, not end-of-life)
+| Group | App | Flathub ID |
 |---|---|---|
-| 20 GB or more | `qwen3.8:27b` | ~18 GB |
-| 12 – 19.9 GB | `gpt-oss:20b` | ~14 GB |
-| 8 – 11.9 GB | `gemma4:e4b` | ~7 GB |
-| under 8 GB, or no GPU found | `gemma4:e2b` | ~5 GB |
+| Already in recipe | Brave | `com.brave.Browser` |
+| Already in recipe | Bottles | `com.usebottles.bottles` |
+| Already in recipe | Heroic | `com.heroicgameslauncher.hgl` |
+| Already in recipe | Alpaca | `com.jeffser.Alpaca` |
+| Already in recipe | Flatseal | `com.github.tchx84.Flatseal` |
+| Office & email | ONLYOFFICE | `org.onlyoffice.desktopeditors` |
+| Office & email | Thunderbird | `org.mozilla.thunderbird` |
+| Photo & video | GIMP | `org.gimp.GIMP` |
+| Photo & video | Pinta | `com.github.PintaProject.Pinta` |
+| Photo & video | Kdenlive | `org.kde.kdenlive` |
+| Photo & video | OBS Studio | `com.obsproject.Studio` |
+| Photo & video | Haruna | `org.kde.haruna` |
+| Photo & video | Elisa | `org.kde.elisa` |
+| Photo & video | Gwenview | `org.kde.gwenview` |
+| Safety | KeePassXC | `org.keepassxc.KeePassXC` |
+| Safety | Pika Backup | `org.gnome.World.PikaBackup` |
+| Tools | Mission Center | `io.missioncenter.MissionCenter` |
+| Tools | LocalSend | `org.localsend.localsend_app` |
+| Tools | RustDesk | `com.rustdesk.RustDesk` |
+| Tools | PDF Arranger | `com.github.jeromerobert.pdfarranger` |
+| Tools | Okular | `org.kde.okular` |
+| Tools | Skanpage | `org.kde.skanpage` |
+| Tools | KCalc | `org.kde.kcalc` |
+| Tools | Filelight | `org.kde.filelight` |
+| Tools | Gear Lever | `it.mijorus.gearlever` |
 
-Keep these four tags and sizes in ONE place at the top of the script (variables), so they're easy to change later.
-(Claude update 2026-10-22: upgraded to the best free models available today — `qwen3.8:27b` replaces `qwen3.6:27b` (newer, Apache-2.0, better on every published benchmark); added the `gemma4:e4b` tier for 8–12 GB cards. All four tags checked live on ollama.com/library; all Apache-2.0.)
-
----
-
-## Step 1 — Find the Ollama download (research only, no code)
-Open https://github.com/ollama/ollama/releases/latest and write in PROGRESS.md:
-- the exact latest version number,
-- the exact file name of the **Linux x86-64 (amd64)** download,
-- whether it's `.tgz` or `.tar.zst`,
-- the exact model tags above as listed on https://ollama.com/library (confirm `qwen3.6:27b`, `gpt-oss:20b`, `gemma4:e2b` exist; if a tag is different, write the real one).
-Do not write any code in this step.
-
-## Step 2 — Build-time Ollama install
-Create `files/scripts/install-ollama.sh` that runs at **image build time**:
-- Variable `OLLAMA_VERSION="v0.40.8"` (pinned, no "latest"). Claude update 2026-10-22: v0.40.8 is the newest stable release (2026-10-21); was v0.40.6.
-- Make sure `zstd` exists first: `command -v zstd || dnf install -y zstd`.
-- Download BOTH into a temp folder with `curl -fL`:
-  `https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/ollama-linux-amd64.tar.zst`
-  and `https://github.com/ollama/ollama/releases/download/${OLLAMA_VERSION}/sha256sum.txt`
-- **Security check:** verify the download against `sha256sum.txt` (only the `ollama-linux-amd64.tar.zst` line) with `sha256sum -c`. If it doesn't match, the script must FAIL (exit 1) — never install an unverified download.
-- Extract into `/usr` with `tar --zstd -xf <file> -C /usr` (so `/usr/bin/ollama` exists), then delete the temp folder.
-- Prints `ollama --version` at the end (if it errors because no server is running, `ollama -v` output or `/usr/bin/ollama --help | head -1` is fine — just prove the binary runs).
-- Note: AMD GPU support (`ollama-linux-amd64-rocm.tar.zst`, ~1 GB more) is NOT part of this job — skip it.
-Then add `install-ollama.sh` to the `script` module list in `recipes/recipe.yml`, **above** `forgeos-setup.sh`.
-
-## Step 3 — Ollama background service
-Create:
-- `files/system/usr/lib/sysusers.d/ollama.conf` → creates system user/group `ollama` with home `/var/lib/ollama`.
-- `files/system/usr/lib/systemd/system/ollama.service` → runs `/usr/bin/ollama serve` as user `ollama`, `Environment=OLLAMA_HOST=127.0.0.1:11434` (local only — never open to the network), `Environment=OLLAMA_MODELS=/var/lib/ollama/models`, `Restart=always`, `WantedBy=multi-user.target`.
-- In `files/scripts/forgeos-setup.sh` add one line at the end: `systemctl enable ollama.service`
-
-## Step 4 — The "pick a model" brain
-Create `files/system/usr/bin/forgeos-ai-setup` (bash) with these functions:
-- `detect_vram_mb` — prints total VRAM in MB:
-  1. if env var `FORGEOS_FAKE_VRAM_MB` is set → print it (for tests);
-  2. else NVIDIA: `nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits` (take the largest if several GPUs);
-  3. else AMD: largest value from `/sys/class/drm/card*/device/mem_info_vram_total` (bytes → MB);
-  4. else print `0`.
-- `choose_model <vram_mb>` — prints the model tag using the table above.
-- `model_size <tag>` — prints the approx. download size text (use the sizes in the table above: ~18 GB, ~14 GB, ~7 GB, ~5 GB).
-- Option `--dry-run` → prints `VRAM: <n> MB` and `Model: <tag> (<size>)` and exits 0 without downloading anything.
-No downloading yet in this step.
-
-## Step 5 — Automatic tests on GitHub (free)
-Create `tests/test-ai-setup.sh` that runs `forgeos-ai-setup --dry-run` with `FORGEOS_FAKE_VRAM_MB` set to each value below and checks the chosen tag (exit 1 on any mismatch, print PASS/FAIL per case). Also FAIL if any output says `unknown size`.
-   `0`→`gemma4:e2b` · `4096`→`gemma4:e2b` · `7999`→`gemma4:e2b` · `8000`→`gemma4:e4b` · `11999`→`gemma4:e4b` · `12000`→`gpt-oss:20b` · `16384`→`gpt-oss:20b` · `19999`→`gpt-oss:20b` · `20000`→`qwen3.8:27b` · `24576`→`qwen3.8:27b`
-   (Claude update 2026-10-22: cases match the new 4-row table.)
-Create `.github/workflows/tests.yml` that, on every push and pull request, installs `shellcheck`, runs `shellcheck -S warning` on every script under `files/` and `tests/`, then runs `tests/test-ai-setup.sh`. Ubuntu runner, free.
-
-## Step 6 — Ask, then download
-Extend `forgeos-ai-setup` (normal run, no `--dry-run`):
-1. If `ollama` isn't running (`curl -s http://127.0.0.1:11434/api/version` fails) → show a message and exit.
-2. Show a Yes/No dialog (use `kdialog`, fall back to `zenity`, fall back to terminal `read`): "Your computer has <X> GB graphics memory. Recommended AI: <tag> (<size> download). Download now?"
-3. Only on **Yes**: `ollama pull <tag>`, with a progress dialog if possible.
-4. Save the choice to `~/.config/forgeos/ai-model` (one line: the tag).
-5. Finish with a message: "Done — open Alpaca to chat with your AI."
-On **No** → exit quietly, change nothing.
-
-## Step 7 — Menu entry + first-login prompt
-- `files/system/usr/share/applications/forgeos-ai-setup.desktop` → Name "ForgeOS AI Setup", Exec `/usr/bin/forgeos-ai-setup`, Icon `applications-science`, Categories `System;`.
-- `files/system/etc/xdg/autostart/forgeos-ai-setup-once.desktop` → runs a tiny wrapper that only starts the setup if `~/.config/forgeos/ai-model` does NOT exist, and only once per user (create `~/.config/forgeos/ai-setup-offered` after the first offer).
-- (Already done in Step 4: `forgeos-ai-setup` is in the chmod line of `forgeos-setup.sh`. Add the new wrapper script there too if you create one.)
-
-## Done when
-- GitHub "tests" workflow is green, and the main image build is green.
-- Claude has reviewed every step.
+Total: 25 IDs. Note: the OLD Thunderbird ID `org.mozilla.Thunderbird` (capital T) is end-of-life on Flathub — it must NOT appear anywhere.
 
 ---
 
-## PROGRESS.md format (append one block per step)
+## Step 1 — Add the apps to the recipe
+Edit ONLY `recipes/recipe.yml`, inside the existing `default-flatpaks` → first configuration → `install:` list:
+- Keep the 5 apps already there, in the same order, with their comments.
+- Below them, add the other 20 IDs from the table, grouped in the table's order. Put a short comment line before each group (e.g. `# Office & email`), and a short end-of-line comment on each app saying what it is (same style as the existing lines, e.g. `# Office suite — opens Word/Excel/PowerPoint files`).
+- Do not change anything else in the file (`notify: true`, `scope: system`, the empty `- scope: user` entry, the other modules all stay exactly as they are).
+- Each ID must appear exactly once.
+Check you ran: `git diff --stat` (only `recipes/recipe.yml` and `PROGRESS.md` changed) and paste `git diff recipes/recipe.yml`.
+
+## Step 2 — Automatic check for the app list
+Create `tests/test-flatpak-list.sh` (bash) that reads `recipes/recipe.yml` and FAILS (exit 1) if:
+1. any of the 25 IDs in the table is missing from the file (keep the 25 IDs in ONE array at the top of the script);
+2. any Flatpak ID listed under `install:` appears more than once;
+3. the end-of-life ID `org.mozilla.Thunderbird` appears anywhere (match it case-sensitively — `org.mozilla.thunderbird` lowercase is the correct one and must pass);
+4. any `install:` line is not a valid reverse-DNS app ID (regex: `^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+){2,}$` after stripping the leading `- ` and any `# comment`).
+It prints `PASS:`/`FAIL:` per check and ends with `RESULT: all checks passed` (exit 0) or `RESULT: N check(s) failed` (exit 1).
+Use only bash, grep, sed, awk (no Python, no yq — the GitHub runner and Robert's PC must not need extra installs).
+Then add ONE new step at the end of `.github/workflows/tests.yml` (this step is allowed to edit that file):
+```yaml
+      - name: Check default Flatpak app list
+        run: bash tests/test-flatpak-list.sh
+```
+Run it yourself with Git Bash if available and paste the output. Also prove check 3 works: copy recipe.yml to a temp file, add the bad ID, run the script against it (the script may take an optional path argument, default `recipes/recipe.yml`), paste the FAIL output, delete the temp file.
+
+---
+
+## PROGRESS.md format (append after each step)
 ```
 ## Step N — <title> — <date>
-Files changed: <list>
-What I did: <2–5 lines>
-What I ran + output: <exact command and pasted result, or "nothing run">
-Questions / unsure about: <list or "none">
+What I did:
+- ...
+What I ran + output:
+<exact commands and output>
+Questions / unsure about: <or "none">
 STATUS: WAITING FOR CLAUDE REVIEW
 ```
