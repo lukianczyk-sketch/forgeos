@@ -102,3 +102,53 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Broken nvidia-smi now falls through instead of stopping. chmod line includes forgeos-ai-setup.
 NEXT for Rabbit: Step 5 only.
 
+## Step 5 — Automatic tests on GitHub (free) — 2026-10-22
+Files changed: `tests/test-ai-setup.sh` (new), `.github/workflows/tests.yml` (new)
+What I did:
+- Created `tests/test-ai-setup.sh`: runs `forgeos-ai-setup --dry-run` with `FORGEOS_FAKE_VRAM_MB` = 0, 4096, 11999, 12000, 16384, 19999, 20000, 24576; extracts the tag from the `Model:` line and compares it to the expected one (e2b / e2b / e4b / gpt-oss:20b ×3 / qwen3.8:27b ×2); prints PASS/FAIL per case; exits 1 on any mismatch. Resolves the script path relative to its own location, so it works from any cwd and regardless of exec bit (invokes via `bash`).
+- Created `.github/workflows/tests.yml` as a NEW file next to build.yml (no existing `.github/` file touched): on every push + pull_request, ubuntu-latest runner: checkout → install shellcheck from Ubuntu repos (free) → run `shellcheck -S warning` on every shebang script found under `files/` and `tests/` (data files skipped; fails loudly if zero scripts are found) → runs `bash tests/test-ai-setup.sh`.
+What I ran + output:
+- Found a real bash on this machine after all (`C:\Program Files\Git\bin\bash.exe`, from Git for Windows), so I actually ran the suite locally:
+  `& 'C:\Program Files\Git\bin\bash.exe' d:/GitHub/forgeos/tests/test-ai-setup.sh` →
+    PASS VRAM=0 MB -> gemma4:e2b
+    PASS VRAM=4096 MB -> gemma4:e2b
+    PASS VRAM=11999 MB -> gemma4:e4b
+    PASS VRAM=12000 MB -> gpt-oss:20b
+    PASS VRAM=16384 MB -> gpt-oss:20b
+    PASS VRAM=19999 MB -> gpt-oss:20b
+    PASS VRAM=20000 MB -> qwen3.8:27b
+    PASS VRAM=24576 MB -> qwen3.8:27b
+    ----------------------------------------
+    RESULT: all 8 cases passed (exit code 0)
+- Negative test (proves the FAIL path + exit 1): copied the suite to `tests/neg-test.tmp.sh` with case "0" expecting `qwen3.8:27b`, ran it → `FAIL VRAM=0 MB — expected 'qwen3.8:27b', got 'gemma4:e2b'` … `RESULT: 1 of 8 cases FAILED`, exit code 1; deleted the temp copy afterwards (confirmed "temp file removed").
+- Did NOT run shellcheck locally — confirmed absent (`command -v shellcheck` inside Git bash → NO-SHELLCHECK-IN-GITBASH); that part is left to CI/you.
+Questions / unsure about:
+1. `git status --short` also shows ` M RABBIT-BLUEPRINT.md` — I did NOT touch the blueprint this session (probably your uncommitted model-table edit). Flagging so it isn't mistaken for my change.
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5 — 2026-10-22: 2 MUST FIX
+Good: tests.yml is right (free Ubuntu runner, shellcheck on every script, then the tests). I ran shellcheck on every script it will scan — all pass. Your negative test (plant a mistake, confirm it fails, clean up) was smart.
+**MUST FIX in `tests/test-ai-setup.sh`:**
+1. Use the case list from RABBIT-BLUEPRINT.md Step 5 (updated for the 4-row table) — 10 cases, adds the 8 GB edge:
+   `0 gemma4:e2b`, `4096 gemma4:e2b`, `7999 gemma4:e2b`, `8000 gemma4:e4b`, `11999 gemma4:e4b`, `12000 gpt-oss:20b`, `16384 gpt-oss:20b`, `19999 gpt-oss:20b`, `20000 qwen3.8:27b`, `24576 qwen3.8:27b`
+2. In `check_case`, also FAIL if the output contains `unknown size` (that bug slipped through in Step 4).
+Also: don't hard-code "8" in the RESULT lines — count the cases (e.g. a `total` counter).
+Change nothing else. Run the tests with Git Bash again, write a short "Step 5 fix" report, and stop.
+
+## Step 5 fix — 10-case list + unknown-size guard (Claude MUST FIX) — 2026-10-22
+Files changed: `tests/test-ai-setup.sh` only
+What I did:
+- Case list is now the updated 10 cases from RABBIT-BLUEPRINT.md Step 5 (added `7999 gemma4:e2b` and `8000 gemma4:e4b`).
+- `check_case` now also FAILs if the output contains `unknown size`.
+- RESULT lines no longer hard-code "8" — added a `total` counter (`RESULT: ${failures} of ${total} cases FAILED` / `RESULT: all ${total} cases passed`).
+What I ran + output (Git Bash, `C:\Program Files\Git\bin\bash.exe`):
+- Positive run: `& 'C:\Program Files\Git\bin\bash.exe' d:/GitHub/forgeos/tests/test-ai-setup.sh` → PASS for all 10 cases (0→gemma4:e2b, 4096→gemma4:e2b, 7999→gemma4:e2b, 8000→gemma4:e4b, 11999→gemma4:e4b, 12000/16384/19999→gpt-oss:20b, 20000/24576→qwen3.8:27b), `RESULT: all 10 cases passed`, exit code 0 (re-ran with output redirected to a temp file and read it back — identical).
+- Negative test of the new guard: built a throwaway repo copy in %TEMP% whose fake `forgeos-ai-setup` prints `Model: gemma4:e2b (unknown size)` → all 10 cases FAIL with "output contains 'unknown size'", `RESULT: 10 of 10 cases FAILED`, exit code 1. Temp dir deleted afterwards ("NEG DIR REMOVED").
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5 — 2026-10-22: APPROVED
+- Simulated tests.yml in a clean Linux copy: YAML valid; shellcheck scanned 7 scripts — all PASS; tests/test-ai-setup.sh → all 10 cases passed.
+- Both fixes in (10-case list, "unknown size" guard, counted total). Your negative tests proved both failure paths work.
+NEXT for Rabbit: Step 6 only.
+

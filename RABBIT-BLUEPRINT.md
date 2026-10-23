@@ -67,7 +67,9 @@ Create `files/system/usr/bin/forgeos-ai-setup` (bash) with these functions:
 No downloading yet in this step.
 
 ## Step 5 — Automatic tests on GitHub (free)
-Create `tests/test-ai-setup.sh` that runs `forgeos-ai-setup --dry-run` with `FORGEOS_FAKE_VRAM_MB` set to: `0`, `4096`, `11999`, `12000`, `16384`, `19999`, `20000`, `24576` and checks the chosen tag each time (exit 1 on any mismatch, print PASS/FAIL per case).
+Create `tests/test-ai-setup.sh` that runs `forgeos-ai-setup --dry-run` with `FORGEOS_FAKE_VRAM_MB` set to each value below and checks the chosen tag (exit 1 on any mismatch, print PASS/FAIL per case). Also FAIL if any output says `unknown size`.
+   `0`→`gemma4:e2b` · `4096`→`gemma4:e2b` · `7999`→`gemma4:e2b` · `8000`→`gemma4:e4b` · `11999`→`gemma4:e4b` · `12000`→`gpt-oss:20b` · `16384`→`gpt-oss:20b` · `19999`→`gpt-oss:20b` · `20000`→`qwen3.8:27b` · `24576`→`qwen3.8:27b`
+   (Claude update 2026-10-22: cases match the new 4-row table.)
 Create `.github/workflows/tests.yml` that, on every push and pull request, installs `shellcheck`, runs `shellcheck -S warning` on every script under `files/` and `tests/`, then runs `tests/test-ai-setup.sh`. Ubuntu runner, free.
 
 ## Step 6 — Ask, then download
@@ -82,7 +84,7 @@ On **No** → exit quietly, change nothing.
 ## Step 7 — Menu entry + first-login prompt
 - `files/system/usr/share/applications/forgeos-ai-setup.desktop` → Name "ForgeOS AI Setup", Exec `/usr/bin/forgeos-ai-setup`, Icon `applications-science`, Categories `System;`.
 - `files/system/etc/xdg/autostart/forgeos-ai-setup-once.desktop` → runs a tiny wrapper that only starts the setup if `~/.config/forgeos/ai-model` does NOT exist, and only once per user (create `~/.config/forgeos/ai-setup-offered` after the first offer).
-- Add `chmod 0755 /usr/bin/forgeos-ai-setup` to `forgeos-setup.sh`.
+- (Already done in Step 4: `forgeos-ai-setup` is in the chmod line of `forgeos-setup.sh`. Add the new wrapper script there too if you create one.)
 
 ## Done when
 - GitHub "tests" workflow is green, and the main image build is green.

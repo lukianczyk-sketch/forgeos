@@ -1,0 +1,37 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  test-ai-setup:
+    name: Test AI Setup
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck (free, from Ubuntu repos)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends shellcheck
+
+      - name: Shellcheck every script under files/ and tests/
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r script; do
+            if head -n 1 -- "$script" | grep -q '^#!'; then
+              echo "shellcheck -S warning $script"
+              shellcheck -S warning "$script"
+              found=$((found + 1))
+            fi
+          done < <(find files tests -type f | sort)
+          if (( found == 0 )); then
+            echo "ERROR: no scripts found under files/ or tests/" >&2
+            exit 1
+          fi
+
+      - name: Run forgeos-ai-setup dry-run tests
+        run: bash tests/test-ai-setup.sh
