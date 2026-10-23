@@ -40,6 +40,10 @@ APPROVED_IDS=(
     org.kde.kcalc
     org.kde.filelight
     it.mijorus.gearlever
+    net.mkiol.SpeechNote
+    com.github.wwmm.easyeffects
+    com.moonlight_stream.Moonlight
+    io.gitlab.adhami3310.Impression
 )
 
 EOL_ID='org.mozilla.Thunderbird' # end-of-life ID — must not appear anywhere (case-sensitive)

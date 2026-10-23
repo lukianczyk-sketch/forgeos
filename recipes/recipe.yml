@@ -25,6 +25,12 @@ modules:
       - install-ollama.sh
       - forgeos-setup.sh
 
+  # Phone <-> PC link: texts, notifications, shared clipboard, send files
+  - type: dnf
+    install:
+      packages:
+        - kde-connect
+
   # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.
   - type: default-flatpaks
     configurations:
@@ -60,6 +66,11 @@ modules:
           - org.kde.kcalc                   # Calculator with formulas
           - org.kde.filelight               # See what is using your disk space
           - it.mijorus.gearlever            # Install & manage AppImage apps (adds them to the menu)
+          # Cool stuff
+          - net.mkiol.SpeechNote            # Talk to type, read aloud, translate — offline & private
+          - com.github.wwmm.easyeffects     # Sound equalizer + mic background-noise removal
+          - com.moonlight_stream.Moonlight  # Play your PC games on another screen
+          - io.gitlab.adhami3310.Impression # Make bootable USB sticks
       - scope: user
 
   # Image signing — systems only accept updates signed with our key
