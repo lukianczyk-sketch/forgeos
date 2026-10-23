@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# ForgeOS AI Setup — the "pick a model" brain (Step 4).
+# ForgeOS AI Setup — the "pick a model" brain (Steps 4 + 6).
 # Detects graphics memory, recommends the best free local AI model that fits,
-# and reports its approximate download size. No downloading in this step yet.
+# asks for permission first, and downloads it via Ollama only if the user says Yes.
 set -euo pipefail
 
 # --- Model table: keep tags + sizes in ONE place so they're easy to change ---
@@ -84,7 +84,125 @@ model_size() {
     esac
 }
 
+# ask_yes_no <question>: returns 0 for Yes, 1 for No.
+# Tries kdialog, then zenity, then a plain terminal prompt (in that order).
+# GUI dialogs are only used when a display is available, so headless sessions
+# fall back to the terminal instead of failing.
+ask_yes_no() {
+    local question=$1 answer=""
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null 2>&1; then
+        kdialog --yesno "$question" --title "ForgeOS AI Setup"
+        return $?
+    fi
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v zenity >/dev/null 2>&1; then
+        zenity --question --text="$question" --title="ForgeOS AI Setup"
+        return $?
+    fi
+    printf '%s [y/N] ' "$question"
+    IFS= read -r answer || answer=""
+    [[ "${answer,,}" == y* ]]
+}
+
+# say <kind> <text>: show a message where the user can see it — menu launches
+# have no terminal. kind is "info" or "error". GUI first, then plain echo.
+say() {
+    local kind=$1 text=$2
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null 2>&1; then
+        if [[ "$kind" == "error" ]]; then
+            kdialog --title "ForgeOS AI Setup" --error "$text"
+        else
+            kdialog --title "ForgeOS AI Setup" --msgbox "$text"
+        fi
+    elif [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v zenity >/dev/null 2>&1; then
+        if [[ "$kind" == "error" ]]; then
+            zenity --error --text="$text" --title="ForgeOS AI Setup"
+        else
+            zenity --info --text="$text" --title="ForgeOS AI Setup"
+        fi
+    else
+        echo "$text"
+    fi
+}
+
+# pull_model <tag>: download the model with Ollama.
+# With kdialog available, shows a moving "busy" progress bar (driven over
+# D-Bus) and always closes it afterwards; otherwise streams ollama's own
+# output to the terminal. Returns non-zero if the pull fails.
+pull_model() {
+    local model=$1 ref="" ok=0
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && command -v kdialog >/dev/null 2>&1; then
+        # Value 0 = moving "busy" bar; kdialog prints a D-Bus reference and the
+        # dialog stays open until we close it below.
+        if ! ref=$(kdialog --title "ForgeOS AI Setup" \
+            --progressbar "Downloading ${model} — this can take a while..." 0); then
+            ref=""
+        fi
+    fi
+
+    if [[ -n "$ref" ]]; then
+        ollama pull "$model" >/dev/null 2>&1 && ok=1
+        dbus-send --session --type=method_call \
+            --dest="${ref% *}" "${ref#* }" org.kde.kdialog.ProgressDialog.close || true
+    else
+        echo "Downloading ${model} — this can take a while..."
+        ollama pull "$model" && ok=1
+    fi
+
+    if (( ! ok )); then
+        say error "Download of ${model} failed."
+        return 1
+    fi
+    return 0
+}
+
+# Normal run: check Ollama, ask Yes/No, download only on Yes, save the choice.
+run_setup() {
+    # 1) Ollama must be answering locally (never over the network).
+    if ! curl -sf --max-time 5 http://127.0.0.1:11434/api/version >/dev/null 2>&1; then
+        say error "Ollama is not running — nothing was downloaded. Start it first (for example: systemctl start ollama.service) and try again."
+        return 1
+    fi
+
+    local vram_mb model size question vram_gb=""
+    vram_mb=$(detect_vram_mb)
+    model=$(choose_model "$vram_mb")
+    size=$(model_size "$model")
+
+    # 2) Ask first — the AI may only suggest; nothing happens without a Yes.
+    if (( vram_mb > 0 )); then
+        vram_gb=$(awk -v mb="$vram_mb" 'BEGIN { printf "%.1f", mb / 1024 }')
+        question="Your computer has ${vram_gb} GB graphics memory. Recommended AI: ${model} (${size} download). Download now?"
+    else
+        question="No dedicated graphics card found. Recommended AI: ${model} (${size} download). Download now?"
+    fi
+    if ! ask_yes_no "$question"; then
+        return 0   # No -> exit quietly, change nothing
+    fi
+
+    # 3) Yes -> download (with a progress dialog when possible).
+    if ! pull_model "$model"; then
+        return 1
+    fi
+
+    # 4) Remember the choice for next time.
+    local cfg_dir="${HOME:?HOME must be set}/.config/forgeos"
+    mkdir -p -- "$cfg_dir"
+    printf '%s\n' "$model" > "${cfg_dir}/ai-model"
+
+    # 5) All done.
+    say info "Done — open Alpaca to chat with your AI."
+}
+
 main() {
+    if [[ $# -gt 0 && "${1:-}" != "--dry-run" ]]; then
+        echo "usage: forgeos-ai-setup [--dry-run]" >&2
+        return 1
+    fi
+    if [[ $# -gt 1 ]]; then
+        echo "usage: forgeos-ai-setup [--dry-run]" >&2
+        return 1
+    fi
+
     if [[ "${1:-}" == "--dry-run" ]]; then
         local vram_mb model
         vram_mb=$(detect_vram_mb)
@@ -94,9 +212,7 @@ main() {
         return 0
     fi
 
-    echo "forgeos-ai-setup: interactive download mode is not implemented yet (Step 6)." >&2
-    echo "usage: forgeos-ai-setup --dry-run" >&2
-    return 1
+    run_setup
 }
 
 main "$@"

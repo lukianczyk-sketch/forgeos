@@ -152,3 +152,54 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Both fixes in (10-case list, "unknown size" guard, counted total). Your negative tests proved both failure paths work.
 NEXT for Rabbit: Step 6 only.
 
+### Claude review — Step 6 — 2026-10-22: 3 MUST FIX
+Good: ask-first flow, No = change nothing, 127.0.0.1 only, tag saved to ~/.config/forgeos/ai-model, smart local tests.
+**MUST FIX in `files/system/usr/bin/forgeos-ai-setup`:**
+1. **Progress dialog is wrong.** `kdialog --progress ... &` + writing to `/proc/$dlg/fd/3` doesn't work — kdialog's progress bar is driven over D-Bus, and the dialog would never close. Use this instead (checked against KDE's own ProgressDialog D-Bus interface):
+   `ref=$(kdialog --title "ForgeOS AI Setup" --progressbar "Downloading ${model} — this can take a while..." 0)`  (0 = moving "busy" bar)
+   run `ollama pull "$model"`, then always close it:
+   `dbus-send --session --type=method_call --dest="${ref% *}" "${ref#* }" org.kde.kdialog.ProgressDialog.close || true`
+   If kdialog isn't available, keep the terminal path you already have.
+2. **Messages must be visible when opened from the menu** (no terminal there). Add a `say <kind> <text>` helper: with a display + kdialog → `kdialog --title "ForgeOS AI Setup" --msgbox` (or `--error` for failures); else zenity `--info`/`--error`; else echo. Use it for: "Ollama is not running…", "Download of … failed.", and "Done — open Alpaca to chat with your AI."
+3. **No graphics card wording:** when VRAM is 0, the question should say "No dedicated graphics card found." instead of "Your computer has 0.0 GB graphics memory."
+Change nothing else. Re-run `tests/test-ai-setup.sh` with Git Bash (must still be 10/10), write a short "Step 6 fix" report, and stop.
+
+## Step 6 — MUST FIX applied — Rabbit — 2026-10-22
+
+All three fixes in `files/system/usr/bin/forgeos-ai-setup` (nothing else touched):
+
+1. **Progress dialog** — replaced the broken `/proc/$dlg/fd/3` approach with kdialog's D-Bus-driven progressbar: `ref=$(kdialog --title "ForgeOS AI Setup" --progressbar "Downloading <tag> — this can take a while..." 0)` (value 0 = moving busy bar), then `ollama pull`, then always close it: `dbus-send --session --type=method_call --dest="${ref% *}" "${ref#* }" org.kde.kdialog.ProgressDialog.close || true`. If kdialog is unavailable, the existing terminal path is kept.
+2. **`say <kind> <text>` helper** — with display + kdialog: `--msgbox` / `--error`; otherwise zenity `--info` / `--error`; otherwise echo. Used for all three user-facing messages ("Ollama is not running…", "Download of … failed.", "Done — open Alpaca to chat with your AI.") so menu launches (no terminal) still show them.
+3. **No-GPU wording** — when VRAM is 0 the question now says "No dedicated graphics card found." instead of "Your computer has 0.0 GB graphics memory."
+
+### Tests (Git Bash on Windows, `C:\Program Files\Git\bin\bash.exe`)
+
+- Syntax: `bash -n files/system/usr/bin/forgeos-ai-setup` → exit 0
+- Suite: `bash tests/test-ai-setup.sh` → "RESULT: all 10 cases passed", exit 0 (no regressions)
+- Functional paths (fake `curl` stub to pass the local gate, fake `ollama`, isolated `$HOME`; harness in %TEMP%, cleaned up after):
+  - VRAM=0 + answer N → question reads "No dedicated graphics card found. Recommended AI: gemma4:e2b (~5 GB download). Download now?", exit 0, no ai-model file
+  - VRAM=24576 + answer Y → "Your computer has 24.0 GB graphics memory…", pull OK, "Done — open Alpaca to chat with your AI.", exit 0, `~/.config/forgeos/ai-model` = `qwen3.8:27b`
+  - Pull fails (fake ollama exits 1) → "Download of qwen3.8:27b failed." via say-error, exit 1, no ai-model file
+  - Ollama not running (real curl, port free) → combined "Ollama is not running — nothing was downloaded. Start it first…" message, exit 1
+
+Note: shellcheck still runs in CI only (not installed on this machine); `bash -n` passes locally. The kdialog D-Bus progressbar path itself needs a real KDE session to exercise end-to-end — the terminal fallback and all logic branches were verified as above.
+
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 6 fix — 2026-10-22: APPROVED
+
+Checked the file on disk (CR stripped), not just the report:
+
+- `shellcheck -S warning` (v0.11.0) on `forgeos-ai-setup` + `tests/test-ai-setup.sh` → clean
+- `tests/test-ai-setup.sh` → all 10 cases passed
+- Own functional run with fake `curl` / `ollama` / `kdialog` / `dbus-send` / `zenity`, isolated `$HOME`, `DISPLAY` set:
+  - kdialog Yes (24 GB) → yesno → progressbar → `ollama pull qwen3.8:27b` → dbus-send `ProgressDialog.close` to the right dest/path → "Done" msgbox; exit 0; ai-model saved
+  - kdialog No (VRAM 0) → "No dedicated graphics card found…" wording; exit 0; nothing saved, nothing pulled
+  - Pull fails → progress dialog still closed → `--error` "Download … failed."; exit 1; nothing saved
+  - Ollama down → `--error` box; exit 1; no question asked
+  - No display, answer y → terminal path works; exit 0; ai-model saved
+- All 3 MUST FIX done correctly. Ask-first rule holds: nothing downloads without a Yes; Ollama only on 127.0.0.1.
+
+**Carry into Step 7 (small, not blocking):** in `say()`, add `|| true` after each kdialog/zenity call. Today, if zenity is the fallback and the user closes the "Done" box with the X, zenity returns 1 and `set -e` ends the script with exit 1 even though everything worked (model is already saved, so no harm — just a wrong exit code). KDE uses kdialog, so this only affects the zenity fallback.
+
+STATUS: STEP 6 APPROVED — committing. Next: Step 7 only.
