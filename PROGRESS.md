@@ -330,3 +330,27 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - rpm-ostree failing → WARNING, /etc still restored, exit 3. Everything OK → exit 0. ostree missing → ERROR before the question, nothing changed, exit 3.
   - `--dry-run` output identical to the 5a-2 version; bad flags → 3.
 - Next: Step 5c (real run part 2: per-user startup spots + dotfiles from /etc/skel, password expiry, clear ld.so.preload / spool cron / tmp).
+
+## Step 5c — reset-system real run, part 2 (user startup spots + hiding spots) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- New globals after RESET_BK_DIR: TMP_DIR="/tmp", VARTMP_DIR="/var/tmp" (so tests never touch the real temp folders).
+- reset_users_plan() takes an optional mode (`local mode="${1:-plan}"`); log lines unchanged. In "apply" mode: MOVE → mkdir -p + mv into `$RESET_BK<full path>`; RESET → back up the old dotfile, then `runuser -u <user> -- cp /etc/skel/<name>` (written as the user, so root never writes into a user's folder; if the copy fails the old file is moved back); LOCK → `passwd -e <user>`; /root/.ssh/authorized_keys → moved to the backup. Every failure → "ERROR: …", RESET_ERRORS+1, next item.
+- New reset_clears() (plan/apply): the "5. Clear hiding spots" block moved out of reset_system(). Apply: back up + empty /etc/ld.so.preload; move each /var/spool/cron/* to the backup, then mkdir -p + chmod 700 /var/spool/cron; /tmp is skipped when it is tmpfs ("emptied by the restart"), otherwise emptied like /var/tmp; /var/tmp emptied with find -mindepth 1 -maxdepth 1, skipping systemd-private-*, .X11-unix, .ICE-unix, .XIM-unix, .font-unix.
+- reset_system_run(): now runs "4. …" reset_users_plan apply and "5. …" reset_clears apply; "Steps 6-8 … coming in Step 5d."; Done line adds "N user startup items". Comments + usage() updated.
+What I ran + output: nothing (per instruction). Claude cancelled Cline while it was stuck writing this report and wrote it from the diff.
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5c — 2026-10-24
+- APPROVED with 3 small fixes (Claude applied):
+  1. **Don't lose the evidence:** if Step 3 had already backed up a changed ld.so.preload (M) and copied the factory one in, the Step 5 backup copy overwrote it. Now `cp -a --backup=numbered`, so the bad copy is kept as `ld.so.preload.~1~`. CLEAR now only runs when the file is not empty (`-s`).
+  2. `rm -rf --one-file-system` in the temp-folder clean, so a mount inside /tmp or /var/tmp is never followed.
+  3. Removed 10 repeated "fail-safe" comment lines (from a confusing line in Claude's prompt); one note in the function header instead.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (fake id / getent / runuser / passwd / findmnt / ostree / rpm-ostree / systemctl; skel, spool, /root/.ssh, ld.so.preload, tmp dirs pointed at test folders):
+  - `--dry-run` output identical to 5b's (8 user startup items).
+  - `--yes`, dirty user bob: autostart file with a space + broken symlink, systemd/user unit + .wants folder, plasma env script, authorized_keys → all moved into the backup with full paths; forgeos-helper.desktop kept; Documents untouched; .bashrc replaced from skel (old one in the backup); .profile (same as skel) untouched; passwd -e for bob and amy only (uid 999, 65534, no-home user skipped). Root authorized_keys moved; ld.so.preload backed up + emptied; both spool cron files (one with a space) moved; spool/cron + backup folders are 700. /tmp and /var/tmp emptied incl. hidden files, nested folders and a symlink (its target in amy's home untouched); .X11-unix and systemd-private-* kept. Exit 0.
+  - runuser copy fails → ERROR, old .bashrc put back, exit 3. passwd fails for one user → ERROR, next user still done, exit 3. Read-only autostart folder → 2 ERRORs, rest of the reset still runs, exit 3. /tmp on tmpfs → left alone with a note.
+  - ld.so.preload as A → moved by Step 3, Step 5 skips it (no false CLEAR). As M → bad copy kept as .~1~. Empty file → not listed.
+  - No terminal + no --yes → exit 3, nothing changed. Answer "n" → Cancelled, exit 0, nothing changed.
+- Next: Step 5d (real run part 3: scan first, flatpak repair + update, signed rebase or redeploy, summary, restart after OK).

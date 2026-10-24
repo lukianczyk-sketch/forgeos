@@ -19,6 +19,8 @@ QUAR_DIR="/var/lib/forgeos/quarantine"
 ETC_DIR="/etc"
 USR_ETC_DIR="/usr/etc"
 RESET_BK_DIR="/var/lib/forgeos/reset-backup"
+TMP_DIR="/tmp"
+VARTMP_DIR="/var/tmp"
 TAMPER=0
 THREATS=0
 STARTUP_ITEMS=0
@@ -877,7 +879,10 @@ reset_image_ref() {
 # Per-user startup spots (Step 5a-2): list what a reset would move or replace
 # for each regular user (UID 1000–59999 with an existing home). Personal files
 # are untouched; forgeos-* entries are ours and stay. Counts RESET_USERFILES.
+# Step 5c: called with "apply" it does the work for real; default is plan.
+# In apply mode a failed item is logged + counted, and the loop goes on.
 reset_users_plan() {
+  local mode="${1:-plan}"
   local user uid home f name
   while IFS=: read -r user _ uid _ _ home _; do
     case "$uid" in
@@ -897,27 +902,110 @@ reset_users_plan() {
       esac
       log "  MOVE     $f (to the backup folder)"
       RESET_USERFILES=$((RESET_USERFILES + 1))
+      if [ "$mode" = "apply" ]; then
+        if ! mkdir -p "$(dirname "$RESET_BK$f")"; then log "  ERROR: could not make the backup folder for $f."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+        if ! mv -- "$f" "$RESET_BK$f"; then log "  ERROR: could not move $f to the backup folder."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+      fi
     done
 
     for name in .bashrc .bash_profile .profile; do
       if [ -e "$home/$name" ] && [ -e "/etc/skel/$name" ] && ! cmp -s "$home/$name" "/etc/skel/$name"; then
         log "  RESET    $home/$name (fresh copy from /etc/skel; old one backed up)"
         RESET_USERFILES=$((RESET_USERFILES + 1))
+        if [ "$mode" = "apply" ]; then
+          if ! mkdir -p "$(dirname "$RESET_BK$home/$name")"; then log "  ERROR: could not make the backup folder for $home/$name."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+          if ! mv -- "$home/$name" "$RESET_BK$home/$name"; then log "  ERROR: could not back up $home/$name."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+          if ! runuser -u "$user" -- cp -- "/etc/skel/$name" "$home/$name"; then
+            log "  ERROR: could not copy /etc/skel/$name to $home/$name — old one put back."
+            mv -- "$RESET_BK$home/$name" "$home/$name" || log "  ERROR: could not put the old $home/$name back; it is in $RESET_BK$home/$name"
+            RESET_ERRORS=$((RESET_ERRORS + 1)); continue
+          fi
+        fi
       fi
     done
 
     log "  LOCK     user $user must choose a new password at next login"
+    if [ "$mode" = "apply" ]; then
+      if ! passwd -e "$user" >/dev/null 2>&1; then log "  ERROR: could not lock the password for $user."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+    fi
   done < <(getent passwd)
 
   if [ -e /root/.ssh/authorized_keys ]; then
     log "  MOVE     /root/.ssh/authorized_keys (to the backup folder)"
     RESET_USERFILES=$((RESET_USERFILES + 1))
+    if [ "$mode" = "apply" ]; then
+      if ! mkdir -p "$(dirname "$RESET_BK/root/.ssh/authorized_keys")"; then
+        log "  ERROR: could not make the backup folder for /root/.ssh/authorized_keys."
+        RESET_ERRORS=$((RESET_ERRORS + 1))
+      elif ! mv -- "/root/.ssh/authorized_keys" "$RESET_BK/root/.ssh/authorized_keys"; then
+        log "  ERROR: could not move /root/.ssh/authorized_keys to the backup folder."
+        RESET_ERRORS=$((RESET_ERRORS + 1))
+      fi
+    fi
   fi
   return 0
 }
 
-# Real run, part 1 (Step 5b): confirm, make the backup folder, rpm-ostree
-# reset, restore /etc from /usr/etc + preset-all. Steps 4-8 come in 5c/5d.
+# Hiding spots (Step 5a-2): /etc/ld.so.preload, user crontabs in
+# /var/spool/cron and the tmp folders. Step 5c: called with "apply" it clears
+# them for real — everything is backed up first; default is plan.
+reset_clears() {
+  local mode="${1:-plan}"
+  local f
+
+  if [ -s /etc/ld.so.preload ]; then   # only if not already empty
+    log "  CLEAR    /etc/ld.so.preload"
+    if [ "$mode" = "apply" ]; then
+      if ! mkdir -p "$RESET_BK/etc"; then
+        log "  ERROR: could not make the backup folder for /etc/ld.so.preload."
+        RESET_ERRORS=$((RESET_ERRORS + 1))
+      elif ! cp -a --backup=numbered -- /etc/ld.so.preload "$RESET_BK/etc/ld.so.preload"; then
+        log "  ERROR: could not back up /etc/ld.so.preload."
+        RESET_ERRORS=$((RESET_ERRORS + 1))
+      else
+        : > /etc/ld.so.preload || { log "  ERROR: could not empty /etc/ld.so.preload (backup is in $RESET_BK/etc/)."; RESET_ERRORS=$((RESET_ERRORS + 1)); }
+      fi
+    fi
+  fi
+
+  for f in /var/spool/cron/*; do
+    [ -e "$f" ] || [ -L "$f" ] || continue   # empty glob or missing file
+    log "  MOVE     $f (to the backup folder)"
+    if [ "$mode" = "apply" ]; then
+      if ! mkdir -p "$RESET_BK/var/spool/cron"; then log "  ERROR: could not make the backup folder for $f."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+      if ! mv -- "$f" "$RESET_BK/var/spool/cron/"; then log "  ERROR: could not move $f to the backup folder."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+    fi
+  done
+  if [ "$mode" = "apply" ]; then
+    if ! mkdir -p /var/spool/cron; then
+      log "  ERROR: could not make /var/spool/cron."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    elif ! chmod 700 /var/spool/cron; then
+      log "  ERROR: could not set the mode on /var/spool/cron."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+  fi
+
+  log "  EMPTY    $TMP_DIR"
+  if [ "$mode" = "apply" ]; then
+    if [ "$(findmnt -n -o FSTYPE --target "$TMP_DIR" 2>/dev/null)" = "tmpfs" ]; then
+      log "  ($TMP_DIR is emptied by the restart)"
+    else
+      find "$TMP_DIR" -mindepth 1 -maxdepth 1 ! -name 'systemd-private-*' ! -name '.X11-unix' ! -name '.ICE-unix' ! -name '.XIM-unix' ! -name '.font-unix' -exec rm -rf --one-file-system -- {} + || { log "  ERROR: could not empty $TMP_DIR."; RESET_ERRORS=$((RESET_ERRORS + 1)); }
+    fi
+  fi
+
+  log "  EMPTY    $VARTMP_DIR"
+  if [ "$mode" = "apply" ]; then
+    find "$VARTMP_DIR" -mindepth 1 -maxdepth 1 ! -name 'systemd-private-*' ! -name '.X11-unix' ! -name '.ICE-unix' ! -name '.XIM-unix' ! -name '.font-unix' -exec rm -rf --one-file-system -- {} + || { log "  ERROR: could not empty $VARTMP_DIR."; RESET_ERRORS=$((RESET_ERRORS + 1)); }
+  fi
+
+  return 0
+}
+
+# Real run, parts 1+2 (Steps 5b/5c): confirm, make the backup folder,
+# rpm-ostree reset, restore /etc from /usr/etc + preset-all, clean each user's
+# startup spots and clear the hiding spots. Steps 6-8 come in Step 5d.
 reset_system_run() {
   if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
     log "ERROR: ostree not found."
@@ -948,9 +1036,15 @@ reset_system_run() {
   reset_etc_plan apply || exit 3
   reset_keep_warnings
 
-  log "Steps 4-8 (user startup spots, clears, apps, fresh image, restart) are coming in Steps 5c/5d."
+  log "4. Clean each user's startup spots (personal files untouched):"
+  reset_users_plan apply
 
-  log "Done: $RESET_RESTORE restored, $RESET_REMOVE removed, $RESET_PUTBACK put back, $RESET_KEEP kept, $RESET_ERRORS problems. Changes take effect after a restart."
+  log "5. Clear hiding spots:"
+  reset_clears apply
+
+  log "Steps 6-8 (apps, fresh image, restart) are coming in Step 5d."
+
+  log "Done: $RESET_RESTORE restored, $RESET_REMOVE removed, $RESET_PUTBACK put back, $RESET_KEEP kept, $RESET_USERFILES user startup items, $RESET_ERRORS problems. Changes take effect after a restart."
 
   if [ "$RESET_ERRORS" -gt 0 ]; then
     exit 3
@@ -958,8 +1052,8 @@ reset_system_run() {
   exit 0
 }
 
-# `forgeos-cleansweep reset-system` (Steps 5a/5b): --dry-run prints the full
-# plan; without it, Steps 2-3 run for real (Step 5b), Steps 4-8 come in 5c/5d.
+# `forgeos-cleansweep reset-system` (Steps 5a/5b/5c): --dry-run prints the full
+# plan; without it, Steps 2-5 run for real (Steps 5b/5c), Steps 6-8 come in 5d.
 reset_system() {
   if [ "$DRY_RUN" -eq 0 ]; then
     reset_system_run
@@ -976,16 +1070,7 @@ reset_system() {
   reset_users_plan
 
   log "5. Clear hiding spots:"
-  if [ -e /etc/ld.so.preload ]; then
-    log "  CLEAR    /etc/ld.so.preload"
-  fi
-  local f
-  for f in /var/spool/cron/*; do
-    [ -e "$f" ] || [ -L "$f" ] || continue   # empty glob or missing file
-    log "  MOVE     $f (to the backup folder)"
-  done
-  log "  EMPTY    /tmp"
-  log "  EMPTY    /var/tmp"
+  reset_clears
 
   log "6. Re-check apps:"
   if command -v flatpak >/dev/null 2>&1; then
@@ -1019,7 +1104,7 @@ Commands:
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back
   quarantine delete <id|all> [--yes] Delete a quarantined file for good
-  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (Steps 4-8 coming in 5c/5d)
+  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (Steps 6-8 coming in 5d)
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
