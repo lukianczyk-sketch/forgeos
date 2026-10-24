@@ -17,6 +17,7 @@ LOG_DIR="/var/log/forgeos/clean-sweep"
 QUAR_DIR="/var/lib/forgeos/quarantine"
 TAMPER=0
 THREATS=0
+STARTUP_ITEMS=0
 
 log() { echo "[Clean Sweep] $*" | tee -a "$LOG_FILE"; }
 
@@ -228,6 +229,81 @@ run_chkrootkit() {
   return 0
 }
 
+# Startup audit (Step 3c-1): list every place a program could start at boot,
+# without changing anything. The list goes to $LOG_DIR/startup-$STAMP.txt with
+# a heading before each group; STARTUP_ITEMS counts the entries listed. A
+# non-empty /etc/ld.so.preload means code is injected into every process —
+# a clean ForgeOS has none, so flag it as tampering (TAMPER=1).
+run_startup_audit() {
+  local audit_log="$LOG_DIR/startup-$STAMP.txt"
+  local preload_set=0
+  local f user home uid
+
+  shopt -s nullglob
+  STARTUP_ITEMS=0
+
+  # System autostart: every file in /etc/xdg/autostart/.
+  echo "System autostart:" > "$audit_log"
+  for f in /etc/xdg/autostart/*; do
+    [ -f "$f" ] || continue
+    echo "$f" >> "$audit_log"
+    STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+  done
+
+  # System services/timers added by the admin: *.service and *.timer files
+  # directly in /etc/systemd/system/ (subdirectories are not listed).
+  echo "System services/timers added by the admin:" >> "$audit_log"
+  for f in /etc/systemd/system/*.service /etc/systemd/system/*.timer; do
+    [ -f "$f" ] || continue
+    echo "$f" >> "$audit_log"
+    STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+  done
+
+  # Cron jobs: /etc/crontab plus every file in /etc/cron.d/ and
+  # /var/spool/cron/.
+  echo "Cron jobs:" >> "$audit_log"
+  if [ -f /etc/crontab ]; then
+    echo "/etc/crontab" >> "$audit_log"
+    STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+  fi
+  for f in /etc/cron.d/* /var/spool/cron/*; do
+    [ -f "$f" ] || continue
+    echo "$f" >> "$audit_log"
+    STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+  done
+
+  # Preload (ld.so.preload): list its contents if it exists and is not empty.
+  echo "Preload (ld.so.preload):" >> "$audit_log"
+  if [ -f /etc/ld.so.preload ] && [ -s /etc/ld.so.preload ]; then
+    cat -- /etc/ld.so.preload >> "$audit_log"
+    STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+    preload_set=1
+  fi
+
+  # Per-user startup spots, for every real user (UID 1000-59999).
+  while IFS=: read -r user _ uid _ _ home _; do
+    case "$uid" in ''|*[!0-9]*) continue ;; esac
+    if [ "$uid" -ge 1000 ] && [ "$uid" -le 59999 ]; then
+      echo "User $user:" >> "$audit_log"
+      for f in "$home/.config/autostart/"* "$home/.config/systemd/user/"*; do
+        [ -f "$f" ] || continue
+        echo "$f" >> "$audit_log"
+        STARTUP_ITEMS=$((STARTUP_ITEMS+1))
+      done
+    fi
+  done < <(getent passwd)
+
+  shopt -u nullglob
+
+  if [ "$preload_set" -eq 1 ]; then
+    log "Preload file is set — System Reset recommended."
+    TAMPER=1
+  fi
+
+  log "Startup audit: $STARTUP_ITEMS item(s) listed in $audit_log."
+  return 0
+}
+
 # `forgeos-cleansweep scan` (Step 3a core check + Step 3b scans; the
 # plain-English report lands in Step 3c).
 run_scan() {
@@ -239,6 +315,7 @@ run_scan() {
   run_clamscan || exit 3   # tool error
   run_rkhunter || exit 3   # tool error
   run_chkrootkit || exit 3 # tool error
+  run_startup_audit || exit 3 # tool error
   if [ "$TAMPER" -eq 1 ]; then
     exit 2
   fi

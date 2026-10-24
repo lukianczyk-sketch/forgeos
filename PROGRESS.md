@@ -149,3 +149,28 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Sandbox tests (fake rkhunter / chkrootkit / clamscan / ostree / rpm-ostree / id): both clean → 0; rkhunter "Warning:" line → 2; chkrootkit "INFECTED" line → 2; rkhunter exit 2 → 3; chkrootkit exit 5 → 3; chkrootkit missing → 3.
 - Design note: any rkhunter warning recommends System Reset (exit 2). rkhunter can give false positives after updates, so the build-time `--propupd` baseline (Step 2) matters, and Step 3c's report must show the warning text so the user can judge.
 - Next: Step 3c (startup-spot audit, plain-English report + user copy via $PKEXEC_UID, final exit codes).
+
+## Step 3c-1 — Startup-spot audit (list only) — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (3 edits, one file):
+- New `run_startup_audit()` placed right after `run_chkrootkit()`. It only LISTS things; it changes nothing. Writes `$LOG_DIR/startup-$STAMP.txt` with a heading line before each group:
+  - "System autostart:" — every regular file in /etc/xdg/autostart/.
+  - "System services/timers added by the admin:" — every *.service and *.timer file directly in /etc/systemd/system/ (subdirectories not listed).
+  - "Cron jobs:" — /etc/crontab (if present), plus every regular file in /etc/cron.d/ and /var/spool/cron/.
+  - "Preload (ld.so.preload):" — the contents of /etc/ld.so.preload if it exists and is not empty.
+  - Then, for each real user from `getent passwd` with UID 1000–59999 (field 3; home = field 6): a "User <name>:" heading followed by every regular file in `<home>/.config/autostart/` and `<home>/.config/systemd/user/` (missing directories are skipped).
+- nullglob-safe loops: `shopt -s nullglob` at the top of the function, `shopt -u nullglob` before the return; each glob loop also guards with `[ -f "$f" ] || continue` so subdirectories are never listed.
+- Global `STARTUP_ITEMS=0` added next to `THREATS=0`; the function resets it to 0 and counts every entry listed (each file = 1; ld.so.preload contents = 1 when present and non-empty).
+- If /etc/ld.so.preload exists and is not empty: logs "Preload file is set — System Reset recommended." and sets TAMPER=1.
+- Summary line logged: `Startup audit: $STARTUP_ITEMS item(s) listed in <file path>.` (path = `$LOG_DIR/startup-$STAMP.txt`).
+- `run_scan()`: added `run_startup_audit || exit 3 # tool error` right after `run_chkrootkit || exit 3`; existing exit order unchanged (TAMPER=1 → exit 2, THREATS>0 → exit 1, else exit 0). Consequence to note: a set ld.so.preload now drives the scan to exit 2 via TAMPER.
+- Design notes for review: the user loop reads `getent passwd` via process substitution (`< <(getent passwd)`, not a pipe) so STARTUP_ITEMS increments persist in the parent shell; non-numeric UIDs are skipped with a case guard before the numeric compare (set -e safe); the function has a single return path, so nullglob is always restored.
+What I ran + output: nothing run — per instruction no test commands this step, so this is NOT claimed as tested or shellcheck-clean.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3c-1 — 2026-10-23
+- APPROVED as written — no fixes needed. List-only (changes nothing), nullglob turned on and back off, `[ -f ]` skips dirs and masked units, real users = UID 1000–59999 from `getent passwd`.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean; CRLF → LF.
+- Sandbox tests (fake getent with root, a UID-1000 user and nobody): user autostart file with a space in its name listed; root/nobody skipped; no preload → 0; preload with content → "Preload file is set" + exit 2; empty preload → 0.
+- Next: Step 3c-2 (plain-English report + user copy via $PKEXEC_UID).
