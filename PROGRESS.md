@@ -97,3 +97,31 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Sandbox tests (fake ostree / rpm-ostree / id, paths moved to a temp dir): clean diff → 0; `A    ld.so.preload` → 2; `A    udev/rules.d/99-evil.rules` → 2; empty diff → 0; config-diff fails → 3; `--dry-run` alone → scan (2 on tampered); `--bogus` → 3; non-root → 3; quarantine dir mode 700; per-run log file written.
 - v1 sweep NOT executed (destructive); syntax-checked only.
 - Next: Step 3b (clamscan / rkhunter / chkrootkit + quarantine.log).
+
+## Step 3b-1 — Virus scan (clamscan) — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (3 edits, one file):
+- `THREATS=0` added next to `TAMPER=0`.
+- New `run_clamscan()` placed right after `core_check()`:
+  - `rc=0; clamscan ... || rc=$?` so the expected non-zero exits survive `set -e`.
+  - Scans `/home /var /etc /tmp /var/tmp` with `-r -i --no-summary`; skips `^/var/lib/clamav`, `^/var/lib/forgeos/quarantine`, `^/var/lib/containers/storage`.
+  - DRY_RUN=0: `mkdir -p "$QUAR_DIR/$STAMP"` + chmod 700 first, then `--move="$QUAR_DIR/$STAMP"`. DRY_RUN=1: no `--move`, nothing moved.
+  - Full clamscan output saved to `$LOG_DIR/clamscan-$STAMP.txt`.
+  - Two passes over that file (order-independent): pass 1 counts every `... FOUND` line into THREATS and remembers path→threat name; pass 2 handles each `moved to '...'` line — chmod 000 the moved file, sha256sum it, append one tab-separated line to `$QUAR_DIR/quarantine.log`: date, original path, sha256, threat name.
+  - rc=2 → log "ERROR: virus scan failed", return 3; otherwise return 0. Also returns 3 if clamscan is missing (same guard style as core_check's ostree check).
+- `run_scan()`: `run_clamscan || exit 3` right after `core_check`; then TAMPER=1 → exit 2 still wins, THREATS>0 → exit 1. Updated the two now-stale "scanners land in Step 3b" comment/log lines (clamscan has landed; rkhunter/chkrootkit still pending).
+What I ran + output: nothing run — per instruction no test commands this step, so this is NOT claimed as tested or shellcheck-clean.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3b-1 — 2026-10-23
+- APPROVED with fixes (Claude applied):
+  1. Double scanning: on ForgeOS /home → /var/home and /var/tmp is inside /var, so `/home /var … /var/tmp` scanned the same files twice (double-counted threats in dry-run). Targets are now `/var /etc /tmp`, plus `/home` only if it is a real directory (not a symlink).
+  2. clamscan returns 2 for ANY error, even when it also found threats. A scan that found threats now still reports them (exit 1) with a warning; only "errored and found nothing" is a tool error (3).
+  3. sha256 is taken BEFORE chmod 000.
+  4. quarantine.log dates are now sortable (`YYYY-MM-DD HH:MM:SS`).
+  5. CRLF → LF.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Sandbox tests (fake clamscan / ostree / rpm-ostree / id): clean → 0; infected → 1, file moved, chmod 000, quarantine.log line (date, path, sha256, threat); error only → 3; infected + error → 1; `--dry-run` infected → 1 and nothing moved; clamscan missing → 3.
+- Cline was cancelled after writing its report (it started re-reading the file while Claude was fixing it).
+- Next: Step 3b-2 (rkhunter + chkrootkit).

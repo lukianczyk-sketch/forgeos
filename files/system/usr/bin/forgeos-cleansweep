@@ -16,6 +16,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="/var/log/forgeos/clean-sweep"
 QUAR_DIR="/var/lib/forgeos/quarantine"
 TAMPER=0
+THREATS=0
 
 log() { echo "[Clean Sweep] $*" | tee -a "$LOG_FILE"; }
 
@@ -71,18 +72,107 @@ core_check() {
   return 0
 }
 
-# `forgeos-cleansweep scan` (Step 3a: core check only; clamscan/rkhunter/
-# chkrootkit arrive in Step 3b, the plain-English report in Step 3c).
+# Virus scan (Step 3b-1): ClamAV over /home, /var, /etc, /tmp and /var/tmp.
+# clamscan exit codes: 0 = clean, 1 = virus found, 2 = error — captured with
+# `|| rc=$?` so set -e does not abort the script mid-scan. Infected files are
+# moved to $QUAR_DIR/$STAMP (unless dry-run), locked chmod 000, and logged in
+# quarantine.log as: date <TAB> original path <TAB> sha256 <TAB> threat name.
+run_clamscan() {
+  # On ForgeOS (Fedora Atomic) /home -> /var/home and /var/tmp is inside /var,
+  # so scanning /var covers both; listing them again would scan files twice.
+  local -a targets=(/var /etc /tmp)
+  if [ -d /home ] && [ ! -L /home ]; then
+    targets=(/home "${targets[@]}")
+  fi
+  log "Virus scan: scanning ${targets[*]}..."
+
+  if ! command -v clamscan >/dev/null 2>&1; then
+    log "ERROR: clamscan not found — cannot run the virus scan."
+    return 3
+  fi
+
+  local rc=0
+  local scan_log="$LOG_DIR/clamscan-$STAMP.txt"
+  local -a move_args=()
+  if [ "$DRY_RUN" -eq 0 ]; then
+    if ! mkdir -p "$QUAR_DIR/$STAMP" || ! chmod 700 "$QUAR_DIR/$STAMP"; then
+      log "ERROR: could not create quarantine folder $QUAR_DIR/$STAMP."
+      return 3
+    fi
+    move_args=(--move="$QUAR_DIR/$STAMP")
+  fi
+
+  clamscan -r -i --no-summary \
+    --exclude-dir=^/var/lib/clamav \
+    --exclude-dir=^/var/lib/forgeos/quarantine \
+    --exclude-dir=^/var/lib/containers/storage \
+    "${move_args[@]}" \
+    "${targets[@]}" >"$scan_log" 2>&1 || rc=$?
+
+  local line orig threat moved sha256
+  local -A found_threat=()
+
+  # Pass 1: count every FOUND line and remember each file's threat name.
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^(.*)\:\ (.*)\ FOUND[[:space:]]*$ ]]; then
+      orig="${BASH_REMATCH[1]}"
+      threat="${BASH_REMATCH[2]}"
+      found_threat["$orig"]="$threat"
+      THREATS=$((THREATS+1))
+    fi
+  done < "$scan_log"
+
+  # Pass 2: lock each moved file and write its quarantine.log line.
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^(.*)\:\ moved\ to\ \'(.*)\'[[:space:]]*$ ]]; then
+      orig="${BASH_REMATCH[1]}"
+      moved="${BASH_REMATCH[2]}"
+      sha256="$(sha256sum "$moved" | awk '{print $1}')" || sha256="unknown"
+      chmod 000 "$moved" || log "WARNING: could not lock quarantined file: $moved"
+      printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$orig" "${sha256:-unknown}" \
+        "${found_threat[$orig]:-unknown}" >>"$QUAR_DIR/quarantine.log"
+    fi
+  done < "$scan_log"
+
+  if [ "$rc" -eq 2 ]; then
+    # clamscan returns 2 for ANY error, even if it also found threats.
+    # Threats found still count (exit 1); only a scan that found nothing
+    # and errored is a tool error.
+    if [ "$THREATS" -eq 0 ]; then
+      log "ERROR: virus scan failed (details: $scan_log)"
+      return 3
+    fi
+    log "WARNING: virus scan hit errors on some files (details: $scan_log)"
+  fi
+
+  if [ "$THREATS" -gt 0 ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+      log "Virus scan: $THREATS threat(s) found (dry-run — nothing moved)."
+    else
+      log "Virus scan: $THREATS threat(s) found and locked away."
+    fi
+  else
+    log "Virus scan: no threats found."
+  fi
+  return 0
+}
+
+# `forgeos-cleansweep scan` (Step 3a core check + Step 3b-1 virus scan;
+# rkhunter/chkrootkit arrive later in Step 3b, the plain-English report in 3c).
 run_scan() {
   log "Scan started $(date)."
   if [ "$DRY_RUN" -eq 1 ]; then
     log "Dry-run: scan only — nothing will be moved."
   fi
   core_check || exit 3   # tool error
+  run_clamscan || exit 3 # tool error
   if [ "$TAMPER" -eq 1 ]; then
     exit 2
   fi
-  log "Core check passed. (Scanners land in Step 3b.)"
+  if [ "$THREATS" -gt 0 ]; then
+    exit 1
+  fi
+  log "Core check + virus scan passed. (rkhunter/chkrootkit land later in Step 3b.)"
   exit 0
 }
 
