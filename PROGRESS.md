@@ -174,3 +174,19 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean; CRLF → LF.
 - Sandbox tests (fake getent with root, a UID-1000 user and nobody): user autostart file with a space in its name listed; root/nobody skipped; no preload → 0; preload with content → "Preload file is set" + exit 2; empty preload → 0.
 - Next: Step 3c-2 (plain-English report + user copy via $PKEXEC_UID).
+
+## Step 3c-2 — Plain-English report — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (2 saved edits): new `write_report()` after `run_startup_audit()` (headline + "Scanned:" date + each per-run log under a "== title ==" heading → `$LOG_DIR/report-$STAMP.txt`; user copy via `runuser` when PKEXEC_UID is set); `run_scan()` now computes rc (THREATS → 1, TAMPER → 2), calls `write_report "$rc"`, then exits with it.
+Cline was cancelled before writing this report: it saw Claude's fixes on disk and was about to "correct" them. Claude wrote this report.
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3c-2 — 2026-10-23
+- APPROVED with fixes (Claude applied):
+  1. **Real bug:** `runuser -u` keeps root's environment, and pkexec sets HOME=/root, so the user copy would have gone to /root (and failed). The user's home now comes from `getent passwd` field 6 and is passed into the `sh -c` as `$1`. The copy is still written AS the user (no root writes into a user-owned folder, so no symlink tricks).
+  2. Empty sections now say "(nothing found)", with a blank line between sections.
+  3. CRLF → LF.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Sandbox tests (fake runuser that forces HOME=/root like pkexec, fake getent): clean → 0 "All clear — no threats found." + user copy; infected → 1 "1 threat(s) found and locked away."; infected dry-run → 1 "(dry run — nothing was moved)"; preload + infected → 2 "System files changed — System Reset recommended. 1 threat(s) were also found and locked away."; no PKEXEC_UID → no copy; unknown UID → WARNING, no copy, still exit 0.
+- **Step 3 (scan) is COMPLETE.** `forgeos-cleansweep scan` = core check → ClamAV → rkhunter → chkrootkit → startup audit → report; exit 0/1/2/3.
+- Next: Step 4 (quarantine list / restore / delete).

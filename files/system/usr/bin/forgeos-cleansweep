@@ -304,8 +304,82 @@ run_startup_audit() {
   return 0
 }
 
-# `forgeos-cleansweep scan` (Step 3a core check + Step 3b scans; the
-# plain-English report lands in Step 3c).
+# Plain-English report (Step 3c-2): one headline up top ("All clear" /
+# "N threats found and locked away" / "System files changed — System Reset
+# recommended"), then "Scanned: <date>", then each scan log that exists under
+# its own "== Title ==" heading. The report is also copied to the pkexec user's
+# home — written AS THAT USER (never root) so a symlink in their home cannot
+# redirect where we write. Takes the final exit code as $1; always returns 0.
+write_report() {
+  local rc="$1"
+  local report="$LOG_DIR/report-$STAMP.txt"
+
+  # Headline (first line of the report).
+  local headline="All clear — no threats found."
+  if [ "$rc" -eq 2 ]; then
+    headline="System files changed — System Reset recommended."
+    if [ "$THREATS" -gt 0 ]; then
+      headline="$headline $THREATS threat(s) were also found and locked away."
+    fi
+  elif [ "$rc" -eq 1 ]; then
+    if [ "$DRY_RUN" -eq 1 ]; then
+      headline="$THREATS threat(s) found (dry run — nothing was moved)."
+    else
+      headline="$THREATS threat(s) found and locked away."
+    fi
+  fi
+
+  {
+    echo "$headline"
+    echo ""
+    echo "Scanned: $(date)"
+    echo ""
+  } > "$report"
+
+  # Details: each scan log that exists, under its own heading.
+  local entry file title
+  for entry in \
+      "clamscan-$STAMP.txt|Virus scan" \
+      "rkhunter-$STAMP.txt|Rootkit check (rkhunter)" \
+      "chkrootkit-$STAMP.txt|Rootkit check (chkrootkit)" \
+      "startup-$STAMP.txt|Startup programs"; do
+    file="$LOG_DIR/${entry%%|*}"
+    title="${entry#*|}"
+    if [ -f "$file" ]; then
+      {
+        echo "== $title =="
+        if [ -s "$file" ]; then
+          cat -- "$file"
+        else
+          echo "(nothing found)"
+        fi
+        echo ""
+      } >> "$report"
+    fi
+  done
+
+  # User copy: only when pkexec told us which user asked for the scan.
+  # runuser keeps root's environment (HOME=/root under pkexec), so the user's
+  # home comes from the passwd entry and is passed in as $1.
+  local uid="${PKEXEC_UID:-}" pw="" name="" home=""
+  if [ -n "$uid" ]; then
+    pw="$(getent passwd "$uid")" || pw=""
+    name="$(printf '%s' "$pw" | cut -d: -f1)"
+    home="$(printf '%s' "$pw" | cut -d: -f6)"
+    if [ -z "$name" ] || [ -z "$home" ]; then
+      log "WARNING: PKEXEC_UID=$uid does not match a user — skipping the report copy."
+    elif ! runuser -u "$name" -- sh -c 'mkdir -p "$1" && cat > "$1/last-report.txt"' \
+        sh "$home/.local/state/forgeos/clean-sweep" < "$report"; then
+      log "WARNING: could not save the report copy for user $name — continuing."
+    fi
+  fi
+
+  log "Report saved: $report"
+  return 0
+}
+
+# `forgeos-cleansweep scan` (Steps 3a–3c: core check, scanners, startup audit,
+# then the plain-English report and final exit code).
 run_scan() {
   log "Scan started $(date)."
   if [ "$DRY_RUN" -eq 1 ]; then
@@ -316,14 +390,11 @@ run_scan() {
   run_rkhunter || exit 3   # tool error
   run_chkrootkit || exit 3 # tool error
   run_startup_audit || exit 3 # tool error
-  if [ "$TAMPER" -eq 1 ]; then
-    exit 2
-  fi
-  if [ "$THREATS" -gt 0 ]; then
-    exit 1
-  fi
-  log "Scan complete — no threats or tampering found."
-  exit 0
+  local rc=0
+  if [ "$THREATS" -gt 0 ]; then rc=1; fi
+  if [ "$TAMPER" -eq 1 ]; then rc=2; fi
+  write_report "$rc"
+  exit "$rc"
 }
 
 # The original v1 sweep, kept working until the new GUI lands (Step 7).
