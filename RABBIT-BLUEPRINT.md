@@ -76,6 +76,7 @@ STOP.
 **Split into 4a / 4b (Claude, 2026-10-23):** one sub-step per Cline task.
 - **4a** — quarantine.log gets 3 more columns (moved path, original mode, original owner uid:gid) so files can be put back; argument parsing for `quarantine list|restore|delete` + `--yes`; `quarantine list` only (restore/delete stubs exit 3).
 - **4b** — `restore <id>` (sha256 must still match, never overwrite an existing file, put back mode + owner) and `delete <id|all>`. Both ask first; `--yes` skips the question (the GUI asks in its own window, Step 7). No terminal and no `--yes` → refuse, exit 3.
+- **4b split (Claude, 2026-10-23):** 4b-1 = shared `confirm()` + `quarantine_find()` helpers + `restore`; 4b-2 = `delete <id|all>`.
 - ID = the quarantined file's path inside the quarantine folder, e.g. `20261023-101500/eicar.com`.
 - `forgeos-cleansweep quarantine list`
 - `forgeos-cleansweep quarantine restore <id>`: asks first and warns that the file was flagged.

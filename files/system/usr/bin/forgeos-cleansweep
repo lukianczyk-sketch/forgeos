@@ -413,17 +413,138 @@ quarantine_list() {
   return 0
 }
 
-# `forgeos-cleansweep quarantine ...` (Step 4a): dispatch the sub-command.
-# restore/delete are stubs until Step 4b; list works now.
+# Ask a yes/no question on the terminal (Step 4b-1). --yes skips it; with no
+# terminal there is nobody to ask, so refuse instead of guessing.
+confirm() {
+  local q="$1" ans=""
+  if [ "$YES" -eq 1 ]; then
+    return 0
+  fi
+  if [ ! -t 0 ]; then
+    echo "No terminal to ask on — add --yes to confirm." >&2
+    exit 3
+  fi
+  read -r -p "$q [y/N] " ans
+  case "$ans" in
+    y|Y) return 0 ;;
+    *)   return 1 ;;
+  esac
+}
+
+# Find a quarantined file by ID (Step 4b-1). Refuses IDs that could escape
+# the quarantine folder; on success fills F_DATE/F_ORIG/F_SHA/F_THREAT/
+# F_MOVED/F_MODE/F_OWNER from the LAST matching quarantine.log line.
+quarantine_find() {
+  local id="$1" want found=0 qdate qorig qsha qthreat qmoved qmode qowner
+  if [ -z "$id" ]; then
+    echo "Bad ID: $id" >&2
+    exit 3
+  fi
+  case "$id" in
+    /*|*..*)
+      echo "Bad ID: $id" >&2
+      exit 3
+      ;;
+  esac
+  want="$QUAR_DIR/$id"
+  if [ ! -f "$QUAR_DIR/quarantine.log" ]; then
+    echo "No quarantined file with ID $id." >&2
+    exit 3
+  fi
+  while IFS=$'\t' read -r qdate qorig qsha qthreat qmoved qmode qowner; do
+    if [ "$qmoved" = "$want" ]; then
+      F_DATE="$qdate"; F_ORIG="$qorig"; F_SHA="$qsha"
+      F_THREAT="$qthreat"; F_MOVED="$qmoved"; F_MODE="$qmode"; F_OWNER="$qowner"
+      found=1
+    fi
+  done < "$QUAR_DIR/quarantine.log"
+  if [ "$found" -eq 0 ] || [ ! -e "$F_MOVED" ]; then
+    echo "No quarantined file with ID $id." >&2
+    exit 3
+  fi
+}
+
+# `forgeos-cleansweep quarantine restore <id>` (Step 4b-1): put one locked-away
+# file back where it came from — only if it is byte-for-byte what was
+# quarantined and the original spot is still empty.
+quarantine_restore() {
+  local now dir uid name mode
+  quarantine_find "$QID"
+  now="$(sha256sum "$F_MOVED" | awk '{print $1}')" || now=""
+  if [ "$F_SHA" = "unknown" ] || [ "$now" != "$F_SHA" ]; then
+    echo "Refusing: the quarantined file has changed since it was locked away." >&2
+    exit 3
+  fi
+  if [ -e "$F_ORIG" ] || [ -L "$F_ORIG" ]; then
+    echo "Refusing: something already exists at $F_ORIG (will not overwrite)." >&2
+    exit 3
+  fi
+  dir="$(dirname "$F_ORIG")"
+  if [ ! -d "$dir" ]; then
+    echo "Refusing: folder $dir no longer exists." >&2
+    exit 3
+  fi
+  mode="$F_MODE"
+  [ "$mode" != "unknown" ] || mode=600
+  uid="${F_OWNER%%:*}"
+  echo "WARNING: this file was flagged as: $F_THREAT (locked away $F_DATE)."
+  echo "Only restore it if you are sure it is safe."
+  if ! confirm "Restore it to $F_ORIG?"; then
+    echo "Cancelled — nothing was changed."
+    exit 0
+  fi
+  if [ "$F_OWNER" != "unknown" ] && [ "$uid" != 0 ]; then
+    # A user's file is written back AS that user (no-overwrite), so a swapped
+    # folder or symlink can only send it where that user could write anyway.
+    name="$(getent passwd "$uid" | cut -d: -f1)" || name=""
+    if [ -z "$name" ]; then
+      echo "Refusing: the file's owner (uid $uid) no longer exists." >&2
+      exit 3
+    fi
+    # shellcheck disable=SC2016  # $1..$3 expand inside the user's sh, not here
+    if ! runuser -u "$name" -- sh -c 'set -C; umask 077; cat > "$1" && chmod "$2" "$1" && { chgrp "$3" "$1" 2>/dev/null || true; }' \
+        sh "$F_ORIG" "$mode" "${F_OWNER#*:}" < "$F_MOVED"; then
+      echo "ERROR: could not restore the file." >&2
+      exit 3
+    fi
+    rm -f -- "$F_MOVED"
+  else
+    # A root-owned file only goes back into a real (no symlinks) root-owned
+    # folder. Mode/owner are set while it is still in the root-only quarantine.
+    if [ "$(realpath -e -- "$dir" 2>/dev/null)" != "$dir" ] || [ "$(stat -c %u -- "$dir")" != 0 ]; then
+      echo "Refusing: $dir is not a root-owned folder — will not put a root file there." >&2
+      exit 3
+    fi
+    chmod "$mode" "$F_MOVED" || { echo "ERROR: could not set the file's mode." >&2; exit 3; }
+    if [ "$F_OWNER" != "unknown" ]; then
+      chown "$F_OWNER" "$F_MOVED" || { echo "ERROR: could not set the file's owner." >&2; exit 3; }
+    fi
+    mv -n -- "$F_MOVED" "$F_ORIG" || true
+    if [ -e "$F_MOVED" ]; then
+      chmod 000 "$F_MOVED" || true
+      echo "ERROR: could not restore the file." >&2
+      exit 3
+    fi
+  fi
+  log "Restored $F_ORIG from quarantine (ID $QID)."
+  echo "Restored: $F_ORIG"
+  exit 0
+}
+
+# `forgeos-cleansweep quarantine ...`: dispatch the sub-command.
+# list and restore work now; delete is a stub until Step 4b-2.
 quarantine_cmd() {
   case "$QSUB" in
     list)
       quarantine_list
       exit 0
       ;;
-    restore|delete)
-      : "$QID" "$YES"   # parsed now, used by restore/delete in Step 4b
-      echo "quarantine $QSUB: coming in Step 4b" >&2
+    restore)
+      quarantine_restore
+      ;;
+    delete)
+      : "$QID" "$YES"   # parsed now, used by delete in Step 4b-2
+      echo "quarantine delete: coming in Step 4b-2" >&2
       exit 3
       ;;
   esac
@@ -564,8 +685,8 @@ Commands:
   scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
   --dry-run     Scan but move nothing
   quarantine list                    List quarantined files (ID, date, threat, original location)
-  quarantine restore <id> [--yes]    Put a quarantined file back (coming in Step 4b)
-  quarantine delete <id|all> [--yes] Delete a quarantined file for good (coming in Step 4b)
+  quarantine restore <id> [--yes]    Put a quarantined file back
+  quarantine delete <id|all> [--yes] Delete a quarantined file for good (coming in Step 4b-2)
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
@@ -580,6 +701,13 @@ EOF
 #   quarantine restore <id> [--yes] / delete <id|all> [--yes]  (Step 4b)
 QSUB=""    # quarantine sub-command: list | restore | delete
 QID=""     # quarantined file id for restore/delete
+F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
+F_ORIG=""
+F_SHA=""
+F_THREAT=""
+F_MOVED=""
+F_MODE=""
+F_OWNER=""
 CMD=""
 case "${1:-}" in
   "") CMD="legacy" ;;
