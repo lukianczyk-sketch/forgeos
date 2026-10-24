@@ -125,3 +125,27 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Sandbox tests (fake clamscan / ostree / rpm-ostree / id): clean → 0; infected → 1, file moved, chmod 000, quarantine.log line (date, path, sha256, threat); error only → 3; infected + error → 1; `--dry-run` infected → 1 and nothing moved; clamscan missing → 3.
 - Cline was cancelled after writing its report (it started re-reading the file while Claude was fixing it).
 - Next: Step 3b-2 (rkhunter + chkrootkit).
+
+## Step 3b-2 — Rootkit checks (rkhunter + chkrootkit) — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (2 edits, one file):
+- New `run_rkhunter()` placed right after `run_clamscan()`:
+  - rkhunter missing → log ERROR + return 3 (same guard style as run_clamscan's clamscan check).
+  - Runs `rkhunter --check --sk --rwo --nocolors`, full output saved to `$LOG_DIR/rkhunter-$STAMP.txt`, captured with `rc=0; ... || rc=$?` so set -e does not abort mid-check.
+  - Counts lines starting with "Warning:" into local `n` (while-read loop, same style as run_clamscan's passes).
+  - n>0 → log "Rootkit check: $n warning(s) — System Reset recommended." and set TAMPER=1; else log "Rootkit check (rkhunter): clean."; return 0.
+- New `run_chkrootkit()` right after it, same pattern: missing → ERROR + return 3; runs `chkrootkit -q` saving output to `$LOG_DIR/chkrootkit-$STAMP.txt`; counts any line containing "INFECTED" into local `n`; n>0 → log "$n infected finding(s) — System Reset recommended." and set TAMPER=1, else log "Rootkit check (chkrootkit): clean."; return 0.
+- Ordering note (deliberate choice, flagged for review): in both functions the rc check runs before the verdict logging, so an errored run (rc other than 0/1) reports only "ERROR: rootkit check failed" + return 3 and does not also print a clean/warning verdict from partial output. All specified behaviors are unchanged.
+- `run_scan()`: added `run_rkhunter || exit 3` and `run_chkrootkit || exit 3` right after `run_clamscan || exit 3`; kept the existing order TAMPER=1 → exit 2, THREATS>0 → exit 1, else exit 0.
+- Updated two now-stale lines in run_scan (same as Step 3b-1 did): the header comment (rkhunter/chkrootkit have landed; only the plain-English report is pending for Step 3c) and the final success log line (no longer says "land later in Step 3b").
+What I ran + output: nothing run — per instruction no test commands this step, so this is NOT claimed as tested or shellcheck-clean.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3b-2 — 2026-10-23
+- APPROVED. Both functions match the prompt; exit order in run_scan() is right (tool error 3 → TAMPER 2 → THREATS 1 → 0).
+- Claude touch-ups: fixed two stale comments/usage lines (clamscan targets; `scan` help text now lists all four checks); CRLF → LF.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Sandbox tests (fake rkhunter / chkrootkit / clamscan / ostree / rpm-ostree / id): both clean → 0; rkhunter "Warning:" line → 2; chkrootkit "INFECTED" line → 2; rkhunter exit 2 → 3; chkrootkit exit 5 → 3; chkrootkit missing → 3.
+- Design note: any rkhunter warning recommends System Reset (exit 2). rkhunter can give false positives after updates, so the build-time `--propupd` baseline (Step 2) matters, and Step 3c's report must show the warning text so the user can judge.
+- Next: Step 3c (startup-spot audit, plain-English report + user copy via $PKEXEC_UID, final exit codes).

@@ -72,7 +72,7 @@ core_check() {
   return 0
 }
 
-# Virus scan (Step 3b-1): ClamAV over /home, /var, /etc, /tmp and /var/tmp.
+# Virus scan (Step 3b-1): ClamAV over /var, /etc and /tmp (+ /home if it is not a symlink).
 # clamscan exit codes: 0 = clean, 1 = virus found, 2 = error — captured with
 # `|| rc=$?` so set -e does not abort the script mid-scan. Infected files are
 # moved to $QUAR_DIR/$STAMP (unless dry-run), locked chmod 000, and logged in
@@ -157,22 +157,95 @@ run_clamscan() {
   return 0
 }
 
-# `forgeos-cleansweep scan` (Step 3a core check + Step 3b-1 virus scan;
-# rkhunter/chkrootkit arrive later in Step 3b, the plain-English report in 3c).
+# Rootkit check (Step 3b-2): rkhunter over system binaries and configs.
+# Exit codes: 0 = no warnings, 1 = warnings found — captured with `|| rc=$?`
+# so set -e does not abort the script mid-check. Full output is saved to
+# $LOG_DIR/rkhunter-$STAMP.txt; each warning line starts with "Warning:".
+run_rkhunter() {
+  if ! command -v rkhunter >/dev/null 2>&1; then
+    log "ERROR: rkhunter not found — cannot run the rootkit check."
+    return 3
+  fi
+
+  local rc=0
+  local scan_log="$LOG_DIR/rkhunter-$STAMP.txt"
+  rkhunter --check --sk --rwo --nocolors >"$scan_log" 2>&1 || rc=$?
+
+  # Count the warning lines (each one starts with "Warning:").
+  local n=0 line
+  while IFS= read -r line; do
+    case "$line" in
+      Warning:*) n=$((n+1)) ;;
+    esac
+  done < "$scan_log"
+
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    log "ERROR: rootkit check failed (details: $scan_log)"
+    return 3
+  fi
+
+  if [ "$n" -gt 0 ]; then
+    log "Rootkit check: $n warning(s) — System Reset recommended."
+    TAMPER=1
+  else
+    log "Rootkit check (rkhunter): clean."
+  fi
+  return 0
+}
+
+# Rootkit check (Step 3b-2): chkrootkit over known rootkits. Same pattern as
+# rkhunter: output saved to $LOG_DIR/chkrootkit-$STAMP.txt, and a finding is
+# any line containing "INFECTED".
+run_chkrootkit() {
+  if ! command -v chkrootkit >/dev/null 2>&1; then
+    log "ERROR: chkrootkit not found — cannot run the rootkit check."
+    return 3
+  fi
+
+  local rc=0
+  local scan_log="$LOG_DIR/chkrootkit-$STAMP.txt"
+  chkrootkit -q >"$scan_log" 2>&1 || rc=$?
+
+  # Count the infected findings (any line containing "INFECTED").
+  local n=0 line
+  while IFS= read -r line; do
+    case "$line" in
+      *INFECTED*) n=$((n+1)) ;;
+    esac
+  done < "$scan_log"
+
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    log "ERROR: rootkit check failed (details: $scan_log)"
+    return 3
+  fi
+
+  if [ "$n" -gt 0 ]; then
+    log "Rootkit check: $n infected finding(s) — System Reset recommended."
+    TAMPER=1
+  else
+    log "Rootkit check (chkrootkit): clean."
+  fi
+  return 0
+}
+
+# `forgeos-cleansweep scan` (Step 3a core check + Step 3b scans; the
+# plain-English report lands in Step 3c).
 run_scan() {
   log "Scan started $(date)."
   if [ "$DRY_RUN" -eq 1 ]; then
     log "Dry-run: scan only — nothing will be moved."
   fi
-  core_check || exit 3   # tool error
-  run_clamscan || exit 3 # tool error
+  core_check || exit 3     # tool error
+  run_clamscan || exit 3   # tool error
+  run_rkhunter || exit 3   # tool error
+  run_chkrootkit || exit 3 # tool error
   if [ "$TAMPER" -eq 1 ]; then
     exit 2
   fi
   if [ "$THREATS" -gt 0 ]; then
     exit 1
   fi
-  log "Core check + virus scan passed. (rkhunter/chkrootkit land later in Step 3b.)"
+  log "Scan complete — no threats or tampering found."
   exit 0
 }
 
@@ -289,7 +362,7 @@ usage() {
 Usage: forgeos-cleansweep [scan] [--dry-run]
 
 Commands:
-  scan          Check the system for threats (core check now; scanners land in Step 3b)
+  scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
   --dry-run     Scan but move nothing
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
