@@ -734,9 +734,117 @@ set +e
   exit 0
 }
 
+# `forgeos-cleansweep reset-system` (Step 5a-1): dry-run plan for /etc only —
+# show what a system reset would do to each changed file under /etc. The real
+# run comes in Step 5b; personal files are always kept.
+
+# Keep-list: names under /etc that must survive a reset (identity, passwords,
+# network and keyboard settings). Takes a path RELATIVE to /etc; returns 0 if
+# it is on the list, 1 otherwise. The parent folders are listed too, because
+# config-diff can report a whole added folder as ONE line — removing it would
+# take the Wi-Fi passwords / keyboard layout with it. resolv.conf keeps DNS.
+reset_keep() {
+  case "$1" in
+    machine-id|passwd|group|shadow|gshadow|subuid|subgid|passwd-|group-|shadow-|gshadow-|.pwd.lock|.updated|hostname|fstab|crypttab|locale.conf|vconsole.conf|localtime|adjtime|X11/xorg.conf.d/00-keyboard.conf|NetworkManager/system-connections/*|\
+    resolv.conf|NetworkManager|NetworkManager/system-connections|X11|X11/xorg.conf.d)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+# Plan the /etc restore: one line per file from `ostree admin config-diff` —
+# M (modified) -> factory copy back, A (added) -> moved to backup,
+# D (deleted) -> factory copy put back. Keep-list files are skipped.
+reset_etc_plan() {
+  if ! command -v ostree >/dev/null 2>&1; then
+    log "ERROR: ostree not found."
+    return 3
+  fi
+
+  local diff_out=""
+  if ! diff_out="$(ostree admin config-diff)"; then
+    log "ERROR: 'ostree admin config-diff' failed — cannot plan the /etc restore."
+    return 3
+  fi
+
+  log "Restore /etc to factory (keep-list skipped):"
+
+  local status path
+  while read -r status path; do
+    [ -n "$path" ] || continue   # empty line in the diff output
+    if reset_keep "$path"; then
+      log "  KEEP     /etc/$path"
+      RESET_KEEP=$((RESET_KEEP + 1))
+    else
+      case "$status" in
+        M)
+          log "  RESTORE  /etc/$path (factory copy from /usr/etc; old one backed up)"
+          RESET_RESTORE=$((RESET_RESTORE + 1))
+          ;;
+        A)
+          log "  REMOVE   /etc/$path (moved to the backup folder)"
+          RESET_REMOVE=$((RESET_REMOVE + 1))
+          ;;
+        D)
+          log "  PUT BACK /etc/$path (copied from /usr/etc)"
+          RESET_PUTBACK=$((RESET_PUTBACK + 1))
+          ;;
+      esac
+    fi
+  done <<< "$diff_out"
+
+  log "  Then: systemctl preset-all (turns factory services back on)."
+  return 0
+}
+
+# Keep-list warnings: kept files can hide an attacker — flag extra UID 0
+# accounts and a changed root password so the user checks them.
+reset_keep_warnings() {
+  local name etc_root usr_root
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    log "WARNING: extra administrator (UID 0) account found: $name — it is kept, check it!"
+    RESET_FLAGS=$((RESET_FLAGS + 1))
+  done < <(awk -F: '$3 == 0 && $1 != "root" {print $1}' /etc/passwd)
+
+  if [ -r /usr/etc/shadow ]; then
+    etc_root="$(awk -F: '$1 == "root" {print $2}' /etc/shadow)" || etc_root=""
+    usr_root="$(awk -F: '$1 == "root" {print $2}' /usr/etc/shadow)" || usr_root=""
+    if [ "$etc_root" != "$usr_root" ]; then
+      log "NOTE: the root password was changed after install (kept as is)."
+      RESET_FLAGS=$((RESET_FLAGS + 1))
+    fi
+  fi
+
+  if [ "$RESET_FLAGS" -eq 0 ]; then
+    log "Keep-list check: no extra admin accounts found."
+  fi
+  return 0
+}
+
+# `forgeos-cleansweep reset-system` (Step 5a-1): dry-run plan only — the real
+# run is a stub until Step 5b.
+reset_system() {
+  if [ "$DRY_RUN" -eq 0 ]; then
+    echo "reset-system: the real run is coming in Step 5b — use --dry-run for now." >&2
+    exit 3
+  fi
+
+  log "System Reset plan (dry run — nothing will be changed). Personal files are kept."
+  reset_etc_plan || exit 3
+  reset_keep_warnings
+
+  log "Summary: $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back, $RESET_KEEP kept."
+  : "$YES"   # YES is used in Step 5b; keeps shellcheck quiet
+  exit 0
+}
+
 usage() {
   cat >&2 <<'EOF'
-Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ...]
+Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ... | reset-system [--dry-run] [--yes]]
 
 Commands:
   scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
@@ -744,6 +852,7 @@ Commands:
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back
   quarantine delete <id|all> [--yes] Delete a quarantined file for good
+  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (real run coming in Step 5b)
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
@@ -756,8 +865,14 @@ EOF
 #   scan [--dry-run]     -> scan; --dry-run alone means "scan, move nothing"
 #   quarantine list      -> list what is locked away
 #   quarantine restore <id> [--yes] / delete <id|all> [--yes]  (Step 4b)
+#   reset-system [--dry-run] [--yes]  (Step 5a-1)
 QSUB=""    # quarantine sub-command: list | restore | delete
 QID=""     # quarantined file id for restore/delete
+RESET_RESTORE=0   # reset-system plan counters (Step 5a-1): files to restore / remove / put back
+RESET_REMOVE=0
+RESET_PUTBACK=0
+RESET_KEEP=0      # kept files
+RESET_FLAGS=0     # keep-list warnings found
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""
@@ -804,6 +919,26 @@ case "${1:-}" in
     esac
     CMD="quarantine"
     ;;
+  reset-system)
+    # `reset-system [--dry-run] [--yes]` — flags in either order (Step 5a-1).
+    if [ "$#" -gt 3 ]; then usage; exit 3; fi
+    if [ "$#" -ge 2 ] && [ -z "$2" ]; then usage; exit 3; fi   # no empty flags
+    case "${2:-}" in
+      ""|--dry-run|--yes) : ;;
+      *) usage; exit 3 ;;
+    esac
+    if [ "$#" -ge 3 ]; then
+      case "${3:-}" in
+        --dry-run|--yes) : ;;
+        *) usage; exit 3 ;;
+      esac
+    fi
+    CMD="reset"
+    for flag in "${2:-}" "${3:-}"; do
+      if [ "$flag" = "--dry-run" ]; then DRY_RUN=1; fi
+      if [ "$flag" = "--yes" ]; then YES=1; fi
+    done
+    ;;
   *) usage; exit 3 ;;
 esac
 
@@ -820,6 +955,8 @@ if [ "$CMD" = "scan" ]; then
   run_scan
 elif [ "$CMD" = "quarantine" ]; then
   quarantine_cmd
+elif [ "$CMD" = "reset" ]; then
+  reset_system
 else
   legacy_sweep
 fi

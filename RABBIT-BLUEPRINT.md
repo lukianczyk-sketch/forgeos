@@ -94,6 +94,15 @@ Order matters. Log every action and back up before removing anything:
 7. Pull a fresh **signed** ForgeOS image (reuse v1's `ostree-image-signed:` rebase logic), falling back to a redeploy of the current signed image if there is no update.
 8. Show the summary, then reboot after the user clicks OK.
 `--dry-run` prints the full plan and changes nothing.
+
+**Split into small Cline steps (Claude, 2026-10-24):**
+- **5a-1:** parse `reset-system [--dry-run] [--yes]`; `--dry-run` prints the /etc part of the plan (keep-list, M/A/D actions) + keep-list warnings. Real run = stub, exit 3.
+- **5a-2:** dry-run plan for the rest: per-user startup spots, clears, flatpak, signed image ref, reboot.
+- **5b:** real run, part 1: `confirm()`, backup folder, `rpm-ostree reset`, /etc restore, then `systemctl preset-all` (re-enables factory services whose `.wants` links were in /etc).
+- **5c:** real run, part 2: per-user startup spots + dotfiles from /etc/skel, clear ld.so.preload / spool cron / tmp.
+- **5d:** real run, part 3: scan first, flatpak repair + update, signed rebase (reuse v1 logic) or redeploy, summary, reboot after OK.
+- Backup folder: `/var/lib/forgeos/reset-backup/<STAMP>/` (mode 700); each file keeps its full path inside it.
+- Keep-list (Claude added safe extras so language, time and keyboard survive): machine-id, passwd, group, shadow, gshadow, subuid, subgid, passwd-, group-, shadow-, gshadow-, .pwd.lock, .updated, hostname, fstab, crypttab, locale.conf, vconsole.conf, localtime, adjtime, X11/xorg.conf.d/00-keyboard.conf, NetworkManager/system-connections/*, resolv.conf, and the parent folders NetworkManager, NetworkManager/system-connections, X11, X11/xorg.conf.d (config-diff can list a whole added folder as one line). Done in 5a-1.
 STOP.
 
 ## Step 6 — `forgeos-cleansweep full-wipe` (erases personal files)
