@@ -770,7 +770,7 @@ reset_etc_plan() {
     return 3
   fi
 
-  log "Restore /etc to factory (keep-list skipped):"
+  log "3. Restore /etc to factory (keep-list skipped):"
 
   local status path
   while read -r status path; do
@@ -825,7 +825,66 @@ reset_keep_warnings() {
   return 0
 }
 
-# `forgeos-cleansweep reset-system` (Step 5a-1): dry-run plan only — the real
+# Signed image reference for the rebase step (Step 5a-2): same logic as legacy
+# sweep step 1 — read the booted deployment's container-image-reference and
+# force the ostree-image-signed form. Result goes to RESET_REF; never fails.
+reset_image_ref() {
+  local ref=""
+  if command -v rpm-ostree >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    ref="$(rpm-ostree status --json | jq -r '.deployments[] | select(.booted) | ."container-image-reference" // empty')" || ref=""
+  fi
+  case "$ref" in
+    ostree-image-signed:*) ;;
+    ostree-unverified-registry:*) ref="ostree-image-signed:docker://${ref#ostree-unverified-registry:}" ;;
+    *) ref="" ;;
+  esac
+  RESET_REF="$ref"
+  return 0
+}
+
+# Per-user startup spots (Step 5a-2): list what a reset would move or replace
+# for each regular user (UID 1000–59999 with an existing home). Personal files
+# are untouched; forgeos-* entries are ours and stay. Counts RESET_USERFILES.
+reset_users_plan() {
+  local user uid home f name
+  while IFS=: read -r user _ uid _ _ home _; do
+    case "$uid" in
+      ''|*[!0-9]*) continue ;;   # not a numeric UID — skip (e.g. empty line)
+    esac
+    if [ "$uid" -lt 1000 ] || [ "$uid" -ge 60000 ]; then continue; fi
+    [ -d "$home" ] || continue
+
+    for f in "$home/.config/autostart/"* \
+             "$home/.config/systemd/user/"* \
+             "$home/.config/plasma-workspace/env/"* \
+             "$home/.config/plasma-workspace/shutdown/"* \
+             "$home/.ssh/authorized_keys"; do
+      [ -e "$f" ] || [ -L "$f" ] || continue   # empty glob or missing file
+      case "$(basename -- "$f")" in
+        forgeos-*) continue ;;   # our own entries stay
+      esac
+      log "  MOVE     $f (to the backup folder)"
+      RESET_USERFILES=$((RESET_USERFILES + 1))
+    done
+
+    for name in .bashrc .bash_profile .profile; do
+      if [ -e "$home/$name" ] && [ -e "/etc/skel/$name" ] && ! cmp -s "$home/$name" "/etc/skel/$name"; then
+        log "  RESET    $home/$name (fresh copy from /etc/skel; old one backed up)"
+        RESET_USERFILES=$((RESET_USERFILES + 1))
+      fi
+    done
+
+    log "  LOCK     user $user must choose a new password at next login"
+  done < <(getent passwd)
+
+  if [ -e /root/.ssh/authorized_keys ]; then
+    log "  MOVE     /root/.ssh/authorized_keys (to the backup folder)"
+    RESET_USERFILES=$((RESET_USERFILES + 1))
+  fi
+  return 0
+}
+
+# `forgeos-cleansweep reset-system` (Step 5a-2): full dry-run plan — the real
 # run is a stub until Step 5b.
 reset_system() {
   if [ "$DRY_RUN" -eq 0 ]; then
@@ -834,10 +893,45 @@ reset_system() {
   fi
 
   log "System Reset plan (dry run — nothing will be changed). Personal files are kept."
+
+  log "1. Scan first (threats in personal files get quarantined)."
+  log "2. rpm-ostree reset (removes added packages and overrides)."
   reset_etc_plan || exit 3
   reset_keep_warnings
 
-  log "Summary: $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back, $RESET_KEEP kept."
+  log "4. Clean each user's startup spots (personal files untouched):"
+  reset_users_plan
+
+  log "5. Clear hiding spots:"
+  if [ -e /etc/ld.so.preload ]; then
+    log "  CLEAR    /etc/ld.so.preload"
+  fi
+  local f
+  for f in /var/spool/cron/*; do
+    [ -e "$f" ] || [ -L "$f" ] || continue   # empty glob or missing file
+    log "  MOVE     $f (to the backup folder)"
+  done
+  log "  EMPTY    /tmp"
+  log "  EMPTY    /var/tmp"
+
+  log "6. Re-check apps:"
+  if command -v flatpak >/dev/null 2>&1; then
+    log "  flatpak repair --system, then flatpak update -y"
+  else
+    log "  (flatpak not installed — skipped)"
+  fi
+
+  log "7. Fresh signed system image:"
+  reset_image_ref
+  if [ -n "$RESET_REF" ]; then
+    log "  REBASE   $RESET_REF (if there is no update: redeploy the current image)"
+  else
+    log "  WARNING: no signed image reference found — this step will be skipped."
+  fi
+
+  log "8. Show the summary, then restart after you click OK."
+
+  log "Summary: $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back, $RESET_KEEP kept, $RESET_USERFILES user startup items."
   : "$YES"   # YES is used in Step 5b; keeps shellcheck quiet
   exit 0
 }
@@ -873,6 +967,8 @@ RESET_REMOVE=0
 RESET_PUTBACK=0
 RESET_KEEP=0      # kept files
 RESET_FLAGS=0     # keep-list warnings found
+RESET_USERFILES=0 # user startup items to move or reset (Step 5a-2)
+RESET_REF=""      # signed image reference for the rebase step (Step 5a-2)
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""
