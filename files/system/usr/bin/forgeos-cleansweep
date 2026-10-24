@@ -526,13 +526,72 @@ quarantine_restore() {
       exit 3
     fi
   fi
+  tidy_quar_dir "$F_MOVED"
   log "Restored $F_ORIG from quarantine (ID $QID)."
   echo "Restored: $F_ORIG"
   exit 0
 }
 
+# Remove a scan's quarantine sub-folder once its last file is gone
+# (rmdir only removes empty folders; never touches $QUAR_DIR itself).
+tidy_quar_dir() {
+  local d
+  d="$(dirname -- "$1")"
+  [ "$d" != "$QUAR_DIR" ] || return 0
+  rmdir -- "$d" 2>/dev/null || true
+}
+
+# `forgeos-cleansweep quarantine delete <id|all>` (Step 4b-2): permanently
+# remove a quarantined file — asks first, and with --yes or no terminal it
+# behaves like the other confirm() calls.
+quarantine_delete() {
+  local -a files=()
+  local f qmoved dup
+  if [ "$QID" = "all" ]; then
+    # Collect every quarantined file that still exists (skip duplicates).
+    if [ -f "$QUAR_DIR/quarantine.log" ]; then
+      while IFS=$'\t' read -r _ _ _ _ qmoved _ _; do
+        [ -n "$qmoved" ] || continue   # old 4-field line — no moved path recorded
+        [ -e "$qmoved" ] || continue   # file is no longer in the quarantine folder
+        dup=0
+        for f in "${files[@]}"; do
+          if [ "$f" = "$qmoved" ]; then dup=1; fi
+        done
+        if [ "$dup" -eq 0 ]; then files+=("$qmoved"); fi
+      done < "$QUAR_DIR/quarantine.log"
+    fi
+    if [ "${#files[@]}" -eq 0 ]; then
+      echo "Quarantine is empty."
+      exit 0
+    fi
+    if ! confirm "Delete all ${#files[@]} quarantined file(s) for good?"; then
+      echo "Cancelled — nothing was changed."
+      exit 0
+    fi
+    for f in "${files[@]}"; do
+      rm -f -- "$f" || { echo "ERROR: could not delete $f" >&2; exit 3; }
+      tidy_quar_dir "$f"
+    done
+    log "Deleted all quarantined files (${#files[@]})."
+    echo "Deleted ${#files[@]} quarantined file(s)."
+    exit 0
+  fi
+
+  quarantine_find "$QID"
+  echo "This will permanently delete: $F_ORIG (flagged as: $F_THREAT)"
+  if ! confirm "Delete it for good?"; then
+    echo "Cancelled — nothing was changed."
+    exit 0
+  fi
+  rm -f -- "$F_MOVED" || { echo "ERROR: could not delete the file." >&2; exit 3; }
+  tidy_quar_dir "$F_MOVED"
+  log "Deleted quarantined file $F_ORIG (ID $QID)."
+  echo "Deleted: $F_ORIG"
+  exit 0
+}
+
 # `forgeos-cleansweep quarantine ...`: dispatch the sub-command.
-# list and restore work now; delete is a stub until Step 4b-2.
+# list, restore and delete all work now (Steps 4a–4b).
 quarantine_cmd() {
   case "$QSUB" in
     list)
@@ -543,9 +602,7 @@ quarantine_cmd() {
       quarantine_restore
       ;;
     delete)
-      : "$QID" "$YES"   # parsed now, used by delete in Step 4b-2
-      echo "quarantine delete: coming in Step 4b-2" >&2
-      exit 3
+      quarantine_delete
       ;;
   esac
 }
@@ -686,7 +743,7 @@ Commands:
   --dry-run     Scan but move nothing
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back
-  quarantine delete <id|all> [--yes] Delete a quarantined file for good (coming in Step 4b-2)
+  quarantine delete <id|all> [--yes] Delete a quarantined file for good
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 

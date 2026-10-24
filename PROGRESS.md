@@ -241,3 +241,21 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
 - Sandbox tests (fake id / runuser / getent / stat / chown; quarantined files 600 because the sandbox is not root): no terminal + no --yes → exit 3, nothing moved; user file with a space in its name → restored, mode 640, content intact, gone from quarantine + list, logged, exit 0; restore again → "No quarantined file", 3; something already at the original spot → refuse, untouched, 3; tampered quarantined file → refuse, 3; IDs `../etc/passwd`, `/etc/passwd`, `S1/x/../../y` → "Bad ID", 3; root file into root folder → restored, mode 600, 0; root file into a symlinked folder → refuse, 3; owner uid gone → refuse, 3; original folder gone → refuse, 3; unknown owner into a user folder → refuse, 3.
 - Next: Step 4b-2 (`quarantine delete <id|all>`).
+
+## Step 4b-2 — `quarantine delete <id|all>` — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (small edits, one file):
+- New `quarantine_delete()` right after quarantine_restore(): when QID is "all" — reads $QUAR_DIR/quarantine.log if it exists with `while IFS=$'\t' read -r _ _ _ _ qmoved _ _` (file redirect, no subshell), collecting every non-empty qmoved that still exists (`[ -e "$qmoved" ]`) into a bash array and skipping duplicates; empty array → "Quarantine is empty." + exit 0; confirm "Delete all N quarantined file(s) for good?" — cancel → "Cancelled — nothing was changed." + exit 0; `rm -f --` each file, on failure → "ERROR: could not delete <file>" >&2 + exit 3; log "Deleted all quarantined files (N)." + echo "Deleted N quarantined file(s)." + exit 0. Otherwise — quarantine_find "$QID"; echo "This will permanently delete: $F_ORIG (flagged as: $F_THREAT)"; confirm "Delete it for good?" — cancel → "Cancelled — nothing was changed." + exit 0; `rm -f -- "$F_MOVED"`, on failure → "ERROR: could not delete the file." >&2 + exit 3; log "Deleted quarantined file $F_ORIG (ID $QID)." + echo "Deleted: $F_ORIG" + exit 0.
+- quarantine_cmd(): the whole delete) stub (`: "$QID" "$YES"` + "quarantine delete: coming in Step 4b-2" >&2 + exit 3) replaced with `delete) quarantine_delete ;;`. Dispatch comment updated (list, restore and delete all work now).
+- usage(): "(coming in Step 4b-2)" removed from the quarantine delete line.
+What I ran + output: nothing run — per instruction no test commands this step, so this is NOT claimed as tested or shellcheck-clean.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 4b-2 — 2026-10-23
+- APPROVED. Code matched the spec; one small add by Claude:
+  1. New `tidy_quar_dir()`: after a delete or restore, the scan's quarantine sub-folder is removed once it is empty (`rmdir` only, never `$QUAR_DIR` itself).
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (fake id / runuser / getent): `delete all` with no log → "Quarantine is empty.", 0; no terminal + no --yes (one file and all) → exit 3, nothing deleted; delete one (name with a space) → gone, logged, 0; delete it again → "No quarantined file", 3; `../quarantine.log` → "Bad ID", 3; restore → empty S3 folder tidied; `delete all --yes` with a duplicate log line + an old 4-field line → "Deleted 2 quarantined file(s).", empty folders tidied, quarantine.log kept, 0; again → "Quarantine is empty.", 0; `list` → empty.
+- **Step 4 (quarantine tools) is COMPLETE**: list / restore / delete.
+- Next: Step 5 (`forgeos-cleansweep reset-system`, keeps personal files).
