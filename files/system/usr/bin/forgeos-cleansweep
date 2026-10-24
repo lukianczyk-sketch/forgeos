@@ -12,6 +12,7 @@
 set -euo pipefail
 
 DRY_RUN=0
+YES=0
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="/var/log/forgeos/clean-sweep"
 QUAR_DIR="/var/lib/forgeos/quarantine"
@@ -77,7 +78,8 @@ core_check() {
 # clamscan exit codes: 0 = clean, 1 = virus found, 2 = error — captured with
 # `|| rc=$?` so set -e does not abort the script mid-scan. Infected files are
 # moved to $QUAR_DIR/$STAMP (unless dry-run), locked chmod 000, and logged in
-# quarantine.log as: date <TAB> original path <TAB> sha256 <TAB> threat name.
+# quarantine.log as 7 tab-separated fields: date <TAB> original path <TAB> sha256
+# <TAB> threat name <TAB> moved path <TAB> mode <TAB> owner (uid:gid).
 run_clamscan() {
   # On ForgeOS (Fedora Atomic) /home -> /var/home and /var/tmp is inside /var,
   # so scanning /var covers both; listing them again would scan files twice.
@@ -110,7 +112,7 @@ run_clamscan() {
     "${move_args[@]}" \
     "${targets[@]}" >"$scan_log" 2>&1 || rc=$?
 
-  local line orig threat moved sha256
+  local line orig threat moved sha256 mode owner
   local -A found_threat=()
 
   # Pass 1: count every FOUND line and remember each file's threat name.
@@ -129,9 +131,13 @@ run_clamscan() {
       orig="${BASH_REMATCH[1]}"
       moved="${BASH_REMATCH[2]}"
       sha256="$(sha256sum "$moved" | awk '{print $1}')" || sha256="unknown"
+      # Remember the original mode and owner BEFORE chmod 000, so Step 4b can put them back.
+      mode="$(stat -c %a "$moved")" || mode="unknown"
+      owner="$(stat -c %u:%g "$moved")" || owner="unknown"
       chmod 000 "$moved" || log "WARNING: could not lock quarantined file: $moved"
-      printf '%s\t%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$orig" "${sha256:-unknown}" \
-        "${found_threat[$orig]:-unknown}" >>"$QUAR_DIR/quarantine.log"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$(date '+%Y-%m-%d %H:%M:%S')" "$orig" "${sha256:-unknown}" \
+        "${found_threat[$orig]:-unknown}" "$moved" "${mode:-unknown}" "${owner:-unknown}" >>"$QUAR_DIR/quarantine.log"
     fi
   done < "$scan_log"
 
@@ -378,6 +384,51 @@ write_report() {
   return 0
 }
 
+# `forgeos-cleansweep quarantine list` (Step 4a): show what is locked away.
+# Reads the 7-field quarantine.log lines written by run_clamscan; skips old
+# 4-field lines and entries whose file has already been removed from the
+# quarantine folder. ID = the moved path without the $QUAR_DIR/ prefix.
+quarantine_list() {
+  local qdate qorig qthreat qmoved id printed=0
+  local prefix="$QUAR_DIR/"
+  if [ ! -f "$QUAR_DIR/quarantine.log" ]; then
+    echo "Quarantine is empty."
+    return 0
+  fi
+  # Fields: date, original path, sha256, threat, moved path, mode, owner
+  # (sha256 / mode / owner are only needed by restore, Step 4b).
+  while IFS=$'\t' read -r qdate qorig _ qthreat qmoved _ _; do
+    [ -n "$qmoved" ] || continue   # old 4-field line — no moved path recorded
+    [ -e "$qmoved" ] || continue   # file is no longer in the quarantine folder
+    id="${qmoved#"$prefix"}"
+    if [ "$printed" -eq 0 ]; then
+      printf 'ID\tDate\tThreat\tOriginal location\n'
+      printed=1
+    fi
+    printf '%s\t%s\t%s\t%s\n' "$id" "$qdate" "$qthreat" "$qorig"
+  done < "$QUAR_DIR/quarantine.log"
+  if [ "$printed" -eq 0 ]; then
+    echo "Quarantine is empty."
+  fi
+  return 0
+}
+
+# `forgeos-cleansweep quarantine ...` (Step 4a): dispatch the sub-command.
+# restore/delete are stubs until Step 4b; list works now.
+quarantine_cmd() {
+  case "$QSUB" in
+    list)
+      quarantine_list
+      exit 0
+      ;;
+    restore|delete)
+      : "$QID" "$YES"   # parsed now, used by restore/delete in Step 4b
+      echo "quarantine $QSUB: coming in Step 4b" >&2
+      exit 3
+      ;;
+  esac
+}
+
 # `forgeos-cleansweep scan` (Steps 3a–3c: core check, scanners, startup audit,
 # then the plain-English report and final exit code).
 run_scan() {
@@ -507,29 +558,69 @@ set +e
 
 usage() {
   cat >&2 <<'EOF'
-Usage: forgeos-cleansweep [scan] [--dry-run]
+Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ...]
 
 Commands:
   scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
   --dry-run     Scan but move nothing
+  quarantine list                    List quarantined files (ID, date, threat, original location)
+  quarantine restore <id> [--yes]    Put a quarantined file back (coming in Step 4b)
+  quarantine delete <id|all> [--yes] Delete a quarantined file for good (coming in Step 4b)
+  --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
 Exit codes: 0 = clean, 1 = threats quarantined, 2 = system tampering found, 3 = tool error.
 EOF
 }
 
+# Argument parsing (Step 4a): the FIRST argument picks the command.
+#   (no args)            -> legacy v1 sweep
+#   scan [--dry-run]     -> scan; --dry-run alone means "scan, move nothing"
+#   quarantine list      -> list what is locked away
+#   quarantine restore <id> [--yes] / delete <id|all> [--yes]  (Step 4b)
+QSUB=""    # quarantine sub-command: list | restore | delete
+QID=""     # quarantined file id for restore/delete
 CMD=""
-for arg in "$@"; do
-  case "$arg" in
-    scan) CMD="scan" ;;
-    --dry-run) DRY_RUN=1 ;;
-    *) usage; exit 3 ;;
-  esac
-done
-# --dry-run on its own means "scan, move nothing" — never the v1 sweep.
-if [ -z "$CMD" ] && [ "$DRY_RUN" -eq 1 ]; then
-  CMD="scan"
-fi
+case "${1:-}" in
+  "") CMD="legacy" ;;
+  scan)
+    if [ "$#" -gt 2 ]; then usage; exit 3; fi
+    case "${2:-}" in
+      ""|--dry-run) : ;;
+      *) usage; exit 3 ;;
+    esac
+    CMD="scan"
+    if [ "${2:-}" = "--dry-run" ]; then DRY_RUN=1; fi
+    ;;
+  --dry-run)
+    # "--dry-run" or "--dry-run scan" (older order still works)
+    if [ "$#" -gt 2 ] || { [ "$#" -eq 2 ] && [ "$2" != "scan" ]; }; then usage; exit 3; fi
+    CMD="scan"
+    DRY_RUN=1
+    ;;
+  quarantine)
+    case "${2:-}" in
+      list)
+        if [ "$#" -ne 2 ]; then usage; exit 3; fi
+        QSUB="list"
+        ;;
+      restore|delete)
+        if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then usage; exit 3; fi
+        QSUB="$2"
+        QID="$3"
+        if [ "$#" -eq 4 ]; then
+          case "${4:-}" in
+            --yes) YES=1 ;;
+            *) usage; exit 3 ;;
+          esac
+        fi
+        ;;
+      *) usage; exit 3 ;;
+    esac
+    CMD="quarantine"
+    ;;
+  *) usage; exit 3 ;;
+esac
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Clean Sweep must run as administrator." >&2
@@ -542,6 +633,8 @@ LOG_FILE="${LOG_DIR}/clean-sweep-${STAMP}.log"
 
 if [ "$CMD" = "scan" ]; then
   run_scan
+elif [ "$CMD" = "quarantine" ]; then
+  quarantine_cmd
 else
   legacy_sweep
 fi

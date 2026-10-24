@@ -190,3 +190,29 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Sandbox tests (fake runuser that forces HOME=/root like pkexec, fake getent): clean → 0 "All clear — no threats found." + user copy; infected → 1 "1 threat(s) found and locked away."; infected dry-run → 1 "(dry run — nothing was moved)"; preload + infected → 2 "System files changed — System Reset recommended. 1 threat(s) were also found and locked away."; no PKEXEC_UID → no copy; unknown UID → WARNING, no copy, still exit 0.
 - **Step 3 (scan) is COMPLETE.** `forgeos-cleansweep scan` = core check → ClamAV → rkhunter → chkrootkit → startup audit → report; exit 0/1/2/3.
 - Next: Step 4 (quarantine list / restore / delete).
+
+## Step 4a — Quarantine log columns + `quarantine list` — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (8 small edits, one file):
+- run_clamscan() pass 2 now records the original mode and owner BEFORE `chmod 000`: `mode="$(stat -c %a "$moved")" || mode="unknown"` and `owner="$(stat -c %u:%g "$moved")" || owner="unknown"` (both added to the function's local line). The quarantine.log line is now 7 tab-separated fields: date, original path, sha256, threat name, moved path, mode, owner (uid:gid) — printf format updated to match.
+- Comment above run_clamscan() updated to list all 7 fields.
+- `YES=0` added next to `DRY_RUN=0`.
+- New `quarantine_list()` placed right after write_report(): reads `$QUAR_DIR/quarantine.log` with `while IFS=$'\t' read -r qdate qorig qsha qthreat qmoved qmode qowner`; skips lines where qmoved is empty (old 4-field lines) or the file no longer exists (`[ -e ]`); ID = qmoved with the `$QUAR_DIR/` prefix removed; prints the header `ID<TAB>Date<TAB>Threat<TAB>Original location` once before the first entry, then one TAB-separated line per kept entry (id, date, threat, original path); prints "Quarantine is empty." if the log is missing or nothing was printed; returns 0.
+- New `quarantine_cmd()` after it: `case "$QSUB"` — list → quarantine_list + exit 0; restore|delete → `echo "quarantine $QSUB: coming in Step 4b" >&2` + exit 3 (stubs for Step 4b).
+- Argument parsing replaced (the old CMD= for-loop and the --dry-run-alone block): the FIRST argument now picks the command — no args → CMD=legacy; `scan [--dry-run]` → CMD=scan; `--dry-run` alone → CMD=scan with DRY_RUN=1; `quarantine list` / `restore <id> [--yes]` / `delete <id|all> [--yes]` → CMD=quarantine with QSUB, QID and YES set (QSUB="" and QID="" initialized next to CMD=""); anything else, a missing `<id>`, or extra args → usage + exit 3. All `$2/$3/$4` references are `${n:-}`-guarded for `set -u`.
+- The root check and the mkdir/chmod/LOG_FILE lines stay exactly where they were (after parsing, before dispatch). Dispatch is now: scan → run_scan; quarantine → quarantine_cmd; legacy → legacy_sweep.
+- usage() gained the three quarantine command lines plus `--yes` ("Skip the question — used by the Clean Sweep window").
+What I ran + output: nothing run — per instruction no test commands this step, so this is NOT claimed as tested or shellcheck-clean.
+Questions / unsure about: none
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 4a — 2026-10-23
+- APPROVED with small touch-ups (Claude applied):
+  1. `quarantine_list()` reads the unused fields (sha256, mode, owner) into `_` — fixes 3 shellcheck SC2034 warnings.
+  2. QID / YES are parsed now but used only in Step 4b: referenced with `: "$QID" "$YES"` in the stub so shellcheck stays clean.
+  3. Usage first line updated (it still said `[scan] [--dry-run]` only).
+  4. `--dry-run scan` (the old argument order) works again, same as `scan --dry-run`.
+  5. CRLF → LF.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Sandbox tests (fake id / clamscan / rkhunter / chkrootkit / ostree / rpm-ostree): empty quarantine → "Quarantine is empty." exit 0; scan with an infected file named with a space → quarantine.log has 7 fields (mode 640 + uid:gid recorded BEFORE chmod 000; file is now mode 000); `quarantine list` shows header + ID `<STAMP>/bad file.exe`, and skips an old 4-field line; restore/delete stubs → exit 3; bad args (`quarantine`, `quarantine delete`, `quarantine list x`, `scan x`, `--dry-run x`, `bogus`) → usage, exit 3.
+- Next: Step 4b (restore with sha256 check + no overwrite + put back mode/owner; delete <id|all>; ask first, `--yes` skips, no terminal + no `--yes` → exit 3).
