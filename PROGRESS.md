@@ -73,3 +73,27 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - Checked on Linux: YAML parses, `bash -n` clean on forgeos-setup.sh, CRLF fixed to LF.
 - Cline was cancelled after the edits (its last command was only a line-ending check); Claude wrote this report from the verified diff.
 - Real proof = the bluebuild run after push (confirms the packages install on Fedora 44 with no conflicts and propupd succeeds). Then Step 3.
+
+## Step 3a — Engine structure — 2026-10-23
+Files changed: files/system/usr/bin/forgeos-cleansweep
+What Rabbit Team / Cline did (3 saved edits):
+- v1 body wrapped in `legacy_sweep()` (first line `set +e`); no arguments still runs it, so the GUI (`pkexec /usr/bin/forgeos-cleansweep`) keeps working until Step 7.
+- `set -euo pipefail`; args `scan` / `--dry-run` / anything else → usage + exit 3.
+- Helpers: DRY_RUN, STAMP, LOG_DIR=/var/log/forgeos/clean-sweep, QUAR_DIR=/var/lib/forgeos/quarantine (chmod 700), LOG_FILE, log().
+- `core_check()`: signed check via `rpm-ostree status --json | jq` on `container-image-reference`; `ostree admin config-diff` A/M lines in startup spots → TAMPER=1.
+- `run_scan()`: exit 2 if TAMPER, else 0.
+- Cline got stuck in a PowerShell quoting loop while smoke-testing on Windows and was cancelled; Claude wrote this report.
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3a — 2026-10-23
+- APPROVED with fixes (Claude applied):
+  1. `--dry-run` on its own ran the destructive v1 sweep → now means `scan` (move nothing).
+  2. Not-root exit was 1 (= "threats quarantined") → now 3 (tool error).
+  3. `core_check || exit 3` made explicit instead of relying on `set -e`.
+  4. Signed check falls back to `rpm-ostree status --booted` text when jq is missing.
+  5. Startup spots extended: `/etc/xdg/autostart/*`, `/etc/rc.local`, `/etc/rc.d/*`, `/etc/udev/rules.d/*` (common persistence spots; Step 5 already restores every A/M file in /etc).
+  6. CRLF → LF.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Sandbox tests (fake ostree / rpm-ostree / id, paths moved to a temp dir): clean diff → 0; `A    ld.so.preload` → 2; `A    udev/rules.d/99-evil.rules` → 2; empty diff → 0; config-diff fails → 3; `--dry-run` alone → scan (2 on tampered); `--bogus` → 3; non-root → 3; quarantine dir mode 700; per-run log file written.
+- v1 sweep NOT executed (destructive); syntax-checked only.
+- Next: Step 3b (clamscan / rkhunter / chkrootkit + quarantine.log).

@@ -61,6 +61,10 @@ STOP.
 STOP.
 
 ## Step 3 — `forgeos-cleansweep scan`
+**Split into 3a / 3b / 3c (Claude, 2026-10-23):** the local model looped (36k tokens) trying to write all of Step 3 at once. Do ONE sub-step per Cline task:
+- **3a** — Structure: wrap the v1 body in `legacy_sweep()` (no args = run it, so the GUI keeps working until Step 7); add `set -euo pipefail`; argument parsing (`scan`, `--dry-run`, anything else → usage, exit 3); shared helpers (`log`, paths, `mkdir` of log/quarantine dirs); the **core check** function only.
+- **3b** — Scanners: clamscan / rkhunter / chkrootkit functions, quarantine chmod 000 + `quarantine.log` lines.
+- **3c** — Startup-spot audit, the plain-English report (+ user copy via `$PKEXEC_UID`), final exit codes.
 - Runs, in order: (1) **core check**, which verifies the booted deployment is signed and runs `ostree admin config-diff`, flagging any Added/Modified file in a startup spot; (2) **clamscan** of `/home`, `/var` (skip `/var/lib/clamav`, the quarantine, and `/var/lib/containers/storage` overlay noise), `/etc`, `/tmp`, `/var/tmp`; (3) **rkhunter**; (4) **chkrootkit**; (5) a **startup-spot audit** listing every autostart entry, user systemd unit, cron job, and `ld.so.preload`.
 - Infected files are moved to quarantine with `--move` and then chmod 000. Write a `quarantine.log` line for each file: date, original path, sha256, and threat name.
 - Report: one plain-English summary at the top ("All clear" / "3 threats found and locked away" / "System files changed — System Reset recommended"), followed by the details.
