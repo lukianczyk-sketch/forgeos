@@ -16,6 +16,9 @@ YES=0
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="/var/log/forgeos/clean-sweep"
 QUAR_DIR="/var/lib/forgeos/quarantine"
+ETC_DIR="/etc"
+USR_ETC_DIR="/usr/etc"
+RESET_BK_DIR="/var/lib/forgeos/reset-backup"
 TAMPER=0
 THREATS=0
 STARTUP_ITEMS=0
@@ -758,7 +761,10 @@ reset_keep() {
 # Plan the /etc restore: one line per file from `ostree admin config-diff` —
 # M (modified) -> factory copy back, A (added) -> moved to backup,
 # D (deleted) -> factory copy put back. Keep-list files are skipped.
+# Step 5b: called with "apply" it does the work for real; default is plan.
 reset_etc_plan() {
+  local mode="${1:-plan}"
+
   if ! command -v ostree >/dev/null 2>&1; then
     log "ERROR: ostree not found."
     return 3
@@ -775,6 +781,7 @@ reset_etc_plan() {
   local status path
   while read -r status path; do
     [ -n "$path" ] || continue   # empty line in the diff output
+    case "$path" in /*|*..*) log "  SKIP     odd path: $path"; continue ;; esac
     if reset_keep "$path"; then
       log "  KEEP     /etc/$path"
       RESET_KEEP=$((RESET_KEEP + 1))
@@ -783,20 +790,45 @@ reset_etc_plan() {
         M)
           log "  RESTORE  /etc/$path (factory copy from /usr/etc; old one backed up)"
           RESET_RESTORE=$((RESET_RESTORE + 1))
+          if [ "$mode" = "apply" ]; then
+            if ! mkdir -p "$(dirname "$RESET_BK/etc/$path")"; then log "  ERROR: could not make the backup folder for /etc/$path."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+            if ! mv -- "$ETC_DIR/$path" "$RESET_BK/etc/$path"; then log "  ERROR: could not back up /etc/$path."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+            if ! cp -a -- "$USR_ETC_DIR/$path" "$ETC_DIR/$path"; then
+              log "  ERROR: could not restore /etc/$path from /usr/etc — old copy put back."
+              mv -- "$RESET_BK/etc/$path" "$ETC_DIR/$path" || log "  ERROR: could not put the old copy back; it is in $RESET_BK/etc/$path"
+              RESET_ERRORS=$((RESET_ERRORS + 1)); continue
+            fi
+          fi
           ;;
         A)
           log "  REMOVE   /etc/$path (moved to the backup folder)"
           RESET_REMOVE=$((RESET_REMOVE + 1))
+          if [ "$mode" = "apply" ]; then
+            # Already gone with an added parent folder that was moved first.
+            [ -e "$ETC_DIR/$path" ] || [ -L "$ETC_DIR/$path" ] || continue
+            if ! mkdir -p "$(dirname "$RESET_BK/etc/$path")"; then log "  ERROR: could not make the backup folder for /etc/$path."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+            if ! mv -- "$ETC_DIR/$path" "$RESET_BK/etc/$path"; then log "  ERROR: could not move /etc/$path to the backup folder."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+          fi
           ;;
         D)
           log "  PUT BACK /etc/$path (copied from /usr/etc)"
           RESET_PUTBACK=$((RESET_PUTBACK + 1))
+          if [ "$mode" = "apply" ]; then
+            if ! mkdir -p "$(dirname "$ETC_DIR/$path")"; then log "  ERROR: could not make the folder for /etc/$path."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+            if ! cp -a -- "$USR_ETC_DIR/$path" "$ETC_DIR/$path"; then log "  ERROR: could not put back /etc/$path from /usr/etc."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+          fi
           ;;
       esac
     fi
   done <<< "$diff_out"
 
   log "  Then: systemctl preset-all (turns factory services back on)."
+  if [ "$mode" = "apply" ]; then
+    if ! systemctl preset-all; then
+      log "  WARNING: systemctl preset-all failed."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+  fi
   return 0
 }
 
@@ -884,12 +916,53 @@ reset_users_plan() {
   return 0
 }
 
-# `forgeos-cleansweep reset-system` (Step 5a-2): full dry-run plan — the real
-# run is a stub until Step 5b.
+# Real run, part 1 (Step 5b): confirm, make the backup folder, rpm-ostree
+# reset, restore /etc from /usr/etc + preset-all. Steps 4-8 come in 5c/5d.
+reset_system_run() {
+  if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
+    log "ERROR: ostree not found."
+    exit 3
+  fi
+  if ! confirm "System Reset puts ForgeOS system settings back to factory. Your personal files are kept. Continue?"; then
+    log "Cancelled — nothing was changed."
+    exit 0
+  fi
+
+  RESET_BK="$RESET_BK_DIR/$STAMP"
+  mkdir -p "$RESET_BK"
+  chmod 700 "$RESET_BK_DIR" "$RESET_BK"
+
+  log "System Reset started. Backup folder: $RESET_BK"
+
+  log "2. rpm-ostree reset (removes added packages and overrides)."
+  if command -v rpm-ostree >/dev/null 2>&1; then
+    if ! rpm-ostree reset >>"$LOG_FILE" 2>&1; then
+      log "  WARNING: rpm-ostree reset failed (see the log)."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+  else
+    log "  WARNING: rpm-ostree not found — skipped."
+    RESET_ERRORS=$((RESET_ERRORS + 1))
+  fi
+
+  reset_etc_plan apply || exit 3
+  reset_keep_warnings
+
+  log "Steps 4-8 (user startup spots, clears, apps, fresh image, restart) are coming in Steps 5c/5d."
+
+  log "Done: $RESET_RESTORE restored, $RESET_REMOVE removed, $RESET_PUTBACK put back, $RESET_KEEP kept, $RESET_ERRORS problems. Changes take effect after a restart."
+
+  if [ "$RESET_ERRORS" -gt 0 ]; then
+    exit 3
+  fi
+  exit 0
+}
+
+# `forgeos-cleansweep reset-system` (Steps 5a/5b): --dry-run prints the full
+# plan; without it, Steps 2-3 run for real (Step 5b), Steps 4-8 come in 5c/5d.
 reset_system() {
   if [ "$DRY_RUN" -eq 0 ]; then
-    echo "reset-system: the real run is coming in Step 5b — use --dry-run for now." >&2
-    exit 3
+    reset_system_run
   fi
 
   log "System Reset plan (dry run — nothing will be changed). Personal files are kept."
@@ -946,7 +1019,7 @@ Commands:
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back
   quarantine delete <id|all> [--yes] Delete a quarantined file for good
-  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (real run coming in Step 5b)
+  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (Steps 4-8 coming in 5c/5d)
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
@@ -969,6 +1042,8 @@ RESET_KEEP=0      # kept files
 RESET_FLAGS=0     # keep-list warnings found
 RESET_USERFILES=0 # user startup items to move or reset (Step 5a-2)
 RESET_REF=""      # signed image reference for the rebase step (Step 5a-2)
+RESET_ERRORS=0    # problems found during a real reset run (Step 5b)
+RESET_BK=""       # backup folder for this reset run, set in Step 5b
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""

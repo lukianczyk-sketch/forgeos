@@ -304,3 +304,29 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - config-diff fails → ERROR, 3; real run (with --yes) → stub, 3; empty system → only EMPTY /tmp + /var/tmp under step 5; `quarantine list` unchanged.
 - **Step 5a (dry-run plan) is COMPLETE.**
 - Next: Step 5b (real run part 1: confirm(), backup folder, rpm-ostree reset, /etc restore, systemctl preset-all).
+
+## Step 5b — reset-system real run, part 1 (rpm-ostree reset + /etc restore) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- Globals after QUAR_DIR: ETC_DIR="/etc", USR_ETC_DIR="/usr/etc", RESET_BK_DIR="/var/lib/forgeos/reset-backup"; next to RESET_REF: RESET_ERRORS=0, RESET_BK="".
+- reset_etc_plan() takes an optional mode (`local mode="${1:-plan}"`); all log lines unchanged. New guard: paths starting with / or containing .. → "SKIP odd path". In "apply" mode: M → back up (mkdir -p + mv to $RESET_BK/etc/<path>) then cp -a the /usr/etc copy; A → mkdir -p + mv to the backup; D → mkdir -p parent + cp -a from /usr/etc. Every command checked; failure → "ERROR: …", RESET_ERRORS+1, next file. After the loop, apply mode runs `systemctl preset-all` (failure → WARNING + RESET_ERRORS+1).
+- New reset_system_run(): confirm "System Reset puts ForgeOS system settings back to factory. Your personal files are kept. Continue?" (cancel → "Cancelled — nothing was changed.", exit 0); RESET_BK="$RESET_BK_DIR/$STAMP", mkdir -p + chmod 700 both; "System Reset started. Backup folder: …"; step 2 `rpm-ostree reset` (output to the log; failure or missing → WARNING + RESET_ERRORS+1); `reset_etc_plan apply || exit 3`; reset_keep_warnings; "Steps 4-8 … coming in Steps 5c/5d."; "Done: N restored, N removed, N put back, N kept, N problems. Changes take effect after a restart."; exit 3 if RESET_ERRORS > 0, else 0.
+- reset_system(): the DRY_RUN=0 stub now calls reset_system_run; dry-run part unchanged; comments updated.
+- Not finished by Cline: the usage() wording edit failed (exact-match miss). Claude made it.
+What I ran + output: nothing (per instruction). Cline's task was cancelled by Claude before it wrote this report; Claude wrote it from the diff.
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5b — 2026-10-24
+- APPROVED with 4 small fixes (Claude applied):
+  1. **Never leave /etc missing a file:** for M, if copying the factory version fails after the old file was moved to the backup, the old file is moved back (and the error says where it is if even that fails).
+  2. **Added folders:** config-diff can list an added folder AND the files inside it. Once the folder is moved, its children are already in the backup, so they are now skipped instead of counted as errors.
+  3. **Check before changing anything:** reset_system_run checks `ostree` exists before asking/starting, so a missing ostree can't stop the reset halfway (after rpm-ostree reset).
+  4. usage() line now says "(Steps 4-8 coming in 5c/5d)" (Cline's edit had failed).
+- Note for later: ostree merges the current /etc into the staged deployment at shutdown, so /etc changes made after `rpm-ostree reset` carry over to the next boot (that's why step 2 runs before step 3 safely).
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (fake id / ostree / rpm-ostree / systemctl; ETC_DIR, USR_ETC_DIR, RESET_BK_DIR, passwd, shadow pointed at test folders):
+  - No terminal + no --yes → exit 3, no backup folder, /etc untouched. Real terminal, answer "n" → "Cancelled", exit 0, nothing changed, rpm-ostree/systemctl never called.
+  - `--yes` with a mixed fixture: modified sshd_config → backed up + factory copy; ld.so.preload and an added folder `evil.d` (+ its 2 files listed separately) → moved to the backup with full paths, no false errors; deleted `os-release` and `foo/bar` (missing parent folder) → put back; Wi-Fi file with a space and `passwd` → KEEP; `../escape` → SKIP; unreadable factory file → ERROR, old copy put back, exit 3. Backup folders are mode 700. rpm-ostree reset + systemctl preset-all each called once.
+  - rpm-ostree failing → WARNING, /etc still restored, exit 3. Everything OK → exit 0. ostree missing → ERROR before the question, nothing changed, exit 3.
+  - `--dry-run` output identical to the 5a-2 version; bad flags → 3.
+- Next: Step 5c (real run part 2: per-user startup spots + dotfiles from /etc/skel, password expiry, clear ld.so.preload / spool cron / tmp).
