@@ -2,9 +2,9 @@
 Type=Application
 Name=Clean Sweep
 GenericName=I think I've been hacked
-Comment=Reset ForgeOS to a clean, genuine state while keeping your files
+Comment=Scan for viruses, lock threats away, or reset your PC to a clean state
 Exec=/usr/bin/forgeos-cleansweep-gui
 Icon=security-high
 Terminal=false
 Categories=System;Security;
-Keywords=hacked;virus;malware;reset;clean;security;
+Keywords=hacked;virus;malware;antivirus;scan;quarantine;reset;wipe;clean;security;

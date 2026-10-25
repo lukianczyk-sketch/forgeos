@@ -550,3 +550,30 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - Skipped correctly: uid 0 and 42 (system), 1002 (no account), 1003 (bus is a plain file, not a socket), "abc" (not a number).
   - gdbus failing → still exits 0. Empty /run/user → no calls, exits 0.
 - Next: Step 7d (.desktop update: shield icon + Comment; no-args switches from legacy_sweep).
+
+## Step 7d — remove v1 sweep + menu entry update — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep, files/system/usr/share/applications/forgeos-cleansweep.desktop, plus this PROGRESS.md entry
+What Rabbit Team / Cline did (small replace edits only):
+- Item 1 (engine): deleted the whole old v1 block — from "# The original v1 sweep, kept working until the new GUI lands (Step 7)." through the closing "}" of legacy_sweep() (the "}" after "exit 0" following "Removed items are kept in $QUAR. Full log: $LOG"). Done as three small deletions; one blank line and the next comment ("# forgeos-cleansweep reset-system (Step 5a-1)...") left untouched.
+- Item 2 (engine): argument parsing — `"" ) CMD="legacy"` is now `""|-h|--help|help) usage; exit 0 ;;`.
+- Item 3 (engine): final dispatch — removed the trailing `else legacy_sweep` branch, so it ends at `elif [ "$CMD" = "wipe" ]; then full_wipe fi`.
+- Item 4 (engine): argument-parsing comment — "#   (no args)            -> legacy v1 sweep" is now "#   (no args) / -h / --help / help -> show usage, exit 0 (Step 7d)".
+- Item 5 (engine): usage() — "(no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)" is now "(no command), -h, --help  Show this help".
+- Item 6 (engine): reset_image_ref comment — "same logic as legacy" replaced with "reads the image the same way:"; the rest of that comment is unchanged.
+- Item 7 (.desktop): Comment= is now "Scan for viruses, lock threats away, or reset your PC to a clean state".
+- Item 8 (.desktop): Keywords= is now "hacked;virus;malware;antivirus;scan;quarantine;reset;wipe;clean;security;" — Icon=security-high and every other line left as is.
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 7d — 2026-10-24
+- APPROVED. All 8 items match the blueprint; the v1 sweep is fully gone (no "legacy" left anywhere in files/). 3 fixes (Claude applied):
+  1. **Top-of-file comment** still described the v1 reset and said "with no arguments the original v1 sweep still runs" — rewritten to describe what Clean Sweep does now (scan + quarantine, reset-system, full-wipe; run with --help).
+  2. **reset_image_ref comment** read "reads the image the same way: sweep step 1 — read …" (dangling reference to the deleted sweep) — now "read the booted deployment's container-image-reference and force the ostree-image-signed form."
+  3. **Help goes to stdout:** `""|-h|--help|help) usage 2>&1; exit 0` — when the user ASKS for help it now prints on stdout (so `forgeos-cleansweep --help | less` works); wrong arguments still print usage on stderr with exit 3.
+- Line endings: all 3 files LF (no CRLF this time).
+- Checked on Linux: `bash -n` OK; `shellcheck -S warning` clean (only the old, intended SC2016 info on the `sh -c '…"$1"…'` report copy).
+- Tests (non-root): no args / `-h` / `--help` / `help` → usage on stdout, exit 0, before the root check; `bogus` → exit 3; `scan extra` → exit 3; `scan` as non-root → "must run as administrator", exit 3.
+- Tests (sandbox, fake root, stubbed scan_steps): `scan` passes through 0 / 1 / 2 / 3; no args as root → usage, exit 0, nothing created; `quarantine list` → "Quarantine is empty.", exit 0.
+- GUI (`pkexec "$ENGINE" scan` / `"$@"`) and the weekly timer (`"$ENGINE" scan`) never call the engine with no arguments — nothing else depended on the old default.
+- .desktop: Comment + Keywords updated, Icon=security-high kept; checked by hand (desktop-file-validate not available in the test VM).
+- Next: Step 8 — tests/test-clean-sweep.sh + EICAR test in CI (extend tests.yml), then final review → tag v0.5.0.

@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # ForgeOS Clean Sweep — "I think I've been hacked" button.
-# Resets the system back to the genuine, signed ForgeOS image and removes the
-# usual places malware hides to restart itself. Personal files are KEPT, but
-# anything removed is moved to a quarantine folder (never silently deleted).
+# Scans for threats (ClamAV, rkhunter, chkrootkit, startup audit) and locks
+# them in quarantine (never silently deleted); can put the system back to the
+# genuine, signed ForgeOS image keeping personal files (reset-system), or erase
+# everything (full-wipe). Run with --help for the commands.
 #
-# Must run as root (the desktop button uses pkexec).
-#
-# Step 3a: subcommand structure. `scan` runs the core check for now (scanners
-# land in Steps 3b/3c); with no arguments the original v1 sweep still runs, so
-# the existing GUI keeps working until Step 7 replaces it.
+# Must run as root (the Clean Sweep window uses pkexec; the weekly timer runs
+# as root).
 set -euo pipefail
 
 DRY_RUN=0
@@ -641,114 +639,6 @@ scan_steps() {
   return "$rc"
 }
 
-# The original v1 sweep, kept working until the new GUI lands (Step 7).
-legacy_sweep() {
-set +e
-  STAMP="$(date +%Y%m%d-%H%M%S)"
-  QUAR="/var/lib/forgeos/quarantine/${STAMP}"
-  LOG="/var/log/forgeos-cleansweep-${STAMP}.log"
-
-  say()  { echo "[Clean Sweep] $*" | tee -a "$LOG"; }
-  quarantine() {  # quarantine <path>  — moves it, keeping its full path inside QUAR
-    local p="$1"
-    [ -e "$p" ] || [ -L "$p" ] || return 0
-    mkdir -p "${QUAR}$(dirname "$p")"
-    mv -f -- "$p" "${QUAR}${p}" && say "Quarantined: $p"
-  }
-
-  if [ "$(id -u)" -ne 0 ]; then
-    echo "Clean Sweep must run as administrator." >&2
-    exit 1
-  fi
-
-  mkdir -p "$QUAR" /var/log
-  chmod 700 /var/lib/forgeos /var/lib/forgeos/quarantine "$QUAR"
-  say "Started $(date). Quarantine folder: $QUAR"
-
-  # 1. While still online, stage a fresh, signature-verified copy of ForgeOS
-  #    for next boot. Then cut the attacker off by going offline.
-  if command -v rpm-ostree >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    REF="$(rpm-ostree status --json | jq -r '.deployments[] | select(.booted) | ."container-image-reference" // empty')"
-    case "$REF" in
-      ostree-image-signed:*) ;;
-      ostree-unverified-registry:*) REF="ostree-image-signed:docker://${REF#ostree-unverified-registry:}" ;;
-      *) REF="" ;;
-    esac
-    if [ -n "$REF" ]; then
-      if rpm-ostree rebase "$REF" >>"$LOG" 2>&1; then
-        say "Fresh verified ForgeOS image staged for next restart."
-      else
-        say "Could not download a fresh image (no internet?). Cleanup continues; run Clean Sweep again later while online."
-      fi
-    fi
-  fi
-
-  if command -v nmcli >/dev/null 2>&1; then
-    nmcli networking off && say "Network disconnected."
-  fi
-
-  # 2. Remove anything layered on top of the genuine system image.
-  if command -v rpm-ostree >/dev/null 2>&1; then
-    rpm-ostree cancel >/dev/null 2>&1 || true
-    rpm-ostree reset >>"$LOG" 2>&1 && say "Removed added system packages/overrides."
-  fi
-
-  # 3. Remove system-wide auto-start hiding spots (anything not shipped with ForgeOS).
-  #    On Fedora Atomic the factory copy of /etc lives in /usr/etc.
-  SYS_DIRS=(
-    /etc/systemd/system /etc/xdg/autostart /etc/profile.d /etc/sudoers.d
-    /etc/ssh/sshd_config.d /etc/cron.d /etc/cron.hourly /etc/cron.daily
-    /etc/cron.weekly /etc/cron.monthly /etc/yum.repos.d /etc/udev/rules.d
-  )
-  for d in "${SYS_DIRS[@]}"; do
-    [ -d "$d" ] || continue
-    while IFS= read -r -d '' f; do
-      factory="/usr${f}"
-      if [ ! -e "$factory" ] && [ ! -L "$factory" ]; then
-        quarantine "$f"                         # added after install
-      elif [ -f "$f" ] && ! cmp -s "$f" "$factory"; then
-        quarantine "$f"; cp -a "$factory" "$f"  # changed: restore factory copy
-      fi
-    done < <(find "$d" -mindepth 1 \( -type f -o -type l \) -print0 2>/dev/null)
-  done
-  for f in /etc/ld.so.preload /etc/rc.local /etc/rc.d/rc.local /etc/crontab; do
-    if [ -e "$f" ] && { [ ! -e "/usr$f" ] || ! cmp -s "$f" "/usr$f"; }; then
-      quarantine "$f"; [ -e "/usr$f" ] && cp -a "/usr$f" "$f"
-    fi
-  done
-  quarantine /var/spool/cron
-  mkdir -p /var/spool/cron && chmod 700 /var/spool/cron
-
-  # 4. Per-user hiding spots + lock out stolen access.
-  while IFS=: read -r user _ uid _ _ home _; do
-    [ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] && [ -d "$home" ] || continue
-    for p in "$home/.config/autostart" "$home/.config/systemd/user" \
-             "$home/.ssh/authorized_keys" "$home/.config/plasma-workspace/env" \
-             "$home/.config/plasma-workspace/shutdown"; do
-      quarantine "$p"
-    done
-    passwd -e "$user" >/dev/null 2>&1 && say "User '$user' must choose a new password at next login."
-  done < /etc/passwd
-  quarantine /root/.ssh/authorized_keys
-
-  # 5. Reset app permissions to safe defaults and drop leftover runtimes.
-  if command -v flatpak >/dev/null 2>&1; then
-    flatpak override --reset >>"$LOG" 2>&1 || true
-    flatpak uninstall --unused -y --noninteractive >>"$LOG" 2>&1 || true
-    say "App permissions reset to defaults."
-  fi
-
-  # 6. Scan personal files for known malware, if the scanner is installed.
-  if command -v clamscan >/dev/null 2>&1; then
-    say "Scanning home folders for malware (this can take a while)..."
-    clamscan -r -i --move="${QUAR}/infected" /home >>"$LOG" 2>&1 || true
-  fi
-
-  say "Done. Restart the computer to finish. Network stays OFF until you turn it back on."
-  say "Removed items are kept in $QUAR. Full log: $LOG"
-  exit 0
-}
-
 # `forgeos-cleansweep reset-system` (Step 5a-1): dry-run plan for /etc only —
 # show what a system reset would do to each changed file under /etc. The real
 # run comes in Step 5b; personal files are always kept.
@@ -869,9 +759,9 @@ reset_keep_warnings() {
   return 0
 }
 
-# Signed image reference for the rebase step (Step 5a-2): same logic as legacy
-# sweep step 1 — read the booted deployment's container-image-reference and
-# force the ostree-image-signed form. Result goes to RESET_REF; never fails.
+# Signed image reference for the rebase step (Step 5a-2): read the booted
+# deployment's container-image-reference and force the ostree-image-signed
+# form. Result goes to RESET_REF; never fails.
 reset_image_ref() {
   local ref=""
   if command -v rpm-ostree >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
@@ -1325,14 +1215,14 @@ Commands:
   reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files
   full-wipe [--dry-run | --yes WIPE] ERASE all personal files, then reset (asks twice)
   --yes         Skip the question — used by the Clean Sweep window
-  (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
+  (no command), -h, --help  Show this help
 
 Exit codes: 0 = clean, 1 = threats quarantined, 2 = system tampering found, 3 = tool error.
 EOF
 }
 
 # Argument parsing (Step 4a): the FIRST argument picks the command.
-#   (no args)            -> legacy v1 sweep
+#   (no args) / -h / --help / help -> show usage, exit 0 (Step 7d)
 #   scan [--dry-run]     -> scan; --dry-run alone means "scan, move nothing"
 #   quarantine list      -> list what is locked away
 #   quarantine restore <id> [--yes] / delete <id|all> [--yes]  (Step 4b)
@@ -1361,7 +1251,7 @@ F_MODE=""
 F_OWNER=""
 CMD=""
 case "${1:-}" in
-  "") CMD="legacy" ;;
+  ""|-h|--help|help) usage 2>&1; exit 0 ;;   # asked for help -> stdout
   scan)
     if [ "$#" -gt 2 ]; then usage; exit 3; fi
     case "${2:-}" in
@@ -1446,6 +1336,4 @@ elif [ "$CMD" = "reset" ]; then
   reset_system
 elif [ "$CMD" = "wipe" ]; then
   full_wipe
-else
-  legacy_sweep
 fi
