@@ -577,3 +577,22 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - GUI (`pkexec "$ENGINE" scan` / `"$@"`) and the weekly timer (`"$ENGINE" scan`) never call the engine with no arguments — nothing else depended on the old default.
 - .desktop: Comment + Keywords updated, Icon=security-high kept; checked by hand (desktop-file-validate not available in the test VM).
 - Next: Step 8 — tests/test-clean-sweep.sh + EICAR test in CI (extend tests.yml), then final review → tag v0.5.0.
+
+## Step 8a — scan tests — 2026-10-25
+Files changed: tests/test-clean-sweep.sh (new), plus this PROGRESS.md entry
+What Rabbit Team / Cline did:
+- First attempt (old prompt) looped ~20 min re-reading the engine without writing anything — Claude cancelled it and gave a self-contained prompt (all engine facts inline, no reading).
+- Wrote tests/test-clean-sweep.sh in one write: sed-rewritten engine copy in a mktemp work dir (LOG_DIR / QUAR_DIR / RESET_BK_DIR), fake bin dir (id -u → 0, rpm-ostree signed JSON, ostree config-diff via FAKE_DIFF, rkhunter exit FAKE_RKH_RC, chkrootkit 0, clamscan with FAKE_INFECTED → FOUND + --move + "moved to" line), run() helper, cases A–G.
+- Stalled on how to append to PROGRESS.md without reading it — Claude cancelled and wrote this entry.
+STATUS: REVIEWED
+
+### Claude review — Step 8a — 2026-10-25
+- APPROVED. All 7 cases match the blueprint. 4 fixes (Claude applied):
+  1. **CRLF:** the whole file had Windows line endings — converted to LF.
+  2. **Engine missing → clear FAIL + exit 1** up front (was: every case failing with confusing rc values).
+  3. **Case B is stricter:** also checks quarantine.log field 2 = the original path and field 4 = "Eicar-Test-Signature" (so a broken threat-name lookup is caught).
+  4. shellcheck tidy: report found with a glob instead of `ls | head` (SC2012); final `&& exit 1 || exit 0` → plain if.
+- Checked on Linux (device VM): `bash -n` OK, `shellcheck` clean (no findings at any level). Run: 7/7 PASS, exit 0, ~0.4 s. Work dir (incl. the chmod-000 quarantined file) is fully removed by the EXIT trap — no tmp.* left behind.
+- Mutation tests (broke the engine on purpose, each must be caught): no chmod 000 → B fails; never moves → B fails; threat name lost → B fails; tamper ignored → D fails; rkhunter error ignored → E fails; wrong headline → A fails; engine missing → FAIL + exit 1. All caught.
+- Not wired into CI yet (Step 8c).
+- Next: Step 8b — more cases in the same file: quarantine list / restore / delete --yes, reset-system --dry-run keep-list, full-wipe without WIPE refuses / --dry-run.
