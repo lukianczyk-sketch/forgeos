@@ -354,3 +354,30 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - ld.so.preload as A → moved by Step 3, Step 5 skips it (no false CLEAR). As M → bad copy kept as .~1~. Empty file → not listed.
   - No terminal + no --yes → exit 3, nothing changed. Answer "n" → Cancelled, exit 0, nothing changed.
 - Next: Step 5d (real run part 3: scan first, flatpak repair + update, signed rebase or redeploy, summary, restart after OK).
+
+## Step 5d — reset-system real run, part 3 (scan first, apps, fresh image, restart) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- Split run_scan(): everything from core_check through write_report moved into a new scan_steps() that ends with `return "$rc"`; each tool error is now `|| return 3`. run_scan keeps the "Scan started" and dry-run log lines, then does `local rc=0; scan_steps || rc=$?; exit "$rc"`.
+- reset_system_run(): step 1 added right after the backup-folder line — log "1. Scan first (threats in personal files get quarantined).", run scan_steps into a local scan_rc and never exit: rc 3 → WARNING + RESET_ERRORS+1; rc 1 or 2 → "Threats or tampering found — handled above; the reset continues."
+- Step 6 replaces the old placeholder line: flatpak present → `flatpak repair --system` then `flatpak update -y --noninteractive`, both to $LOG_FILE, each failure → WARNING + RESET_ERRORS+1; missing → "(flatpak not installed — skipped)".
+- Step 7: reset_image_ref; empty RESET_REF → "WARNING: no signed image reference found — skipped." + RESET_ERRORS+1; otherwise `rpm-ostree rebase "$RESET_REF"` to $LOG_FILE, success → "Fresh verified ForgeOS image staged for the next restart.", failure → WARNING (no internet?) + RESET_ERRORS+1.
+- Step 8 after the Done line: YES=1 → "Restart the computer to finish." (no reboot — the Clean Sweep window handles it); otherwise confirm "Restart now to finish the reset?" → yes: log "Restarting..." + systemctl reboot, no: "Restart the computer later to finish."; then exit 3 if RESET_ERRORS > 0 else exit 0.
+- Text clean-up: usage() line no longer says "(Steps 6-8 coming in 5d)"; comments above reset_system_run() and reset_system() updated to the Steps 5b-5d wording. Nothing else changed.
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5d — 2026-10-24
+- APPROVED with 1 fix (Claude applied):
+  1. **No false warning when already on the signed image:** rpm-ostree refuses to rebase to the ref you are already on, so every reset of an already-signed ForgeOS would have shown "could not get a fresh image". reset_image_ref now sets RESET_SAME_REF=1 when the booted ref already equals RESET_REF; Step 7 then runs `rpm-ostree upgrade` (exits 0 when there is no update, per the rpm-ostree man page; 77 only with --unchanged-exit-77) instead of rebase. `--dry-run` shows "UPGRADE … (already on the signed image; no update = keep the current one)" or "REBASE …".
+- Rejected one Cline PowerShell Select-String command (quoting errors); Cline read the file instead.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (fake id / ostree / rpm-ostree status JSON / flatpak / systemctl; scan tools and Steps 3-5 stubbed via an override file, since they were tested in 3a-5c):
+  - `--yes`, unverified booted ref → order is scan → rpm-ostree reset → /etc → users → clears → flatpak repair → flatpak update → `rpm-ostree rebase ostree-image-signed:docker://…`; no reboot; exit 0.
+  - `--yes`, already signed → `rpm-ostree upgrade` instead of rebase; exit 0.
+  - Scan tool error → WARNING, reset still runs every step, exit 3. Threats / tampering → note, reset continues, exit 0.
+  - flatpak repair fails → WARNING, update still runs, exit 3. flatpak missing → "skipped", exit 0. upgrade fails → WARNING (no internet?), exit 3. No signed ref → WARNING, no rebase, exit 3.
+  - Real terminal: answer y then y → "Restarting..." + `systemctl reboot`; y then n → "Restart the computer later", no reboot.
+  - `scan` exit codes unchanged: clean 0 / threats 1 / tamper 2 / tool error 3. Bad reset flag → 3.
+- Step 5 (System Reset engine) is COMPLETE.
+- Next: Step 6 (full wipe).

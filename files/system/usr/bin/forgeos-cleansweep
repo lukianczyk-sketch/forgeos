@@ -619,16 +619,26 @@ run_scan() {
   if [ "$DRY_RUN" -eq 1 ]; then
     log "Dry-run: scan only — nothing will be moved."
   fi
-  core_check || exit 3     # tool error
-  run_clamscan || exit 3   # tool error
-  run_rkhunter || exit 3   # tool error
-  run_chkrootkit || exit 3 # tool error
-  run_startup_audit || exit 3 # tool error
+  local rc=0
+  scan_steps || rc=$?
+  exit "$rc"
+}
+
+# The actual scan steps (Steps 3a–3c): core check, scanners, startup audit,
+# then the plain-English report. Returns 0 = clean, 1 = threats quarantined,
+# 2 = system tampering found, 3 = tool error — so a reset can run it and keep
+# going (Step 5d).
+scan_steps() {
+  core_check || return 3     # tool error
+  run_clamscan || return 3   # tool error
+  run_rkhunter || return 3   # tool error
+  run_chkrootkit || return 3 # tool error
+  run_startup_audit || return 3 # tool error
   local rc=0
   if [ "$THREATS" -gt 0 ]; then rc=1; fi
   if [ "$TAMPER" -eq 1 ]; then rc=2; fi
   write_report "$rc"
-  exit "$rc"
+  return "$rc"
 }
 
 # The original v1 sweep, kept working until the new GUI lands (Step 7).
@@ -867,12 +877,15 @@ reset_image_ref() {
   if command -v rpm-ostree >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
     ref="$(rpm-ostree status --json | jq -r '.deployments[] | select(.booted) | ."container-image-reference" // empty')" || ref=""
   fi
+  local booted="$ref"
   case "$ref" in
     ostree-image-signed:*) ;;
     ostree-unverified-registry:*) ref="ostree-image-signed:docker://${ref#ostree-unverified-registry:}" ;;
     *) ref="" ;;
   esac
   RESET_REF="$ref"
+  RESET_SAME_REF=0   # already on the signed image -> upgrade instead of rebase (same ref)
+  if [ -n "$ref" ] && [ "$booted" = "$ref" ]; then RESET_SAME_REF=1; fi
   return 0
 }
 
@@ -1003,9 +1016,7 @@ reset_clears() {
   return 0
 }
 
-# Real run, parts 1+2 (Steps 5b/5c): confirm, make the backup folder,
-# rpm-ostree reset, restore /etc from /usr/etc + preset-all, clean each user's
-# startup spots and clear the hiding spots. Steps 6-8 come in Step 5d.
+# Real run (Steps 5b-5d): all 8 steps.
 reset_system_run() {
   if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
     log "ERROR: ostree not found."
@@ -1021,6 +1032,16 @@ reset_system_run() {
   chmod 700 "$RESET_BK_DIR" "$RESET_BK"
 
   log "System Reset started. Backup folder: $RESET_BK"
+
+  log "1. Scan first (threats in personal files get quarantined)."
+  local scan_rc=0
+  scan_steps || scan_rc=$?
+  if [ "$scan_rc" -eq 3 ]; then
+    log "  WARNING: the scan had a tool error (see the log) — reset continues."
+    RESET_ERRORS=$((RESET_ERRORS + 1))
+  elif [ "$scan_rc" -eq 1 ] || [ "$scan_rc" -eq 2 ]; then
+    log "  Threats or tampering found — handled above; the reset continues."
+  fi
 
   log "2. rpm-ostree reset (removes added packages and overrides)."
   if command -v rpm-ostree >/dev/null 2>&1; then
@@ -1042,9 +1063,50 @@ reset_system_run() {
   log "5. Clear hiding spots:"
   reset_clears apply
 
-  log "Steps 6-8 (apps, fresh image, restart) are coming in Step 5d."
+  log "6. Re-check apps:"
+  if command -v flatpak >/dev/null 2>&1; then
+    if ! flatpak repair --system >>"$LOG_FILE" 2>&1; then
+      log "  WARNING: flatpak repair --system failed (see the log)."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+    if ! flatpak update -y --noninteractive >>"$LOG_FILE" 2>&1; then
+      log "  WARNING: flatpak update -y --noninteractive failed (see the log)."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+  else
+    log "  (flatpak not installed — skipped)"
+  fi
+
+  log "7. Fresh signed system image:"
+  reset_image_ref
+  if [ -z "$RESET_REF" ]; then
+    log "  WARNING: no signed image reference found — skipped."
+    RESET_ERRORS=$((RESET_ERRORS + 1))
+  else
+    local img_cmd=(rpm-ostree rebase "$RESET_REF")
+    if [ "$RESET_SAME_REF" -eq 1 ]; then img_cmd=(rpm-ostree upgrade); fi   # rebase to the same ref fails
+    if "${img_cmd[@]}" >>"$LOG_FILE" 2>&1; then
+      log "  Fresh verified ForgeOS image staged for the next restart."
+    else
+      log "  WARNING: could not get a fresh image (no internet?). The reset still takes effect after the restart."
+      RESET_ERRORS=$((RESET_ERRORS + 1))
+    fi
+  fi
 
   log "Done: $RESET_RESTORE restored, $RESET_REMOVE removed, $RESET_PUTBACK put back, $RESET_KEEP kept, $RESET_USERFILES user startup items, $RESET_ERRORS problems. Changes take effect after a restart."
+
+  log "8. Restart:"
+  if [ "$YES" -eq 1 ]; then
+    # No reboot here — the Clean Sweep window handles it (Step 7).
+    log "  Restart the computer to finish."
+  else
+    if confirm "Restart now to finish the reset?"; then
+      log "  Restarting..."
+      systemctl reboot
+    else
+      log "  Restart the computer later to finish."
+    fi
+  fi
 
   if [ "$RESET_ERRORS" -gt 0 ]; then
     exit 3
@@ -1052,8 +1114,7 @@ reset_system_run() {
   exit 0
 }
 
-# `forgeos-cleansweep reset-system` (Steps 5a/5b/5c): --dry-run prints the full
-# plan; without it, Steps 2-5 run for real (Steps 5b/5c), Steps 6-8 come in 5d.
+# `forgeos-cleansweep reset-system`: --dry-run prints the full plan; without it, all 8 steps run for real (Steps 5b-5d).
 reset_system() {
   if [ "$DRY_RUN" -eq 0 ]; then
     reset_system_run
@@ -1082,7 +1143,11 @@ reset_system() {
   log "7. Fresh signed system image:"
   reset_image_ref
   if [ -n "$RESET_REF" ]; then
-    log "  REBASE   $RESET_REF (if there is no update: redeploy the current image)"
+    if [ "$RESET_SAME_REF" -eq 1 ]; then
+      log "  UPGRADE  $RESET_REF (already on the signed image; no update = keep the current one)"
+    else
+      log "  REBASE   $RESET_REF"
+    fi
   else
     log "  WARNING: no signed image reference found — this step will be skipped."
   fi
@@ -1104,7 +1169,7 @@ Commands:
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back
   quarantine delete <id|all> [--yes] Delete a quarantined file for good
-  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files (Steps 6-8 coming in 5d)
+  reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
@@ -1127,6 +1192,7 @@ RESET_KEEP=0      # kept files
 RESET_FLAGS=0     # keep-list warnings found
 RESET_USERFILES=0 # user startup items to move or reset (Step 5a-2)
 RESET_REF=""      # signed image reference for the rebase step (Step 5a-2)
+RESET_SAME_REF=0  # 1 = booted image is already RESET_REF -> rpm-ostree upgrade (Step 5d)
 RESET_ERRORS=0    # problems found during a real reset run (Step 5b)
 RESET_BK=""       # backup folder for this reset run, set in Step 5b
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
