@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Clean Sweep weekly scan (Step 7c): run by forgeos-cleansweep.timer; notifies logged-in users if something is found.
+set -uo pipefail
+
+ENGINE="/usr/bin/forgeos-cleansweep"
+RUN_DIR="/run/user"
+
+# Send a desktop notification to every logged-in user's session bus.
+notify_all() {
+    local bus uid name
+    for bus in "$RUN_DIR"/*/bus; do
+        [ -S "$bus" ] || continue
+        uid="${bus%/*}"
+        uid="${uid##*/}"
+        case "$uid" in '' | *[!0-9]*) continue ;; esac
+        if [ "$uid" -lt 1000 ]; then
+            continue
+        fi
+        name="$(id -nu "$uid" 2>/dev/null)" || continue
+        runuser -u "$name" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$RUN_DIR/$uid/bus" gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications --method org.freedesktop.Notifications.Notify "Clean Sweep" 0 "security-high" "$1" "$2" "[]" "{'urgency': <byte 2>}" 0 >/dev/null 2>&1 || true
+    done
+}
+
+# Run the weekly scan and notify users when it finds something.
+main() {
+    local rc=0
+    "$ENGINE" scan || rc=$?
+    case "$rc" in
+        1) notify_all "Clean Sweep found threats" "The weekly scan found threats and locked them away in quarantine. They can't run anymore. Details are in /var/log/forgeos/clean-sweep/." ;;
+        2) notify_all "Clean Sweep: your system was changed" "The weekly scan found signs that the system itself was changed. Open Clean Sweep and choose System Reset." ;;
+    esac
+}
+
+main
+exit 0

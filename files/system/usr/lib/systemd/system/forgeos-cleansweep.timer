@@ -1,0 +1,11 @@
+# ForgeOS — runs the Clean Sweep weekly scan every Sunday at 3 AM (catches up after the PC was off).
+[Unit]
+Description=Run ForgeOS Clean Sweep scan every Sunday at 3 AM
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

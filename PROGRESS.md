@@ -524,3 +524,29 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - No GUI (terminal): reset y/n, wipe y + wrong word (cancelled), wipe y + WIPE + y (reboot) all correct.
   - Scan Now unchanged.
 - Next: Step 7c (weekly timer + desktop notification).
+
+## Step 7c — Clean Sweep weekly scan timer — 2026-10-24
+Files changed: files/system/usr/lib/systemd/system/forgeos-cleansweep.service (new), files/system/usr/lib/systemd/system/forgeos-cleansweep.timer (new), files/system/usr/libexec/forgeos-cleansweep-weekly (new), files/scripts/forgeos-setup.sh, plus this PROGRESS.md entry
+What Rabbit Team / Cline did:
+- Item 1: new forgeos-cleansweep.service — Type=oneshot, ExecStart=/usr/libexec/forgeos-cleansweep-weekly, Nice=19, IOSchedulingClass=idle (exactly as specified).
+- Item 2: new forgeos-cleansweep.timer — OnCalendar=Sun *-*-* 03:00:00, Persistent=true (catches up after a missed run), RandomizedDelaySec=15min, WantedBy=timers.target (exactly as specified).
+- Item 3: new /usr/libexec/forgeos-cleansweep-weekly — `set -uo pipefail`; ENGINE=/usr/bin/forgeos-cleansweep, RUN_DIR="${RUN_DIR:-/run/user}"; notify_all loops over "$RUN_DIR"/*/bus, skips non-sockets (`[ -S ]`), takes the folder name as uid and skips uids that are not all digits or < 1000, resolves the account with `id -nu … || continue`, then sends a desktop notification via runuser + gdbus on that user's session bus (app "Clean Sweep", icon security-high, silenced, `|| true`); main runs `"$ENGINE" scan` and saves rc — rc 1 → notify_all "Clean Sweep found threats" (quarantine + /var/log/forgeos/clean-sweep/), rc 2 → notify_all "Clean Sweep: your system was changed" (choose System Reset), any other rc → nothing; one single-line comment above each function, last line `exit 0` so the timer never shows as failed.
+- Item 4: forgeos-setup.sh — added /usr/libexec/forgeos-cleansweep-weekly to the existing chmod 0755 list (line 5); after `systemctl enable clamav-freshclam.service` added a blank line, the Step 7c comment, and `systemctl enable forgeos-cleansweep.timer`.
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 7c — 2026-10-24
+- APPROVED. Logic matches the blueprint. 4 fixes (Claude applied):
+  1. **CRLF:** all 3 new files had Windows line endings (Cline on Windows) — converted to LF (a CRLF shebang would break the script on Linux).
+  2. **RUN_DIR is now fixed at /run/user** (was `${RUN_DIR:-/run/user}`) — a root script should not take paths from the environment. Tests sed it instead.
+  3. **Urgent notification:** hints changed from `{}` to `{'urgency': <byte 2>}` (critical) so the warning stays on screen until the user sees it.
+  4. **Unit files:** added the header comment lines; removed `After=network-online.target` from the service (not needed — the scan is offline and an After without Wants does nothing).
+- Cline's own deviations kept: `set -uo pipefail`, engine output goes to the journal (useful for `journalctl -u forgeos-cleansweep`), loop over `"$RUN_DIR"/*/bus`.
+- Cancelled Cline's final "verify" re-read (all edits + PROGRESS entry were saved).
+- Checked on Linux: `bash -n` OK, `shellcheck` clean (no findings at any level), `systemd-analyze verify` OK on both units, `systemd-analyze calendar "Sun *-*-* 03:00:00"` → next run Sunday 03:00.
+- Tests (fake engine/runuser/gdbus/id + a fake /run/user with real sockets):
+  - Engine rc 0 / 3 / 7 → no notifications, script exits 0.
+  - rc 1 → "Clean Sweep found threats" sent to uid 1000 and 1001 only, each on its own bus via `runuser -u <name>`; rc 2 → "your system was changed" message, same users.
+  - Skipped correctly: uid 0 and 42 (system), 1002 (no account), 1003 (bus is a plain file, not a socket), "abc" (not a number).
+  - gdbus failing → still exits 0. Empty /run/user → no calls, exits 0.
+- Next: Step 7d (.desktop update: shield icon + Comment; no-args switches from legacy_sweep).

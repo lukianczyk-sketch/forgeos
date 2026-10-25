@@ -1,0 +1,9 @@
+# ForgeOS — Clean Sweep weekly scan (Step 7c). Started by forgeos-cleansweep.timer.
+[Unit]
+Description=ForgeOS Clean Sweep weekly scan
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/forgeos-cleansweep-weekly
+Nice=19
+IOSchedulingClass=idle
