@@ -1180,11 +1180,13 @@ reset_system() {
   exit 0
 }
 
-# Full Wipe Part 2 (Step 6a): list every regular user's home that would be
-# erased and recreated from /etc/skel. Only real folders under /home or
-# /var/home are touched — symlinks and other paths are skipped with a note.
+# Full Wipe Part 2 (Steps 6a/6c): list every regular user's home that would be
+# erased and recreated from /etc/skel; mode "apply" really erases it. Only real
+# folders under /home or /var/home are touched (checked by text AND by realpath)
+# — symlinks and other paths are skipped with a note.
 wipe_users_plan() {
-  local user uid home size
+  local mode="${1:-plan}"
+  local user uid home size real
 
   while IFS=: read -r user _ uid _ _ home _; do
     case "$uid" in
@@ -1203,18 +1205,40 @@ wipe_users_plan() {
       *) log "  SKIP     $user  $home (not under /home — not erased)"; continue ;;
     esac
 
+    real="$(realpath -e -- "$home" 2>/dev/null)" || real=""
+    case "$real" in
+      /home/?*|/var/home/?*) ;;
+      *) log "  SKIP     $user  $home (real path is outside /home — not erased)"; continue ;;
+    esac
     # du exits 1 if anything inside is unreadable (e.g. a FUSE mount) — still show a size
     size="$( { du -sh -x -- "$home" 2>/dev/null || true; } | cut -f1)"
     [ -n "$size" ] || size="?"
     log "  ERASE    $user  $home ($size) → fresh copy of /etc/skel"
     WIPE_USERS=$((WIPE_USERS + 1))
+    if [ "$mode" = "apply" ]; then
+      if ! find "$real" -mindepth 1 -maxdepth 1 -exec rm -rf --one-file-system -- {} + 2>>"$LOG_FILE"; then
+        log "    WARNING: could not erase everything in $real (see the log)."
+        WIPE_ERRORS=$((WIPE_ERRORS + 1))
+        continue
+      fi
+      # Copy as the user without -a: new files get the user as owner and the normal
+      # home-folder SELinux label (cp -a would try to keep /etc/skel's label).
+      if ! runuser -u "$user" -- cp -R --preserve=mode,timestamps -- /etc/skel/. "$real/" >>"$LOG_FILE" 2>&1; then
+        log "    WARNING: could not copy /etc/skel into $real (see the log)."
+        WIPE_ERRORS=$((WIPE_ERRORS + 1))
+      fi
+      if ! passwd -e "$user" >>"$LOG_FILE" 2>&1; then
+        log "    WARNING: could not make $user pick a new password at next login (see the log)."
+        WIPE_ERRORS=$((WIPE_ERRORS + 1))
+      fi
+    fi
   done < <(getent passwd)
 
   return 0
 }
 
-# Real run (Step 6b): two confirmations, then Part 1 (System Reset).
-# Parts 2-4 come in Step 6c.
+# Real run (Steps 6b-6c): two confirmations, then Part 1 (System Reset),
+# Part 2 (erase homes), Part 3 (empty quarantine), Part 4 (restart).
 full_wipe_run() {
   local word=""
   if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
@@ -1235,8 +1259,34 @@ full_wipe_run() {
   log "Full Wipe started."
   log "Part 1 — System Reset:"
   reset_system_run wipe
-  log "Parts 2-4 come in Step 6c."
-  exit 3
+  log "Part 2 — Erase personal files:"
+  wipe_users_plan apply
+  log "Part 3 — Empty the quarantine:"
+  if [ ! -d "$QUAR_DIR" ]; then
+    log "  Quarantine is already empty."
+  elif find "$QUAR_DIR" -mindepth 1 -delete 2>>"$LOG_FILE"; then
+    log "  Quarantine emptied."
+  else
+    log "  WARNING: could not empty the quarantine (see the log)."
+    WIPE_ERRORS=$((WIPE_ERRORS + 1))
+  fi
+  log "Wipe done: $WIPE_USERS personal folders erased, $((RESET_ERRORS + WIPE_ERRORS)) problems."
+  log "Part 4 — Restart:"
+  if [ "$YES" -eq 1 ]; then
+    # No reboot here — the Clean Sweep window handles it (Step 7).
+    log "  Restart the computer to finish."
+  else
+    if confirm "Restart now to finish the wipe?"; then
+      log "  Restarting..."
+      systemctl reboot
+    else
+      log "  Restart the computer later to finish."
+    fi
+  fi
+  if [ $((RESET_ERRORS + WIPE_ERRORS)) -gt 0 ]; then
+    exit 3
+  fi
+  exit 0
 }
 
 # `forgeos-cleansweep full-wipe` (Step 6a): the plan for erasing everything.
@@ -1301,6 +1351,7 @@ RESET_SAME_REF=0  # 1 = booted image is already RESET_REF -> rpm-ostree upgrade 
 RESET_ERRORS=0    # problems found during a real reset run (Step 5b)
 RESET_BK=""       # backup folder for this reset run, set in Step 5b
 WIPE_USERS=0    # personal folders to erase (Step 6a)
+WIPE_ERRORS=0    # problems during a real wipe (Step 6c)
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""

@@ -439,3 +439,32 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - Still refused (usage + exit 3): `--yes`, `--yes wipe`, `--dry-run --yes`, `WIPE --yes`.
 - Note for 6c: full_wipe_run must exit 3 if RESET_ERRORS > 0 OR any Part 2-3 error (reset_system_run wipe now just returns).
 - Next: Step 6c (Parts 2-4: erase homes, empty quarantine, restart).
+
+## Step 6c — full-wipe real run parts 2-4 (erase homes, empty quarantine, restart) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- Globals: `WIPE_ERRORS=0    # problems during a real wipe (Step 6c)` right below the `WIPE_USERS=0` line.
+- wipe_users_plan(): comment block replaced — now "Full Wipe Part 2 (Steps 6a/6c)", says mode "apply" really erases, and that only real folders under /home or /var/home are touched (checked by text AND by realpath).
+- wipe_users_plan(): `local user uid home size` replaced with two lines: `local mode="${1:-plan}"` + `local user uid home size real`.
+- wipe_users_plan(): right above the du line, added the realpath guard — `real="$(realpath -e -- "$home" 2>/dev/null)" || real=""`, then a case that skips (with "SKIP … (real path is outside /home — not erased)") unless $real matches /home/?*|/var/home/?*.
+- wipe_users_plan(): right below `WIPE_USERS=$((WIPE_USERS + 1))`, added the mode "apply" block — erase contents with `find "$real" -mindepth 1 -maxdepth 1 -exec rm -rf --one-file-system -- {} +` (failure → WARNING + WIPE_ERRORS+1 + continue), then `runuser -u "$user" -- cp -a /etc/skel/. "$real/"` (failure → WARNING + count), then `passwd -e "$user"` (failure → WARNING + count).
+- full_wipe_run(): its 2 comment lines replaced with "# Real run (Steps 6b-6c): two confirmations, then Part 1 (System Reset)," / "# Part 2 (erase homes), Part 3 (empty quarantine), Part 4 (restart)."
+- full_wipe_run(): the stub (`log "Parts 2-4 come in Step 6c."` + `exit 3`) replaced with: "Part 2 — Erase personal files:" + `wipe_users_plan apply`; "Part 3 — Empty the quarantine:" + `find "$QUAR_DIR" -mindepth 1 -delete` (success → "Quarantine emptied.", failure → WARNING + WIPE_ERRORS+1); "Wipe done: $WIPE_USERS personal folders erased, $((RESET_ERRORS + WIPE_ERRORS)) problems."; "Part 4 — Restart:" (YES=1 → no reboot here, note only; else confirm "Restart now to finish the wipe?" → systemctl reboot or later-finish note); exit 3 if RESET_ERRORS+WIPE_ERRORS > 0, else exit 0.
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 6c — 2026-10-24
+- APPROVED. Code matches the blueprint. 2 fixes (Claude applied):
+  1. **skel copy without `-a`:** `cp -a` tries to keep /etc/skel's SELinux label on the new files in the home. Now `runuser -u "$user" -- cp -R --preserve=mode,timestamps -- /etc/skel/. "$real/"` — files are created by the user, so they get the user as owner and the normal home-folder label.
+  2. **Missing quarantine folder is not an error:** Part 3 now says "Quarantine is already empty." if $QUAR_DIR doesn't exist, instead of a WARNING + exit 3.
+- Cancelled Cline during its final "verify" re-read (all 7 script edits + PROGRESS entry were already saved).
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (PATH shims for id/ostree/rpm-ostree/flatpak/systemctl/passwd/runuser/getent that log their calls; fixture passwd; /home check + skel pointed at test folders; scan, /etc, clears, users and image-ref stubbed; real terminal via `script`):
+  - `full-wipe --dry-run` → bob + amy ERASE; eve (outside /home), lnk (home is a symlink), esc (home under a symlinked folder → real path outside /home) SKIP; missing home + UID 65534 not listed; exit 0; nothing changed.
+  - `full-wipe --yes WIPE` → bob + amy emptied (incl. hidden files and sub-folders) and refilled from skel; eve + esc untouched; quarantine (files + quarantine.log) emptied; runuser + `passwd -e` per user; "Wipe done: 2 … 0 problems."; no reboot; exit 0.
+  - Interactive y / WIPE / restart y → `systemctl reboot`, exit 0. Restart n → no reboot, exit 0. First answer n → cancelled, nothing run, files untouched.
+  - Erase fails (read-only sub-folder in amy) → WARNING, skel copy skipped for amy, "1 problems", exit 3.
+  - skel copy fails (unreadable skel sub-folder) → WARNING per user, exit 3.
+  - rpm-ostree failing → "2 problems" (RESET_ERRORS counted), exit 3.
+  - `reset-system` (y, n) unchanged, homes untouched; still refused (exit 3): `--yes`, `--yes wipe`, `--dry-run --yes`.
+- Next: Step 7 (GUI + weekly timer).
