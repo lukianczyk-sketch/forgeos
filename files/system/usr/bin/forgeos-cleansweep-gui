@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clean Sweep window (Step 7a): main menu + Scan Now. System Reset and Full Wipe buttons come in Step 7b.
+# Clean Sweep window (Steps 7a-7b): main menu with Scan Now, System Reset and Full Wipe.
 set -uo pipefail
 
 TITLE="ForgeOS Clean Sweep"
@@ -106,13 +106,103 @@ Full report: ~/.local/state/forgeos/clean-sweep/last-report.txt" ;;
     return 0
 }
 
+# Ask the user to type WIPE; print what they typed on stdout (nothing if cancelled).
+ask_wipe_word() {
+    local word=""
+    if has_gui && command -v kdialog >/dev/null 2>&1; then
+        word="$(kdialog --title "$TITLE" --inputbox "Type WIPE (capital letters) to erase everything:" "")" || true
+    elif has_gui && command -v zenity >/dev/null 2>&1; then
+        word="$(zenity --entry --title="$TITLE" --text="Type WIPE (capital letters) to erase everything:")" || true
+    else
+        printf "Type WIPE (capital letters) to erase everything: " >&2
+        read -r word || word=""
+    fi
+    if [[ -n "$word" ]]; then
+        printf '%s\n' "$word"
+    fi
+    return 0
+}
+
+# Offer to restart now; reboot on yes.
+offer_restart() {
+    if ask_yes_no "$1"; then
+        systemctl reboot || say error "Could not restart. Please restart the computer yourself."
+    fi
+    return 0
+}
+
+# Run the engine via pkexec under a busy bar (text in $1, engine args after); print nothing, return the engine exit code.
+run_engine() {
+    local ref="" rc=0
+    if has_gui && command -v kdialog >/dev/null 2>&1; then
+        ref="$(kdialog --title "$TITLE" --progressbar "$1" 0)" || ref=""
+    fi
+    shift
+    pkexec "$ENGINE" "$@"
+    rc=$?
+    if [[ -n "$ref" ]]; then
+        dbus-send --session --type=method_call --dest="${ref% *}" "${ref#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+    fi
+    return "$rc"
+}
+
+# System Reset button: confirm, run reset-system --yes, report, offer restart.
+run_reset() {
+    ask_yes_no "System Reset will:
+
+• Put ForgeOS back to factory settings
+• Remove added programs, hidden auto-start items and remote-access keys
+• Check your apps and download a fresh signed system
+
+Your personal files are KEPT. Anything removed is saved in a backup folder.
+
+Continue?" || return 0
+    local rc=0
+    run_engine "Resetting your PC — this can take a while..." reset-system --yes || rc=$?
+    case "$rc" in
+        0) offer_restart "System Reset finished. Restart now to complete it?" ;;
+        3) say error "System Reset finished with some problems. Details are in /var/log/forgeos/clean-sweep/."
+           offer_restart "Restart now anyway?" ;;
+        126) return 0 ;;
+        127) say error "Your account is not allowed to run Clean Sweep. Sign in as an administrator and try again." ;;
+        *) say error "System Reset could not finish. Details are in /var/log/forgeos/clean-sweep/." ;;
+    esac
+    return 0
+}
+
+# Full Wipe button: two confirmations (yes + type WIPE), run full-wipe --yes WIPE, report, offer restart.
+run_wipe() {
+    ask_yes_no "Full Wipe will ERASE ALL personal files for every user — documents, photos, downloads, everything — and then reset ForgeOS to factory.
+
+This cannot be undone. Back up anything you want to keep first.
+
+Continue?" || return 0
+    local word rc=0
+    word="$(ask_wipe_word)"
+    if [[ "$word" != "WIPE" ]]; then
+        say info "Full Wipe cancelled. Nothing was changed."
+        return 0
+    fi
+    run_engine "Wiping your PC — this can take a while..." full-wipe --yes WIPE || rc=$?
+    case "$rc" in
+        0) offer_restart "Full Wipe finished. Restart now to complete it?" ;;
+        3) say error "Full Wipe finished with some problems. Details are in /var/log/forgeos/clean-sweep/."
+           offer_restart "Restart now anyway?" ;;
+        126) return 0 ;;
+        127) say error "Your account is not allowed to run Clean Sweep. Sign in as an administrator and try again." ;;
+        *) say error "Full Wipe could not finish. Details are in /var/log/forgeos/clean-sweep/." ;;
+    esac
+    return 0
+}
+
 # Show the menu, dispatch the chosen action, and exit cleanly.
 main() {
     local action
     action="$(pick_action)"
     case "$action" in
         scan) run_scan ;;
-        reset|wipe) say info "This button comes in the next update." ;;
+        reset) run_reset ;;
+        wipe) run_wipe ;;
         *) exit 0 ;;
     esac
     exit 0

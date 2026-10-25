@@ -497,3 +497,30 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - zenity only (no kdialog) → zenity list + zenity info; no progress bar.
   - No GUI (no DISPLAY/WAYLAND_DISPLAY): menu shows on the terminal; 1 → scan, 2/3 → "next update", Enter / x / closed stdin → quit, exit 0.
 - Next: Step 7b (System Reset + Full Wipe buttons in the GUI).
+
+## Step 7b — Clean Sweep window: System Reset + Full Wipe buttons — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep-gui (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file, small replace edits):
+- Item 1: new ask_wipe_word() below run_scan — kdialog `--inputbox` → zenity `--entry` → terminal prompt on stderr + `read -r word || word=""`; prints the typed word on stdout, nothing if cancelled; always returns 0.
+- Item 2: new offer_restart() — asks via ask_yes_no "$1"; on yes runs `systemctl reboot`, and if that fails says "Could not restart. Please restart the computer yourself."; always returns 0.
+- Item 3: new run_engine() — opens the kdialog progressbar with text $1 (only when has_gui + kdialog), shifts, runs `pkexec "$ENGINE" "$@"`, saves rc, closes the bar with the same dbus-send line as run_scan (`>/dev/null 2>&1 || true`), then returns the engine's exit code.
+- Item 4: new run_reset() — confirmation dialog (cancel → return 0), then `run_engine "Resetting your PC — this can take a while..." reset-system --yes`; rc 0 → offer_restart; 3 → error + offer_restart anyway; 126 → silent return 0; 127 → same "not allowed" error as run_scan; * → could-not-finish error pointing at /var/log/forgeos/clean-sweep/; always returns 0.
+- Item 5: new run_wipe() — first ask_yes_no (cancel → return 0), then `word="$(ask_wipe_word)"`; if not exactly WIPE → info "Full Wipe cancelled. Nothing was changed." + return 0; else `run_engine "Wiping your PC — this can take a while..." full-wipe --yes WIPE` with the same rc mapping as run_reset (Full Wipe wording); always returns 0.
+- Item 6: main now dispatches `reset) run_reset ;;` and `wipe) run_wipe ;;` (replacing the "This button comes in the next update." placeholder).
+- Item 7: line 2 comment is now "# Clean Sweep window (Steps 7a-7b): main menu with Scan Now, System Reset and Full Wipe."
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 7b — 2026-10-24
+- APPROVED, no fixes needed. Code matches the blueprint: the GUI asks its own confirmations, then runs the engine with `--yes` (the engine never reboots by itself with `--yes`; the GUI offers the restart).
+- Cancelled Cline's final "verify" re-read (all script edits + PROGRESS entry were already saved). File was already LF (no CRLF).
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean.
+- Tests (fake kdialog/zenity/pkexec/dbus-send/systemctl that log their calls):
+  - Reset: yes → busy bar, `pkexec /usr/bin/forgeos-cleansweep reset-system --yes`, bar closed, restart asked; yes → `systemctl reboot`, no → nothing. First answer no → engine never runs.
+  - Reset rc 3 → "finished with some problems" error + restart still offered. 126 → silent. 127 → "not allowed". Other (2) → "could not finish".
+  - Wipe: yes + WIPE → `pkexec … full-wipe --yes WIPE` + restart offered. Lowercase "wipe" / inputbox cancelled → "Full Wipe cancelled. Nothing was changed.", engine never runs. First answer no → nothing.
+  - Wipe rc 3 + reboot failing → problems error, then "Could not restart. Please restart the computer yourself."
+  - zenity only → zenity list/question/entry path works end to end.
+  - No GUI (terminal): reset y/n, wipe y + wrong word (cancelled), wipe y + WIPE + y (reboot) all correct.
+  - Scan Now unchanged.
+- Next: Step 7c (weekly timer + desktop notification).
