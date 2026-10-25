@@ -110,6 +110,17 @@ STOP.
 - Confirmation 2: the user must type `WIPE`.
 - Then: run all of Step 5 (no backups of user data), delete every regular user's home contents, recreate them from `/etc/skel`, remove user Flatpak data (`~/.var/app`), empty the quarantine, and reboot.
 - Never runs without both confirmations. `--dry-run` is required in all tests.
+
+### Step 6 split (Claude, 2026-10-24)
+- Command forms (exact):
+  - `full-wipe --dry-run` → plan only, changes nothing.
+  - `full-wipe` (terminal) → asks Yes/No, then the user must type `WIPE` (exact, capitals).
+  - `full-wipe --yes WIPE` (GUI) → the Clean Sweep window shows its own Yes/No box and a text box; it only passes the word `WIPE` after the user typed it. `--yes` without `WIPE` right after it = usage error, exit 3. No other forms.
+- Full wipe = System Reset steps 1-3 and 5-7 (step 4 "user startup spots" is skipped — the homes are erased anyway), then erase homes, then empty quarantine, then restart.
+- Safety: a home is only erased if it is a real folder (not a symlink) under `/home/` or `/var/home/`, owned by a regular user (UID 1000-59999). Anything else → skipped with a note. `rm` always uses `--one-file-system`.
+- 6a: argument parsing + usage line + `full-wipe --dry-run` plan (reset plan moved into `reset_system_plan` so both commands share it). Real run = stub, exit 3.
+- 6b: the two confirmations + the real run of Part 1 (System Reset without step 4).
+- 6c: erase each home's contents, fresh copy from /etc/skel (as that user), expire password, empty quarantine, restart.
 STOP.
 
 ## Step 7 — The app people click

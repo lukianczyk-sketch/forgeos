@@ -381,3 +381,30 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - `scan` exit codes unchanged: clean 0 / threats 1 / tamper 2 / tool error 3. Bad reset flag → 3.
 - Step 5 (System Reset engine) is COMPLETE.
 - Next: Step 6 (full wipe).
+
+## Step 6a — full-wipe argument parsing + dry-run plan (real run stub) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- New reset_system_plan() right above reset_system(): takes `local mode="${1:-reset}"`; contains the old plan body from "1. Scan first" through the step 7 REBASE/UPGRADE/WARNING block; no exit of its own. Step 4: mode "wipe" → log "4. (skipped — personal folders are erased in Part 2)" instead of the two step-4 lines (log + reset_users_plan).
+- reset_system(): now just the DRY_RUN=0 check (reset_system_run, unchanged), the "System Reset plan (dry run …)" line, `reset_system_plan`, then the unchanged step 8 line, Summary line, `: "$YES"` and exit 0.
+- New wipe_users_plan() right below reset_system(): same getent passwd loop header as reset_users_plan (skip non-numeric UID, skip UID < 1000 or >= 60000); per user — symlink home → "SKIP … (home is a symlink — not erased)" + continue; no folder → continue silently; path outside /home/?*|/var/home/?* → "SKIP … (not under /home — not erased)" + continue; else `du -sh -x` size, "ERASE $user $home ($size) → fresh copy of /etc/skel", WIPE_USERS+1.
+- New full_wipe() right below wipe_users_plan(): DRY_RUN=0 → log "Full Wipe real run comes in Step 6b." + exit 3; otherwise the dry-run plan: header line, Part 1 `reset_system_plan wipe`, Part 2 wipe_users_plan, Part 3 local qcount from `find $QUAR_DIR -mindepth 1 -type f | wc -l` + "DELETE N quarantined files (for good)", Part 4 restart note, Summary with WIPE_USERS / qcount / RESET_RESTORE / RESET_REMOVE / RESET_PUTBACK; exit 0.
+- Globals: WIPE_USERS=0 right below the RESET_BK="" line.
+- Argument parsing: new full-wipe) case after reset-system — `full-wipe` | `--dry-run` (DRY_RUN=1) | `--yes WIPE` (YES=1), anything else → usage + exit 3; CMD="wipe". Parsing comment block gained the full-wipe line.
+- Dispatch: added `elif [ "$CMD" = "wipe" ]; then full_wipe` after the reset line.
+- usage(): Usage line now includes "| full-wipe [--dry-run | --yes WIPE]"; new command line under reset-system: "full-wipe [--dry-run | --yes WIPE] ERASE all personal files, then reset (asks twice)".
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 6a — 2026-10-24
+- APPROVED with 1 fix (Claude applied):
+  1. **Right quarantine count:** `quarantine.log` lives in `$QUAR_DIR` too, so the count was always 1 too high. Now `find "$QUAR_DIR" -mindepth 2 -type f` (quarantined files are in per-scan sub-folders). Step 6c still empties everything, log included.
+- Cancelled Cline during its final "verify" re-read (all edits + PROGRESS entry were already saved).
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (fake id / getent passwd fixture; /home path check pointed at a test folder; /etc, clears and image-ref stubbed via an override file):
+  - `full-wipe --dry-run` → Part 1 shows steps 1-7 with "4. (skipped …)", Part 2 ERASE bob (2.9M) + amy; eve (outside /home) and lnk (home is a symlink) → SKIP; missing home, UID 999 and 65534 → not listed; Part 3 counts 2 files (not the log); Summary right; exit 0. Nothing changed on disk.
+  - `reset-system --dry-run` output unchanged (step 4 + users plan still there, step 8 + Summary); exit 0.
+  - `full-wipe` and `full-wipe --yes WIPE` → "real run comes in Step 6b", exit 3.
+  - Refused with usage + exit 3: `--yes`, `--yes wipe`, `--dry-run --yes`, `--yes WIPE x`, `WIPE --yes`, `--dry-run WIPE`, empty argument.
+- Note for 6c: also check `realpath` of each home stays under /var/home (a home like /home/x passes the text check while /home itself is a symlink on Bazzite — that's fine, but the resolved path must not escape).
+- Next: Step 6b (two confirmations + real run of Part 1).

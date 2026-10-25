@@ -1114,21 +1114,22 @@ reset_system_run() {
   exit 0
 }
 
-# `forgeos-cleansweep reset-system`: --dry-run prints the full plan; without it, all 8 steps run for real (Steps 5b-5d).
-reset_system() {
-  if [ "$DRY_RUN" -eq 0 ]; then
-    reset_system_run
-  fi
-
-  log "System Reset plan (dry run — nothing will be changed). Personal files are kept."
+# Shared reset plan (Step 6a): steps 1-7, printed by both reset-system and
+# full-wipe. mode "wipe" skips step 4 — the homes are erased in Part 2 anyway.
+reset_system_plan() {
+  local mode="${1:-reset}"
 
   log "1. Scan first (threats in personal files get quarantined)."
   log "2. rpm-ostree reset (removes added packages and overrides)."
   reset_etc_plan || exit 3
   reset_keep_warnings
 
-  log "4. Clean each user's startup spots (personal files untouched):"
-  reset_users_plan
+  if [ "$mode" = "wipe" ]; then
+    log "4. (skipped — personal folders are erased in Part 2)"
+  else
+    log "4. Clean each user's startup spots (personal files untouched):"
+    reset_users_plan
+  fi
 
   log "5. Clear hiding spots:"
   reset_clears
@@ -1151,6 +1152,16 @@ reset_system() {
   else
     log "  WARNING: no signed image reference found — this step will be skipped."
   fi
+}
+
+# `forgeos-cleansweep reset-system`: --dry-run prints the full plan; without it, all 8 steps run for real (Steps 5b-5d).
+reset_system() {
+  if [ "$DRY_RUN" -eq 0 ]; then
+    reset_system_run
+  fi
+
+  log "System Reset plan (dry run — nothing will be changed). Personal files are kept."
+  reset_system_plan
 
   log "8. Show the summary, then restart after you click OK."
 
@@ -1159,9 +1170,64 @@ reset_system() {
   exit 0
 }
 
+# Full Wipe Part 2 (Step 6a): list every regular user's home that would be
+# erased and recreated from /etc/skel. Only real folders under /home or
+# /var/home are touched — symlinks and other paths are skipped with a note.
+wipe_users_plan() {
+  local user uid home size
+
+  while IFS=: read -r user _ uid _ _ home _; do
+    case "$uid" in
+      ''|*[!0-9]*) continue ;;   # not a numeric UID — skip (e.g. empty line)
+    esac
+    if [ "$uid" -lt 1000 ] || [ "$uid" -ge 60000 ]; then continue; fi
+
+    if [ -L "$home" ]; then
+      log "  SKIP     $user  $home (home is a symlink — not erased)"
+      continue
+    fi
+    [ -d "$home" ] || continue
+
+    case "$home" in
+      /home/?*|/var/home/?*) ;;
+      *) log "  SKIP     $user  $home (not under /home — not erased)"; continue ;;
+    esac
+
+    size="$(du -sh -x -- "$home" 2>/dev/null | cut -f1)"
+    log "  ERASE    $user  $home ($size) → fresh copy of /etc/skel"
+    WIPE_USERS=$((WIPE_USERS + 1))
+  done < <(getent passwd)
+
+  return 0
+}
+
+# `forgeos-cleansweep full-wipe` (Step 6a): the plan for erasing everything.
+# The real run comes in Step 6b — until then a non-dry-run call is refused.
+full_wipe() {
+  if [ "$DRY_RUN" -eq 0 ]; then
+    log "Full Wipe real run comes in Step 6b."
+    exit 3
+  fi
+
+  local qcount
+
+  log "Full Wipe plan (dry run — nothing will be changed). ALL personal files, apps and settings will be ERASED."
+  log "Part 1 — System Reset:"
+  reset_system_plan wipe
+  log "Part 2 — Erase personal files:"
+  wipe_users_plan
+  log "Part 3 — Empty the quarantine:"
+  # -mindepth 2: files live in per-scan sub-folders; quarantine.log itself is not counted
+  qcount="$(find "$QUAR_DIR" -mindepth 2 -type f 2>/dev/null | wc -l)"
+  log "  DELETE   $qcount quarantined files (for good)"
+  log "Part 4 — Restart after you click OK."
+  log "Summary: $WIPE_USERS personal folders to erase, $qcount quarantined files to delete, $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back."
+  exit 0
+}
+
 usage() {
   cat >&2 <<'EOF'
-Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ... | reset-system [--dry-run] [--yes]]
+Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ... | reset-system [--dry-run] [--yes] | full-wipe [--dry-run | --yes WIPE]]
 
 Commands:
   scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
@@ -1170,6 +1236,7 @@ Commands:
   quarantine restore <id> [--yes]    Put a quarantined file back
   quarantine delete <id|all> [--yes] Delete a quarantined file for good
   reset-system [--dry-run] [--yes]   Put the system back to factory; keeps personal files
+  full-wipe [--dry-run | --yes WIPE] ERASE all personal files, then reset (asks twice)
   --yes         Skip the question — used by the Clean Sweep window
   (no command)  Run the original v1 clean sweep (kept until the new GUI lands, Step 7)
 
@@ -1183,6 +1250,7 @@ EOF
 #   quarantine list      -> list what is locked away
 #   quarantine restore <id> [--yes] / delete <id|all> [--yes]  (Step 4b)
 #   reset-system [--dry-run] [--yes]  (Step 5a-1)
+#   full-wipe [--dry-run | --yes WIPE]  (Step 6a)
 QSUB=""    # quarantine sub-command: list | restore | delete
 QID=""     # quarantined file id for restore/delete
 RESET_RESTORE=0   # reset-system plan counters (Step 5a-1): files to restore / remove / put back
@@ -1195,6 +1263,7 @@ RESET_REF=""      # signed image reference for the rebase step (Step 5a-2)
 RESET_SAME_REF=0  # 1 = booted image is already RESET_REF -> rpm-ostree upgrade (Step 5d)
 RESET_ERRORS=0    # problems found during a real reset run (Step 5b)
 RESET_BK=""       # backup folder for this reset run, set in Step 5b
+WIPE_USERS=0    # personal folders to erase (Step 6a)
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""
@@ -1261,6 +1330,14 @@ case "${1:-}" in
       if [ "$flag" = "--yes" ]; then YES=1; fi
     done
     ;;
+  full-wipe)
+    # `full-wipe --dry-run` | `full-wipe` | `full-wipe --yes WIPE` (Step 6a)
+    if [ "$#" -eq 1 ]; then :
+    elif [ "$#" -eq 2 ] && [ "$2" = "--dry-run" ]; then DRY_RUN=1
+    elif [ "$#" -eq 3 ] && [ "$2" = "--yes" ] && [ "$3" = "WIPE" ]; then YES=1
+    else usage; exit 3; fi
+    CMD="wipe"
+    ;;
   *) usage; exit 3 ;;
 esac
 
@@ -1279,6 +1356,8 @@ elif [ "$CMD" = "quarantine" ]; then
   quarantine_cmd
 elif [ "$CMD" = "reset" ]; then
   reset_system
+elif [ "$CMD" = "wipe" ]; then
+  full_wipe
 else
   legacy_sweep
 fi
