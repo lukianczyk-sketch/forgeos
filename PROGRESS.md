@@ -73,3 +73,20 @@ STATUS: WAITING FOR CLAUDE REVIEW
 - desktop-file-validate: menu entry clean. Service menu reports "MimeType/Actions only valid for Application" — EXPECTED, that is the KDE service-menu format (develop.kde.org/docs/apps/dolphin/service-menus).
 - Smoke test (fake kdialog + fake engine): right-click restore OK, virus (exit 4) → error "NOT restored", no versions → info, cancel → quiet exit, main menu About shows status, no kdialog → exit 3. Full prototype tests (real btrfs + snapper + real ClamAV) were done before the prompt.
 - STATUS: READY FOR STEP 4
+
+## Step 4 — Clean Sweep fixes — 2026-10-25
+What I did:
+- Virus scan now skips /var/home/.snapshots and /home/.snapshots (no scanning every snapshot copy).
+- Full Wipe Part 2b: new wipe_snapshots_plan deletes every Undo Button home snapshot (plan shows the count).
+Files changed:
+- files/system/usr/bin/forgeos-cleansweep
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 4 — 2026-10-25 — APPROVED
+- forgeos-cleansweep is byte-identical to Claude's tested prototype (md5 c0fc3ef6303dc0bd1ee16b4312585331). LF line endings, no CRLF. PROGRESS entry correct.
+- shellcheck -S warning: clean. bash -n: OK. tests/test-clean-sweep.sh: 16 passed, 0 failed (O skipped, needs REAL_CLAMAV=1).
+- Prototype tests (cloud VM, real btrfs + snapper 0.10.6 + real ClamAV 1.5.4):
+  - Scan: --exclude-dir '^/var/home/\.snapshots' skips every snapshot copy; a virus in a real home file is still found, and a user's own folder named ".snapshots" inside their home is still scanned.
+  - Full Wipe Part 2b: plan counts the snapshots; apply deletes them all, including with a gap in the numbers (1,3,4); D-Bus down -> falls back to snapper --no-dbus and still deletes; no snapper / no /var/home config (only a "/" config) -> "Undo Button is off", nothing touched; the right config is picked when it is not the first one; list or delete failure -> WARNING + counted as a problem.
+  - Uses snapperd over D-Bus first, so snapperd's own list stays correct (a --no-dbus delete left snapperd showing snapshots that were gone).
+- STATUS: READY FOR STEP 5

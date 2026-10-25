@@ -112,6 +112,8 @@ run_clamscan() {
     --exclude-dir=^/var/lib/clamav \
     --exclude-dir=^/var/lib/forgeos/quarantine \
     --exclude-dir=^/var/lib/containers/storage \
+    --exclude-dir='^/var/home/\.snapshots' \
+    --exclude-dir='^/home/\.snapshots' \
     "${move_args[@]}" \
     "${targets[@]}" >"$scan_log" 2>&1 || rc=$?
 
@@ -1145,6 +1147,53 @@ wipe_users_plan() {
   return 0
 }
 
+# Full Wipe Part 2b (Job 5 Step 4): count — or with "apply" delete — every Undo
+# Button snapshot of the home folders, so erased files cannot be brought back.
+# The snapper config is the one whose SUBVOLUME is /var/home or /home ("root" on
+# ForgeOS). No snapper or no such config -> nothing to do.
+wipe_snapshots_plan() {
+  local mode="${1:-plan}" cfg="" c sub cfgs list
+  local -a sn=(snapper) nums=()
+  if ! command -v snapper >/dev/null 2>&1; then
+    log "  Undo Button is off — no home snapshots to delete."
+    return 0
+  fi
+  # snapper normally talks to snapperd over D-Bus; if that fails, work directly.
+  if ! cfgs="$(snapper --csvout list-configs --columns config,subvolume 2>>"$LOG_FILE")"; then
+    sn=(snapper --no-dbus)
+    if ! cfgs="$("${sn[@]}" --csvout list-configs --columns config,subvolume 2>>"$LOG_FILE")"; then
+      log "  WARNING: could not read the Undo Button settings (see the log)."
+      WIPE_ERRORS=$((WIPE_ERRORS + 1))
+      return 0
+    fi
+  fi
+  while IFS=, read -r c sub; do
+    case "$sub" in /var/home|/home) cfg="$c"; break ;; esac
+  done <<< "$cfgs"
+  if [ -z "$cfg" ]; then
+    log "  Undo Button is off — no home snapshots to delete."
+    return 0
+  fi
+  if ! list="$("${sn[@]}" --csvout -c "$cfg" list --columns number 2>>"$LOG_FILE")"; then
+    log "  WARNING: could not list the Undo Button snapshots (see the log)."
+    WIPE_ERRORS=$((WIPE_ERRORS + 1))
+    return 0
+  fi
+  # Snapshot 0 is "now", not a snapshot; the header line "number" is skipped too.
+  mapfile -t nums < <(printf '%s\n' "$list" | grep -E '^[1-9][0-9]*$')
+  WIPE_SNAPS=${#nums[@]}
+  log "  DELETE   $WIPE_SNAPS Undo Button snapshots of the home folders (for good)"
+  if [ "$mode" != "apply" ] || [ "$WIPE_SNAPS" -eq 0 ]; then
+    return 0
+  fi
+  # Every number is listed (a range like 1-9 fails when one in the middle is gone).
+  if ! "${sn[@]}" -c "$cfg" delete --sync "${nums[@]}" >>"$LOG_FILE" 2>&1; then
+    log "    WARNING: could not delete every snapshot (see the log)."
+    WIPE_ERRORS=$((WIPE_ERRORS + 1))
+  fi
+  return 0
+}
+
 # Real run (Steps 6b-6c): two confirmations, then Part 1 (System Reset),
 # Part 2 (erase homes), Part 3 (empty quarantine), Part 4 (restart).
 full_wipe_run() {
@@ -1169,6 +1218,8 @@ full_wipe_run() {
   reset_system_run wipe
   log "Part 2 — Erase personal files:"
   wipe_users_plan apply
+  log "Part 2b — Delete Undo Button snapshots:"
+  wipe_snapshots_plan apply
   log "Part 3 — Empty the quarantine:"
   if [ ! -d "$QUAR_DIR" ]; then
     log "  Quarantine is already empty."
@@ -1178,7 +1229,7 @@ full_wipe_run() {
     log "  WARNING: could not empty the quarantine (see the log)."
     WIPE_ERRORS=$((WIPE_ERRORS + 1))
   fi
-  log "Wipe done: $WIPE_USERS personal folders erased, $((RESET_ERRORS + WIPE_ERRORS)) problems."
+  log "Wipe done: $WIPE_USERS personal folders erased, $WIPE_SNAPS snapshots deleted, $((RESET_ERRORS + WIPE_ERRORS)) problems."
   log "Part 4 — Restart:"
   if [ "$YES" -eq 1 ]; then
     # No reboot here — the Clean Sweep window handles it (Step 7).
@@ -1211,12 +1262,14 @@ full_wipe() {
   reset_system_plan wipe
   log "Part 2 — Erase personal files:"
   wipe_users_plan
+  log "Part 2b — Delete Undo Button snapshots:"
+  wipe_snapshots_plan
   log "Part 3 — Empty the quarantine:"
   # -mindepth 2: files live in per-scan sub-folders; quarantine.log itself is not counted
   qcount="$(find "$QUAR_DIR" -mindepth 2 -type f 2>/dev/null | wc -l)"
   log "  DELETE   $qcount quarantined files (for good)"
   log "Part 4 — Restart after you click OK."
-  log "Summary: $WIPE_USERS personal folders to erase, $qcount quarantined files to delete, $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back."
+  log "Summary: $WIPE_USERS personal folders to erase, $WIPE_SNAPS Undo Button snapshots to delete, $qcount quarantined files to delete, $RESET_RESTORE to restore, $RESET_REMOVE to remove, $RESET_PUTBACK to put back."
   exit 0
 }
 
@@ -1260,6 +1313,7 @@ RESET_ERRORS=0    # problems found during a real reset run (Step 5b)
 RESET_BK=""       # backup folder for this reset run, set in Step 5b
 WIPE_USERS=0    # personal folders to erase (Step 6a)
 WIPE_ERRORS=0    # problems during a real wipe (Step 6c)
+WIPE_SNAPS=0     # Undo Button home snapshots to delete (Job 5 Step 4)
 F_DATE=""   # matched quarantine.log line (set by quarantine_find, Step 4b-1)
 F_ORIG=""
 F_SHA=""
