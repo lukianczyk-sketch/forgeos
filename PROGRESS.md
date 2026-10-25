@@ -90,3 +90,24 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - Full Wipe Part 2b: plan counts the snapshots; apply deletes them all, including with a gap in the numbers (1,3,4); D-Bus down -> falls back to snapper --no-dbus and still deletes; no snapper / no /var/home config (only a "/" config) -> "Undo Button is off", nothing touched; the right config is picked when it is not the first one; list or delete failure -> WARNING + counted as a problem.
   - Uses snapperd over D-Bus first, so snapperd's own list stays correct (a --no-dbus delete left snapperd showing snapshots that were gone).
 - STATUS: READY FOR STEP 5
+
+## Step 5 — Undo Button tests — 2026-10-25
+What I did:
+- tests/test-undo.sh: cases A-K for forgeos-undo (fake snapshot tree, fake snapper/rpm-ostree/clamscan).
+- tests/test-undo-extras.sh: cases L-T for forgeos-undo-gui, forgeos-undo-setup and Clean Sweep wipe_snapshots_plan.
+- tests/test-undo-real.sh: cases U-Y on a real btrfs disk with real snapper (CI, as root).
+- tests.yml: runs all three.
+Files changed:
+- tests/test-undo.sh (new)
+- tests/test-undo-extras.sh (new)
+- tests/test-undo-real.sh (new)
+- .github/workflows/tests.yml
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 5 — 2026-10-25 — APPROVED
+- All 3 test files byte-identical to Claude's prototypes after fixing line endings (Cline wrote CRLF; changed to LF). md5: test-undo.sh 9172628a..., test-undo-extras.sh 49a8b114..., test-undo-real.sh 824e5cbc....
+- tests.yml + PROGRESS edits exactly as asked, LF.
+- Ran on the PC (Linux VM): test-undo.sh A-K ALL PASS, test-undo-extras.sh L-T ALL PASS, test-clean-sweep.sh still 0 failures; test-undo-real.sh SKIPs without root (correct; it runs as root in GitHub Actions).
+- Prototype checks (cloud, Ubuntu 24.04, snapper 0.10.6): U-Y pass on a real btrfs disk; 32 mutations of the Undo scripts all caught.
+- shellcheck -S warning (what CI runs): clean. shellcheck 0.11 info/style notes (SC2015/SC2181/SC2329) are intended patterns or false positives.
+- STATUS: STEP 5 DONE — next: Actions run green, then tag v0.6.0

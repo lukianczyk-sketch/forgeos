@@ -51,3 +51,13 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends clamav
           REAL_CLAMAV=1 bash tests/test-clean-sweep.sh .
+
+      - name: Run Undo Button tests (fake tools)
+        run: |
+          bash tests/test-undo.sh .
+          bash tests/test-undo-extras.sh .
+
+      - name: Run Undo Button tests on a real btrfs disk with real snapper (free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends snapper btrfs-progs
+          sudo bash tests/test-undo-real.sh .
