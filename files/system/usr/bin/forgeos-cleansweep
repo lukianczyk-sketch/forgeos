@@ -1018,13 +1018,16 @@ reset_clears() {
 
 # Real run (Steps 5b-5d): all 8 steps.
 reset_system_run() {
+  local mode="${1:-reset}"
   if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
     log "ERROR: ostree not found."
     exit 3
   fi
-  if ! confirm "System Reset puts ForgeOS system settings back to factory. Your personal files are kept. Continue?"; then
-    log "Cancelled — nothing was changed."
-    exit 0
+  if [ "$mode" != "wipe" ]; then
+    if ! confirm "System Reset puts ForgeOS system settings back to factory. Your personal files are kept. Continue?"; then
+      log "Cancelled — nothing was changed."
+      exit 0
+    fi
   fi
 
   RESET_BK="$RESET_BK_DIR/$STAMP"
@@ -1057,8 +1060,12 @@ reset_system_run() {
   reset_etc_plan apply || exit 3
   reset_keep_warnings
 
-  log "4. Clean each user's startup spots (personal files untouched):"
-  reset_users_plan apply
+  if [ "$mode" = "wipe" ]; then
+    log "4. (skipped — personal folders are erased in Part 2)"
+  else
+    log "4. Clean each user's startup spots (personal files untouched):"
+    reset_users_plan apply
+  fi
 
   log "5. Clear hiding spots:"
   reset_clears apply
@@ -1094,6 +1101,9 @@ reset_system_run() {
   fi
 
   log "Done: $RESET_RESTORE restored, $RESET_REMOVE removed, $RESET_PUTBACK put back, $RESET_KEEP kept, $RESET_USERFILES user startup items, $RESET_ERRORS problems. Changes take effect after a restart."
+  if [ "$mode" = "wipe" ]; then
+    return 0
+  fi
 
   log "8. Restart:"
   if [ "$YES" -eq 1 ]; then
@@ -1193,7 +1203,9 @@ wipe_users_plan() {
       *) log "  SKIP     $user  $home (not under /home — not erased)"; continue ;;
     esac
 
-    size="$(du -sh -x -- "$home" 2>/dev/null | cut -f1)"
+    # du exits 1 if anything inside is unreadable (e.g. a FUSE mount) — still show a size
+    size="$( { du -sh -x -- "$home" 2>/dev/null || true; } | cut -f1)"
+    [ -n "$size" ] || size="?"
     log "  ERASE    $user  $home ($size) → fresh copy of /etc/skel"
     WIPE_USERS=$((WIPE_USERS + 1))
   done < <(getent passwd)
@@ -1201,12 +1213,37 @@ wipe_users_plan() {
   return 0
 }
 
+# Real run (Step 6b): two confirmations, then Part 1 (System Reset).
+# Parts 2-4 come in Step 6c.
+full_wipe_run() {
+  local word=""
+  if ! command -v ostree >/dev/null 2>&1; then   # check before changing anything
+    log "ERROR: ostree not found."
+    exit 3
+  fi
+  if ! confirm "Full Wipe ERASES all personal files, apps and settings for every user, then resets ForgeOS to factory. This cannot be undone. Continue?"; then
+    log "Cancelled — nothing was changed."
+    exit 0
+  fi
+  if [ "$YES" -ne 1 ]; then
+    read -r -p "Type WIPE to erase everything: " word
+    if [ "$word" != "WIPE" ]; then
+      log "Cancelled — nothing was changed."
+      exit 0
+    fi
+  fi
+  log "Full Wipe started."
+  log "Part 1 — System Reset:"
+  reset_system_run wipe
+  log "Parts 2-4 come in Step 6c."
+  exit 3
+}
+
 # `forgeos-cleansweep full-wipe` (Step 6a): the plan for erasing everything.
-# The real run comes in Step 6b — until then a non-dry-run call is refused.
+# A non-dry-run call goes to full_wipe_run (Step 6b).
 full_wipe() {
   if [ "$DRY_RUN" -eq 0 ]; then
-    log "Full Wipe real run comes in Step 6b."
-    exit 3
+    full_wipe_run
   fi
 
   local qcount

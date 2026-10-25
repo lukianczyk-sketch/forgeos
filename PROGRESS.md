@@ -408,3 +408,34 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - Refused with usage + exit 3: `--yes`, `--yes wipe`, `--dry-run --yes`, `--yes WIPE x`, `WIPE --yes`, `--dry-run WIPE`, empty argument.
 - Note for 6c: also check `realpath` of each home stays under /var/home (a home like /home/x passes the text check while /home itself is a symlink on Bazzite — that's fine, but the resolved path must not escape).
 - Next: Step 6b (two confirmations + real run of Part 1).
+
+## Step 6b — full-wipe real run part 1 (confirmations + System Reset) — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did (one file):
+- reset_system_run(): first line of the function body is now `local mode="${1:-reset}"` (reset_system() still calls it with no argument, so plain System Reset behaves exactly as before).
+- reset_system_run(): the confirm block ("System Reset puts ForgeOS system settings back to factory…") is now wrapped in `if [ "$mode" != "wipe" ] … fi` — a wipe run skips this question (its two own confirmations come first, in full_wipe_run).
+- reset_system_run(): step 4 is now conditional — mode "wipe" → log "4. (skipped — personal folders are erased in Part 2)"; otherwise the old two lines (log + `reset_users_plan apply`).
+- reset_system_run(): right after the "Done: …" line, added `if [ "$mode" = "wipe" ]; then return 0; fi` so a wipe run stops before step 8 and the exit lines below it (both left unchanged).
+- New full_wipe_run() directly above full_wipe(), with its Step 6b comment: checks ostree exists first ("ERROR: ostree not found." + exit 3); confirm "Full Wipe ERASES all personal files, apps and settings for every user, then resets ForgeOS to factory. This cannot be undone. Continue?" (cancel → "Cancelled — nothing was changed.", exit 0); unless YES=1, `read -r -p "Type WIPE to erase everything: "` must equal exactly "WIPE" or cancel + exit 0; then "Full Wipe started.", "Part 1 — System Reset:", `reset_system_run wipe`, "Parts 2-4 come in Step 6c.", exit 3.
+- full_wipe(): the DRY_RUN=0 stub (log "Full Wipe real run comes in Step 6b." + exit 3) is now one line: `full_wipe_run`; comment line 2 above it changed to "# A non-dry-run call goes to full_wipe_run (Step 6b).".
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 6b — 2026-10-24
+- APPROVED. Code matches the blueprint exactly. 1 fix (Claude applied, a 6a bug found while testing):
+  1. **Dry-run no longer dies on an unreadable home:** in wipe_users_plan, `du` exits 1 when anything inside a home can't be read (e.g. a FUSE mount like ~/.gvfs, which even root can't read). With `set -euo pipefail` that killed the whole script at "Part 2". Now `size="$( { du -sh -x -- "$home" 2>/dev/null || true; } | cut -f1)"` plus `[ -n "$size" ] || size="?"`. Checked every other `$(… | …)` in the file — the rest are already guarded (or v1 legacy code).
+- Cancelled Cline during its final "verify" re-read (all 4 script edits + PROGRESS entry were already saved). Cline caught and restored the Step 6a "Next:" line it had overwritten.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean, no CRLF.
+- Sandbox tests (PATH shims for id/ostree/rpm-ostree/flatpak/systemctl that log their calls; scan, /etc, clears, users and image-ref stubbed through an override file; real terminal via `script`):
+  - `full-wipe`, answer n → "Cancelled — nothing was changed.", exit 0, no commands run.
+  - `full-wipe`, y then "wipe" (lowercase) → cancelled, exit 0, nothing run.
+  - `full-wipe`, y then "WIPE" → "Full Wipe started.", "Part 1 — System Reset:", steps 1-7 with "4. (skipped …)" (users stub NOT called), Done line, "Parts 2-4 come in Step 6c.", exit 3. Ran: rpm-ostree reset, flatpak repair + update, rpm-ostree upgrade. No System Reset question, no step 8, no reboot.
+  - `full-wipe --yes WIPE` → same, with no questions.
+  - `full-wipe` with no terminal → "No terminal to ask on — add --yes to confirm.", exit 3.
+  - No ostree → "ERROR: ostree not found.", exit 3 before anything changes.
+  - rpm-ostree failing → 2 WARNINGs, Done shows "2 problems", still returns to full_wipe_run (exit 3).
+  - `reset-system` (y, then n to restart) → unchanged: its own question, step 4 runs the users plan, step 8 asks to restart, exit 0.
+  - `full-wipe --dry-run` → runs to the Summary, exit 0; quarantine.log not counted.
+  - Still refused (usage + exit 3): `--yes`, `--yes wipe`, `--dry-run --yes`, `WIPE --yes`.
+- Note for 6c: full_wipe_run must exit 3 if RESET_ERRORS > 0 OR any Part 2-3 error (reset_system_run wipe now just returns).
+- Next: Step 6c (Parts 2-4: erase homes, empty quarantine, restart).
