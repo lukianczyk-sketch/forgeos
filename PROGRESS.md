@@ -468,3 +468,32 @@ STATUS: WAITING FOR CLAUDE REVIEW
   - rpm-ostree failing → "2 problems" (RESET_ERRORS counted), exit 3.
   - `reset-system` (y, n) unchanged, homes untouched; still refused (exit 3): `--yes`, `--yes wipe`, `--dry-run --yes`.
 - Next: Step 7 (GUI + weekly timer).
+
+## Step 7a — Clean Sweep window: menu + Scan Now — 2026-10-24
+Files changed: files/system/usr/bin/forgeos-cleansweep-gui (plus this PROGRESS.md entry)
+What Rabbit Team / Cline did:
+- Header: line 1 `#!/usr/bin/env bash`, then the Step 7a comment, then `set -uo pipefail`, `TITLE="ForgeOS Clean Sweep"`, and `ENGINE="/usr/bin/forgeos-cleansweep"`.
+- has_gui(): returns 0 only when `${DISPLAY:-}${WAYLAND_DISPLAY:-}` is not empty.
+- ask_yes_no "<question>": kdialog `--warningyesno` → zenity `--question` → terminal `[y/N]` prompt; returns the dialog's exit code (or 0/1 for a y/n answer in the terminal).
+- say <info|error> "<text>": kdialog (`--msgbox` for info / `--error`) → zenity (`--info` / `--error`) → `echo`; every dialog command ends with `|| true`.
+- pick_action: shows the 3-item menu (kdialog `--menu`, zenity `--list --hide-column=1 --print-column=1`, or a numbered terminal list) and prints one word — scan/reset/wipe — on stdout, or nothing if cancelled/failed.
+- run_scan: optional kdialog progressbar, runs `pkexec "$ENGINE" scan` (saving rc), closes the progressbar via dbus-send when present, then maps rc 0 / 1 / 2 / 126|127 / * to info/error messages; always returns 0.
+- main: `action="$(pick_action)"`; scan → run_scan, reset|wipe → "This button comes in the next update.", anything else → exit 0; then exit 0. Last line of the file is `main "$@"`.
+- Each function has a single-line comment above it; no other features added.
+What I ran: nothing (per instruction).
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 7a — 2026-10-24
+- APPROVED. Code matches the blueprint. 3 fixes (Claude applied):
+  1. **Terminal menu was swallowed:** main runs `action="$(pick_action)"`, so the numbered menu (echoed to stdout) was captured as the answer and never shown. Menu + a "Choose 1-3 (Enter to quit): " prompt now go to stderr; ask_yes_no's `[y/N]` prompt and terminal error messages also go to stderr.
+  2. **Exit 127 now explained:** 126 (password box closed) still does nothing; 127 (account not allowed) shows "Your account is not allowed to run Clean Sweep. Sign in as an administrator and try again."
+  3. **Small polish:** dbus-send output silenced (`>/dev/null 2>&1`); exit 1 and 2 messages now point to the full report at `~/.local/state/forgeos/clean-sweep/last-report.txt`.
+- Cline's first whole-file replace failed because the GUI file had CRLF line endings on disk. Claude converted it to LF (`sed -i 's/\r$//'`); Cline's next replace went through. Cancelled Cline's final "verify" re-read.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean (only info: ask_yes_no not used yet — used in 7b), no CRLF.
+- Tests (fake kdialog/zenity/pkexec/dbus-send that log their calls):
+  - kdialog, Scan Now, pkexec exit 0/1/2/3 → busy bar opened, `pkexec /usr/bin/forgeos-cleansweep scan`, bar closed via dbus, then the right msgbox/error; GUI exits 0.
+  - pkexec 126 → bar closed, no message. 127 → "not allowed" error.
+  - Menu reset / wipe → "This button comes in the next update." Menu cancelled → nothing, exit 0.
+  - zenity only (no kdialog) → zenity list + zenity info; no progress bar.
+  - No GUI (no DISPLAY/WAYLAND_DISPLAY): menu shows on the terminal; 1 → scan, 2/3 → "next update", Enter / x / closed stdin → quit, exit 0.
+- Next: Step 7b (System Reset + Full Wipe buttons in the GUI).
