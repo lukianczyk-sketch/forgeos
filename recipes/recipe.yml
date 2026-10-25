@@ -28,6 +28,7 @@ modules:
         - clamav-freshclam
         - rkhunter
         - chkrootkit
+        - jq                 # Undo Button (Job 5): reads system versions from rpm-ostree
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

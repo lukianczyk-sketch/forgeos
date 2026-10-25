@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# ForgeOS Undo Button first-boot setup (Job 5 Step 1).
+# Runs once as root (forgeos-undo-setup.service). Turns on hourly snapper snapshots of /var/home
+# with ForgeOS's safe limits. Never touches an existing config (the user's own choice wins),
+# and never runs again once the marker file exists.
+# Exit codes: 0 done or nothing to do, 3 error.
+set -uo pipefail
+
+UNDO_HOME="${FORGEOS_UNDO_HOME:-/var/home}"
+MARKER="${FORGEOS_UNDO_MARKER:-/var/lib/forgeos/undo-setup-done}"
+CONFIG="root"   # Bazzite's config name for /var/home — keeps `ujust configure-snapshots` working
+
+log() { printf 'forgeos-undo-setup: %s\n' "$*"; }
+
+mark_done() {
+  mkdir -p -- "${MARKER%/*}" && printf '%s\n' "$1" > "$MARKER"
+}
+
+if [ -e "$MARKER" ]; then
+  log "already set up ($(cat -- "$MARKER" 2>/dev/null)) — nothing to do."
+  exit 0
+fi
+
+if ! command -v snapper >/dev/null 2>&1; then
+  log "ERROR: snapper not found."
+  exit 3
+fi
+
+fstype="$(findmnt -n -o FSTYPE --target "$UNDO_HOME" 2>/dev/null)"
+if [ "$fstype" != "btrfs" ]; then
+  log "$UNDO_HOME is on '${fstype:-unknown}', not btrfs — Undo Button snapshots are not possible."
+  mark_done "skipped: not btrfs"
+  exit 0
+fi
+
+if ! btrfs subvolume show "$UNDO_HOME" >/dev/null 2>&1; then
+  log "$UNDO_HOME is not a btrfs subvolume — Undo Button snapshots are not possible."
+  mark_done "skipped: not a subvolume"
+  exit 0
+fi
+
+if snapper --no-dbus -c "$CONFIG" get-config >/dev/null 2>&1; then
+  log "a snapper config '$CONFIG' already exists — leaving it as it is."
+  mark_done "skipped: config already existed"
+  exit 0
+fi
+
+if ! snapper --no-dbus -c "$CONFIG" create-config "$UNDO_HOME"; then
+  log "ERROR: snapper create-config $UNDO_HOME failed."
+  exit 3
+fi
+
+# Ranges ("1-12") let snapper delete the oldest snapshots early whenever free space
+# drops below FREE_LIMIT (20%) — no btrfs quota needed. Tested on a real btrfs disk.
+if ! snapper --no-dbus -c "$CONFIG" set-config \
+    ALLOW_GROUPS=wheel SYNC_ACL=yes \
+    TIMELINE_CREATE=yes TIMELINE_CLEANUP=yes TIMELINE_MIN_AGE=1800 \
+    TIMELINE_LIMIT_HOURLY=1-12 TIMELINE_LIMIT_DAILY=1-7 TIMELINE_LIMIT_WEEKLY=0-4 \
+    TIMELINE_LIMIT_MONTHLY=0 TIMELINE_LIMIT_QUARTERLY=0 TIMELINE_LIMIT_YEARLY=0 \
+    NUMBER_CLEANUP=yes NUMBER_MIN_AGE=1800 NUMBER_LIMIT=1-20 NUMBER_LIMIT_IMPORTANT=1-10 \
+    EMPTY_PRE_POST_CLEANUP=yes FREE_LIMIT=0.2; then
+  log "ERROR: snapper set-config failed."
+  exit 3
+fi
+
+mark_done "enabled $(date -u '+%Y-%m-%d %H:%M UTC')"
+log "Undo Button is ON: hourly snapshots of $UNDO_HOME (keeps 12 hourly, 7 daily, 4 weekly; always keeps 20% of the disk free)."
+exit 0

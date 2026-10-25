@@ -1,0 +1,12 @@
+# ForgeOS — Undo Button first-boot setup (Job 5 Step 1). Turns on hourly snapshots of /var/home once.
+[Unit]
+Description=ForgeOS Undo Button first-boot setup
+After=local-fs.target
+ConditionPathExists=!/var/lib/forgeos/undo-setup-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/forgeos-undo-setup
+
+[Install]
+WantedBy=multi-user.target
