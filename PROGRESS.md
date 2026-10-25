@@ -648,3 +648,18 @@ STATUS: READY FOR REVIEW
 - Old engine (before 8d): P fails (orig = "<path> (real path: '…')", threat unknown, restore rc 3).
 - Mutation tests (each must fail P): threat looked up by orig → caught; orig not replaced by real path → caught; key not reset to <path> → caught; regex broken → caught.
 - Next: final review of Job 3 → tag v0.5.0.
+
+### Rabbit Team — Step 8e — 2026-10-25
+- Engine: passwd -e replaced by add_password_reminder (autostart reminder written as the user) in reset and full wipe; help text lists startup audit.
+- GUI: reset + wipe confirm texts mention the new password.
+- New /usr/libexec/forgeos-password-reminder (+ chmod in forgeos-setup.sh). Test case Q.
+ran: nothing (per instruction).
+STATUS: READY FOR REVIEW
+
+### Claude review — Step 8e — 2026-10-25
+- APPROVED. All edits match the blueprint (engine helper + 2 call sites + help text, GUI texts, setup.sh chmod, new reminder script, test case Q, header). 1 fix (Claude applied): the new file `files/system/usr/libexec/forgeos-password-reminder` came out CRLF (25 lines) → converted to LF.
+- Why: `passwd -e` locked users out — the SDDM / KDE login screen cannot change an expired password. Now reset and full wipe write `~/.config/autostart/forgeos-password-reminder.desktop` AS the user (runuser, so a symlink in their home cannot redirect it). The reset's startup clean-up keeps `forgeos-*` entries, so the reminder survives.
+- Reminder script checked with fake kdialog: Yes → removes its autostart entry and opens `systemsettings kcm_users`; No → entry stays, asks again next login; always exits 0.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean on all 5 scripts; all LF. Fake tools: 16 PASS + "SKIP: O", exit 0. Real ClamAV 1.5.4 (REAL_CLAMAV=1): 17/17 PASS, exit 0; no tmp.* left behind.
+- Mutation tests (each must fail Q): reset back to passwd -e → caught; wipe back to passwd -e → caught; wrong Exec path → caught; plan text changed → caught; no [Desktop Entry] header → caught; chmod missing in setup.sh → caught; wrong autostart folder → caught. 7/7.
+- Final review of Job 3 complete. Next: CI green → tag v0.5.0 → Job 5 (Undo Button) blueprint.

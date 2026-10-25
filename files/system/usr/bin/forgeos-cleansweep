@@ -786,6 +786,17 @@ reset_image_ref() {
   return 0
 }
 
+# Password reminder (Step 8e): used instead of `passwd -e`, because the KDE login
+# screen cannot change an expired password (it freezes and locks the user out).
+# Puts a one-time reminder in the user's autostart, written AS the user so a
+# symlink in their home cannot redirect it; forgeos-* entries survive a reset.
+# Args: user name, home folder. Returns non-zero on failure.
+add_password_reminder() {
+  # shellcheck disable=SC2016  # $1 expands inside the user's sh, not here
+  runuser -u "$1" -- sh -c 'mkdir -p "$1" && printf "%s\n" "[Desktop Entry]" "Type=Application" "Name=Clean Sweep password reminder" "Exec=/usr/libexec/forgeos-password-reminder" "Icon=security-high" "NoDisplay=true" > "$1/forgeos-password-reminder.desktop"' \
+    sh "$2/.config/autostart"
+}
+
 # Per-user startup spots (Step 5a-2): list what a reset would move or replace
 # for each regular user (UID 1000–59999 with an existing home). Personal files
 # are untouched; forgeos-* entries are ours and stay. Counts RESET_USERFILES.
@@ -834,9 +845,9 @@ reset_users_plan() {
       fi
     done
 
-    log "  LOCK     user $user must choose a new password at next login"
+    log "  REMIND   user $user will be asked to choose a new password after the restart"
     if [ "$mode" = "apply" ]; then
-      if ! passwd -e "$user" >/dev/null 2>&1; then log "  ERROR: could not lock the password for $user."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
+      if ! add_password_reminder "$user" "$home"; then log "  ERROR: could not add the password reminder for $user."; RESET_ERRORS=$((RESET_ERRORS + 1)); continue; fi
     fi
   done < <(getent passwd)
 
@@ -1124,8 +1135,8 @@ wipe_users_plan() {
         log "    WARNING: could not copy /etc/skel into $real (see the log)."
         WIPE_ERRORS=$((WIPE_ERRORS + 1))
       fi
-      if ! passwd -e "$user" >>"$LOG_FILE" 2>&1; then
-        log "    WARNING: could not make $user pick a new password at next login (see the log)."
+      if ! add_password_reminder "$user" "$real" >>"$LOG_FILE" 2>&1; then
+        log "    WARNING: could not add the password reminder for $user (see the log)."
         WIPE_ERRORS=$((WIPE_ERRORS + 1))
       fi
     fi
@@ -1214,7 +1225,7 @@ usage() {
 Usage: forgeos-cleansweep [scan [--dry-run] | quarantine list|restore|delete ... | reset-system [--dry-run] [--yes] | full-wipe [--dry-run | --yes WIPE]]
 
 Commands:
-  scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit
+  scan          Check for threats: core check, ClamAV, rkhunter, chkrootkit, startup audit
   --dry-run     Scan but move nothing
   quarantine list                    List quarantined files (ID, date, threat, original location)
   quarantine restore <id> [--yes]    Put a quarantined file back

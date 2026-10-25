@@ -2,7 +2,7 @@
 # Runs at image BUILD time (not on users' machines).
 set -oue pipefail
 
-chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly
+chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service

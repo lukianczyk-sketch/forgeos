@@ -153,6 +153,7 @@ run_reset() {
 • Put ForgeOS back to factory settings
 • Remove added programs, hidden auto-start items and remote-access keys
 • Check your apps and download a fresh signed system
+• Ask you to choose a new password after the restart
 
 Your personal files are KEPT. Anything removed is saved in a backup folder.
 
@@ -175,6 +176,7 @@ run_wipe() {
     ask_yes_no "Full Wipe will ERASE ALL personal files for every user — documents, photos, downloads, everything — and then reset ForgeOS to factory.
 
 This cannot be undone. Back up anything you want to keep first.
+After the restart you will be asked to choose a new password.
 
 Continue?" || return 0
     local word rc=0

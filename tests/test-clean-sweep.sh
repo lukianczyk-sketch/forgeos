@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test-clean-sweep.sh — Job 3 Step 8d: cases A-P (scan, quarantine, reset plan, full-wipe safety, symlinked folder, real ClamAV when REAL_CLAMAV=1) for files/system/usr/bin/forgeos-cleansweep.
+# tests/test-clean-sweep.sh — Job 3 Step 8e: cases A-Q (scan, quarantine, reset plan, full-wipe safety, symlinked folder, password reminder, real ClamAV when REAL_CLAMAV=1) for files/system/usr/bin/forgeos-cleansweep.
 # Runs as a normal user (no root). The engine copy is sed-rewritten so its log/quarantine/reset-backup
 # dirs point inside a private mktemp work dir, and the external tools it calls are replaced with fake
 # shims in $WORK/bin that honor FAKE_DIFF / FAKE_RKH_RC / FAKE_INFECTED.
@@ -311,6 +311,28 @@ if [ "$p_rc" -eq 1 ] && [ "$p_orig" = "$WORK/realdir/bad.txt" ] && [ "$p_threat"
     pass "P symlinked folder: real path + threat logged, restore puts file back in the real folder"
 else
     fail "P symlinked folder (scan rc=$p_rc orig='$p_orig' threat='$p_threat' restore rc=$RC)"
+fi
+
+# --- Q: password reminder -> reset plan says REMIND (no passwd -e anywhere), reminder file is right ---
+run reset-system --dry-run
+q1=$RC; q_ok=0
+grep -q "REMIND   user tester will be asked to choose a new password" "$WORK/out" \
+    && ! grep -qE '^[^#]*passwd -e' "$ENGINE" && q_ok=1
+sed -n '/^add_password_reminder() {/,/^}/p' "$WORK/fcs" > "$WORK/apr.sh"
+# shellcheck source=/dev/null
+. "$WORK/apr.sh"
+add_password_reminder tester "$WORK/home/tester"
+q2=$?
+QF="$WORK/home/tester/.config/autostart/forgeos-password-reminder.desktop"
+REMINDER="$ROOT/files/system/usr/libexec/forgeos-password-reminder"
+if [ "$q1" -eq 0 ] && [ "$q_ok" = 1 ] && [ "$q2" -eq 0 ] \
+   && [ "$(head -n 1 "$QF" 2>/dev/null)" = "[Desktop Entry]" ] \
+   && grep -qx "Exec=/usr/libexec/forgeos-password-reminder" "$QF" \
+   && [ -f "$REMINDER" ] && bash -n "$REMINDER" \
+   && grep -q "/usr/libexec/forgeos-password-reminder" "$ROOT/files/scripts/forgeos-setup.sh"; then
+    pass "Q password reminder: plan says REMIND, no passwd -e, reminder file + script + chmod in place"
+else
+    fail "Q password reminder (plan rc=$q1 plan_ok=$q_ok add rc=$q2)"
 fi
 
 # --- O: REAL ClamAV (only when REAL_CLAMAV=1) -> exit 1, file quarantined, threat name from a custom test signature ---
