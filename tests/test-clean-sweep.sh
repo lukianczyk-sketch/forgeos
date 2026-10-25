@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test-clean-sweep.sh — Job 3 Step 8b: cases A-N (scan, quarantine, reset plan, full-wipe safety) for files/system/usr/bin/forgeos-cleansweep.
+# tests/test-clean-sweep.sh — Job 3 Step 8c: cases A-O (scan, quarantine, reset plan, full-wipe safety, real ClamAV when REAL_CLAMAV=1) for files/system/usr/bin/forgeos-cleansweep.
 # Runs as a normal user (no root). The engine copy is sed-rewritten so its log/quarantine/reset-backup
 # dirs point inside a private mktemp work dir, and the external tools it calls are replaced with fake
 # shims in $WORK/bin that honor FAKE_DIFF / FAKE_RKH_RC / FAKE_INFECTED.
@@ -12,6 +12,7 @@ ENGINE="$ROOT/files/system/usr/bin/forgeos-cleansweep"
 
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; failures=$((failures + 1)); }
+skip() { echo "SKIP: $1"; }
 failures=0
 
 if [ ! -f "$ENGINE" ]; then
@@ -286,6 +287,43 @@ if [ "$n1_ok" = 1 ] && [ "$n2_ok" = 1 ] && [ -n "$n3_ok" ]; then
     pass "N full-wipe safety: refuses without WIPE, refuses without terminal, dry-run plans"
 else
     fail "N full-wipe safety (rcs=$n1/$n2/$n3)"
+fi
+
+# --- O: REAL ClamAV (only when REAL_CLAMAV=1) -> exit 1, file quarantined, threat name from a custom test signature ---
+# Harmless sample + our own md5 signature (no EICAR anywhere). Custom signatures get ".UNOFFICIAL" added.
+if [ "${REAL_CLAMAV:-0}" = "1" ]; then
+    REAL_CLAMSCAN="${REAL_CLAMSCAN:-/usr/bin/clamscan}"
+    mkdir -p "$WORK/scan"
+    echo "ForgeOS harmless test sample" > "$WORK/scan/sample.txt"
+    printf '%s:%s:ForgeOS.Test.Signature\n' \
+        "$(md5sum < "$WORK/scan/sample.txt" | cut -d' ' -f1)" \
+        "$(stat -c %s "$WORK/scan/sample.txt")" > "$WORK/test.hdb"
+    # Wrapper: keep only the engine's "-" options, use our signature file, scan only $WORK/scan
+    cat > "$WORK/bin/clamscan" <<EOF
+#!/usr/bin/env bash
+opts=()
+for a in "\$@"; do
+    case "\$a" in -*) opts+=("\$a") ;; esac
+done
+exec "$REAL_CLAMSCAN" "\${opts[@]}" -d "$WORK/test.hdb" "$WORK/scan"
+EOF
+    chmod +x "$WORK/bin/clamscan"
+    run scan --dry-run
+    o_dry=$RC; o_dry_ok=0
+    [ "$o_dry" -eq 1 ] && [ -f "$WORK/scan/sample.txt" ] && o_dry_ok=1
+    run scan
+    omoved="$(find "$WORK/quar" -type f ! -name 'quarantine.log' | head -n1)"
+    omode=""; [ -n "$omoved" ] && omode="$(stat -c %a "$omoved")"
+    oorig=""; othreat=""
+    [ -f "$WORK/quar/quarantine.log" ] && IFS=$'\t' read -r _ oorig _ othreat _ < "$WORK/quar/quarantine.log"
+    if [ "$o_dry_ok" = 1 ] && [ "$RC" -eq 1 ] && [ ! -e "$WORK/scan/sample.txt" ] && [ "$omode" = "0" ] \
+       && [ "$oorig" = "$WORK/scan/sample.txt" ] && [ "$othreat" = "ForgeOS.Test.Signature.UNOFFICIAL" ]; then
+        pass "O real ClamAV: dry-run leaves file, scan exits 1 and quarantines it with the real threat name"
+    else
+        fail "O real ClamAV (dry rc=$o_dry rc=$RC mode=${omode:-none} orig='$oorig' threat='$othreat')"
+    fi
+else
+    skip "O real ClamAV (set REAL_CLAMAV=1 to run)"
 fi
 
 echo "failures: $failures"

@@ -43,3 +43,11 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends desktop-file-utils
           bash tests/test-cool-stuff.sh
+
+      - name: Run Clean Sweep tests (fake tools)
+        run: bash tests/test-clean-sweep.sh .
+
+      - name: Run Clean Sweep test O with real ClamAV (free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends clamav
+          REAL_CLAMAV=1 bash tests/test-clean-sweep.sh .

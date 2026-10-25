@@ -616,3 +616,21 @@ STATUS: REVIEWED
 - Checked on Linux: `bash -n` OK, `shellcheck` clean (no findings). Run: 14/14 PASS, exit 0, < 1 s; no tmp.* left behind.
 - Mutation tests (each must be caught): confirm ignores no-terminal → I + N fail; restore loses the mode → J fails; delete does nothing → K fails; ".." allowed in ID → L fails; ld.so.preload on the keep-list → M fails; full-wipe accepts any word after --yes → N fails; engine dir line renamed → guard FAIL. All caught (plus the 8a ones still caught).
 - Next: Step 8c — tests.yml: run `bash tests/test-clean-sweep.sh .` in CI + real ClamAV EICAR test (apt install clamav, EICAR string, confirm FOUND). Then final review → tag v0.5.0.
+
+## Step 8c — real ClamAV test + CI — 2026-10-25
+Files changed: tests/test-clean-sweep.sh (skip() helper, case O, header), .github/workflows/tests.yml (two new steps at the end of test-ai-setup), plus this PROGRESS.md entry
+What Rabbit Team / Cline did:
+- EDIT 1: added `skip()` right after `fail()` — prints "SKIP: …" without counting a failure.
+- EDIT 2: case O inserted as the LAST case, right before the failures summary (it replaces the fake clamscan when REAL_CLAMAV=1): harmless sample + our own md5 signature in $WORK/test.hdb (no EICAR anywhere), wrapper keeps only the engine's "-" options and points real clamscan at that signature file scanning only $WORK/scan; checks dry-run leaves the file, then scan exits 1, quarantines it with mode 0, quarantine.log has the original path + threat "ForgeOS.Test.Signature.UNOFFICIAL"; otherwise a skip line.
+- EDIT 3: header comment now says "Job 3 Step 8c: cases A-O (scan, quarantine, reset plan, full-wipe safety, real ClamAV when REAL_CLAMAV=1)".
+- EDIT 4: tests.yml — two steps at the end of test-ai-setup: run `bash tests/test-clean-sweep.sh .` with fake tools, then install clamav from Ubuntu repos and re-run with REAL_CLAMAV=1.
+What I ran: nothing (per instruction).
+STATUS: REVIEWED
+
+### Claude review — Step 8c — 2026-10-25
+- APPROVED, no fixes needed. All 4 code edits match the blueprint exactly; LF line endings; header + PROGRESS entry correct.
+- Prototyped first with REAL ClamAV 1.5.4 (Ubuntu 22.04 debs, same version the CI runner installs): a custom md5 signature (`md5:size:ForgeOS.Test.Signature`) is reported as `ForgeOS.Test.Signature.UNOFFICIAL FOUND`, clamscan exits 1 and prints `<path>: moved to '<dest>'` — the format the engine parses. No EICAR string anywhere (Windows Defender on the dev PC).
+- CI note: `apt-get install clamav` pulls clamav-freshclam, which ships `/etc/clamav/certs` — without it clamscan cannot load any database (checked: "Invalid certs directory"). `--no-install-recommends` still installs it (it is a Depends).
+- Checked on Linux: `bash -n` OK, `shellcheck` clean. Fake tools: 14 PASS + "SKIP: O", exit 0. Real ClamAV (REAL_CLAMAV=1): 15/15 PASS, exit 0; no tmp.* left behind.
+- Mutation tests with real ClamAV (each must fail O): never moves → O fails; threat name lost → O fails; no chmod 000 → O fails; threats not counted (exit 0) → O fails. All caught.
+- Next: Step 8d — engine fix: real clamscan prints `<path> (real path: '<real>'): moved to '<dest>'` when a scanned path goes through a symlink; pass 2 must look up the threat by `<path>` and record `<real>` as the original location. Add case P (fake clamscan printing that form). Then final review → tag v0.5.0.
