@@ -115,7 +115,7 @@ run_clamscan() {
     "${move_args[@]}" \
     "${targets[@]}" >"$scan_log" 2>&1 || rc=$?
 
-  local line orig threat moved sha256 mode owner
+  local line orig key threat moved sha256 mode owner
   local -A found_threat=()
 
   # Pass 1: count every FOUND line and remember each file's threat name.
@@ -133,6 +133,13 @@ run_clamscan() {
     if [[ "$line" =~ ^(.*)\:\ moved\ to\ \'(.*)\'[[:space:]]*$ ]]; then
       orig="${BASH_REMATCH[1]}"
       moved="${BASH_REMATCH[2]}"
+      # Through a symlink, clamscan prints "<path> (real path: '<real>'): moved to ...".
+      # The FOUND line used <path>; the file really lived at <real>, so record that.
+      key="$orig"
+      if [[ "$orig" =~ ^(.*)\ \(real\ path:\ \'(.*)\'\)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        orig="${BASH_REMATCH[2]}"
+      fi
       sha256="$(sha256sum "$moved" | awk '{print $1}')" || sha256="unknown"
       # Remember the original mode and owner BEFORE chmod 000, so Step 4b can put them back.
       mode="$(stat -c %a "$moved")" || mode="unknown"
@@ -140,7 +147,7 @@ run_clamscan() {
       chmod 000 "$moved" || log "WARNING: could not lock quarantined file: $moved"
       printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$(date '+%Y-%m-%d %H:%M:%S')" "$orig" "${sha256:-unknown}" \
-        "${found_threat[$orig]:-unknown}" "$moved" "${mode:-unknown}" "${owner:-unknown}" >>"$QUAR_DIR/quarantine.log"
+        "${found_threat[$key]:-unknown}" "$moved" "${mode:-unknown}" "${owner:-unknown}" >>"$QUAR_DIR/quarantine.log"
     fi
   done < "$scan_log"
 

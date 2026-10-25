@@ -634,3 +634,17 @@ STATUS: REVIEWED
 - Checked on Linux: `bash -n` OK, `shellcheck` clean. Fake tools: 14 PASS + "SKIP: O", exit 0. Real ClamAV (REAL_CLAMAV=1): 15/15 PASS, exit 0; no tmp.* left behind.
 - Mutation tests with real ClamAV (each must fail O): never moves → O fails; threat name lost → O fails; no chmod 000 → O fails; threats not counted (exit 0) → O fails. All caught.
 - Next: Step 8d — engine fix: real clamscan prints `<path> (real path: '<real>'): moved to '<dest>'` when a scanned path goes through a symlink; pass 2 must look up the threat by `<path>` and record `<real>` as the original location. Add case P (fake clamscan printing that form). Then final review → tag v0.5.0.
+
+### Rabbit Team — Step 8d — 2026-10-25
+- Engine: run_clamscan pass 2 now handles "<path> (real path: '<real>'): moved to" — threat looked up by <path>, quarantine.log records <real>.
+- Tests: fake clamscan prints the real-path form when FAKE_REALPATH is set; new case P (symlinked folder) before case O.
+ran: nothing (per instruction).
+STATUS: READY FOR REVIEW
+
+### Claude review — Step 8d — 2026-10-25
+- APPROVED, no fixes needed. Engine and test match the prototype byte-for-byte (except the updated header line 2 — correct). LF line endings in all 3 files; PROGRESS entry correct.
+- Confirmed with REAL ClamAV 1.5.4 through a symlinked folder: the FOUND line uses `<link path>`, while the move line is `<link path> (real path: '<real>'): moved to '<dest>'` — exactly the form the fix handles.
+- Checked on Linux: `bash -n` OK, `shellcheck -S warning` clean. Fake tools: 15 PASS + "SKIP: O", exit 0. Real ClamAV (REAL_CLAMAV=1): 16/16 PASS, exit 0; no tmp.* left behind.
+- Old engine (before 8d): P fails (orig = "<path> (real path: '…')", threat unknown, restore rc 3).
+- Mutation tests (each must fail P): threat looked up by orig → caught; orig not replaced by real path → caught; key not reset to <path> → caught; regex broken → caught.
+- Next: final review of Job 3 → tag v0.5.0.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test-clean-sweep.sh — Job 3 Step 8c: cases A-O (scan, quarantine, reset plan, full-wipe safety, real ClamAV when REAL_CLAMAV=1) for files/system/usr/bin/forgeos-cleansweep.
+# tests/test-clean-sweep.sh — Job 3 Step 8d: cases A-P (scan, quarantine, reset plan, full-wipe safety, symlinked folder, real ClamAV when REAL_CLAMAV=1) for files/system/usr/bin/forgeos-cleansweep.
 # Runs as a normal user (no root). The engine copy is sed-rewritten so its log/quarantine/reset-backup
 # dirs point inside a private mktemp work dir, and the external tools it calls are replaced with fake
 # shims in $WORK/bin that honor FAKE_DIFF / FAKE_RKH_RC / FAKE_INFECTED.
@@ -81,7 +81,11 @@ if [ -n "${FAKE_INFECTED:-}" ]; then
     echo "$FAKE_INFECTED: Eicar-Test-Signature FOUND"
     if [ -n "$move_dir" ] && [ -f "$FAKE_INFECTED" ]; then
         mv "$FAKE_INFECTED" "$move_dir/" 2>/dev/null || true
-        echo "$FAKE_INFECTED: moved to '$move_dir/$(basename "$FAKE_INFECTED")'"
+        if [ -n "${FAKE_REALPATH:-}" ]; then
+            echo "$FAKE_INFECTED (real path: '$FAKE_REALPATH'): moved to '$move_dir/$(basename "$FAKE_INFECTED")'"
+        else
+            echo "$FAKE_INFECTED: moved to '$move_dir/$(basename "$FAKE_INFECTED")'"
+        fi
     fi
     exit 1
 fi
@@ -287,6 +291,26 @@ if [ "$n1_ok" = 1 ] && [ "$n2_ok" = 1 ] && [ -n "$n3_ok" ]; then
     pass "N full-wipe safety: refuses without WIPE, refuses without terminal, dry-run plans"
 else
     fail "N full-wipe safety (rcs=$n1/$n2/$n3)"
+fi
+
+# --- P: file reached through a symlinked folder -> log records the REAL path + threat, restore puts it back there ---
+mkdir -p "$WORK/realdir"
+ln -s "$WORK/realdir" "$WORK/linkdir"
+echo eicar > "$WORK/realdir/bad.txt"
+FAKE_INFECTED="$WORK/linkdir/bad.txt" FAKE_REALPATH="$WORK/realdir/bad.txt" run scan
+p_rc=$RC
+p_orig="$(awk -F'\t' 'NR==1{print $2}' "$WORK/quar/quarantine.log" 2>/dev/null)"
+p_threat="$(awk -F'\t' 'NR==1{print $4}' "$WORK/quar/quarantine.log" 2>/dev/null)"
+run_keep quarantine list
+PID="$(awk -F'\t' 'NR==2{print $1}' "$WORK/out")"
+[ -n "$PID" ] || PID="missing"
+chmod u+r "$WORK/quar/$PID" 2>/dev/null
+run_keep quarantine restore "$PID" --yes
+if [ "$p_rc" -eq 1 ] && [ "$p_orig" = "$WORK/realdir/bad.txt" ] && [ "$p_threat" = "Eicar-Test-Signature" ] \
+   && [ "$RC" -eq 0 ] && [ -f "$WORK/realdir/bad.txt" ]; then
+    pass "P symlinked folder: real path + threat logged, restore puts file back in the real folder"
+else
+    fail "P symlinked folder (scan rc=$p_rc orig='$p_orig' threat='$p_threat' restore rc=$RC)"
 fi
 
 # --- O: REAL ClamAV (only when REAL_CLAMAV=1) -> exit 1, file quarantined, threat name from a custom test signature ---
