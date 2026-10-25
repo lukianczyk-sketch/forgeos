@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Service
+Name=ForgeOS Undo Button
+MimeType=application/octet-stream;inode/directory;
+Actions=forgeosUndo
+X-KDE-Priority=TopLevel
+X-KDE-Protocols=file
+X-KDE-MaxNumberOfUrls=1
+
+[Desktop Action forgeosUndo]
+Name=Get back an older version
+Icon=edit-undo
+Exec=/usr/bin/forgeos-undo-gui %f

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Undo Button
+GenericName=Get back an older version
+Comment=Get back deleted or changed files, or undo the last system update
+Exec=/usr/bin/forgeos-undo-gui
+Icon=edit-undo
+Terminal=false
+Categories=System;FileTools;
+Keywords=undo;restore;recover;deleted;older version;snapshot;backup;rollback;update;

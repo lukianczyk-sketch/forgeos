@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Undo Button window (Job 5 Step 3). kdialog front end for /usr/bin/forgeos-undo.
+#   forgeos-undo-gui          -> main menu
+#   forgeos-undo-gui <path>   -> straight to "pick an older version" (Dolphin right-click)
+set -uo pipefail
+
+TITLE="ForgeOS Undo Button"
+ENGINE="${FORGEOS_UNDO_ENGINE:-/usr/bin/forgeos-undo}"
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Undo Button window. Use forgeos-undo in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+fail() { kdialog --title "$TITLE" --error "$1" || true; }
+
+# List the older versions of <path>, let the user pick one, and restore it.
+undo_path() {
+  local path="$1" name list rc=0 n d desc _kind dest err
+  local -a items=()
+  name="${path##*/}"
+  err="$(mktemp)" || { fail "Could not create a temporary file."; return; }
+  list="$("$ENGINE" versions "$path" 2>"$err")" || rc=$?
+  if [ "$rc" -eq 1 ]; then
+    info "No older versions of \"$name\" yet.${NL}${NL}Snapshots are taken every hour, so try again later."
+    rm -f -- "$err"; return
+  elif [ "$rc" -ne 0 ]; then
+    fail "$(cat -- "$err")"
+    rm -f -- "$err"; return
+  fi
+  while IFS=$'\t' read -r n d desc _kind; do
+    [ -n "$n" ] || continue
+    items+=("$n" "$d — $desc")
+  done <<< "$list"
+  n="$(kdialog --title "$TITLE" --menu "Pick the older version of \"$name\" you want back:" "${items[@]}")" || { rm -f -- "$err"; return; }
+  rc=0
+  dest="$("$ENGINE" restore "$n" "$path" 2>"$err")" || rc=$?
+  case "$rc" in
+    0)
+      if [ -s "$err" ]; then
+        info "Got it back:${NL}$dest${NL}${NL}$(cat -- "$err")"
+      else
+        info "Got it back:${NL}$dest${NL}${NL}Your current version was not touched."
+      fi ;;
+    4) fail "A virus was found in that older version, so it was NOT restored.${NL}${NL}Run Clean Sweep to check your PC." ;;
+    *) fail "Could not get it back:${NL}$(cat -- "$err")" ;;
+  esac
+  rm -f -- "$err"
+}
+
+undo_update() {
+  local list
+  list="$("$ENGINE" updates 2>&1)" || { fail "Could not read system versions:${NL}$list"; return; }
+  list="$(printf '%s\n' "$list" | sed 's/^NOW\t/Now running:  /; s/^NEXT\t/After restart:  /; s/^BACKUP\t/Backup:  /; s/\t/   version /')"
+  kdialog --title "$TITLE" --warningyesno "System versions on this PC:${NL}${NL}$list${NL}${NL}Go back to the previous system version?${NL}Your files are NOT touched. Restart the PC afterwards." || return
+  local out
+  if out="$("$ENGINE" undo-update 2>&1)"; then
+    info "$out"
+  else
+    fail "Could not go back:${NL}$out"
+  fi
+}
+
+snapshot_now() {
+  local out
+  if out="$("$ENGINE" snapshot-now "Manual snapshot (Undo Button)" 2>&1)"; then
+    info "Snapshot taken. You can get back anything in your home folder as it is right now."
+  else
+    fail "Could not take a snapshot:${NL}$out"
+  fi
+}
+
+about() {
+  local status
+  status="$("$ENGINE" status 2>&1)"
+  info "$status
+
+The Undo Button takes a snapshot of every home folder every hour.
+It keeps 12 hourly, 7 daily and 4 weekly snapshots, and deletes the oldest early so 20% of the disk stays free.
+
+Deleted a file? Use \"Get back a folder\" on the folder it was in.
+Restored copies never overwrite anything: they come back as \"name (from DATE)\".
+
+Snapshots are on the same drive. They undo mistakes, deleted files and ransomware damage, but NOT a dead drive. Use Pika Backup to a USB drive for that.
+Only your home folder is covered. The system itself is covered by \"Undo last system update\"."
+}
+
+if [ $# -ge 1 ]; then
+  undo_path "$1"
+  exit 0
+fi
+
+while true; do
+  choice="$(kdialog --title "$TITLE" --menu "What do you want to undo?" \
+    file "Get back a file — an older version of a file" \
+    folder "Get back a folder — an older version, including deleted files" \
+    update "Undo last system update" \
+    snap "Take a snapshot now" \
+    about "About the Undo Button")" || exit 0
+  case "$choice" in
+    file) p="$(kdialog --title "$TITLE" --getopenfilename "$HOME")" && undo_path "$p" ;;
+    folder) p="$(kdialog --title "$TITLE" --getexistingdirectory "$HOME")" && undo_path "$p" ;;
+    update) undo_update ;;
+    snap) snapshot_now ;;
+    about) about ;;
+    *) exit 0 ;;
+  esac
+done

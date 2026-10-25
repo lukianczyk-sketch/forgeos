@@ -53,3 +53,23 @@ STATUS: WAITING FOR CLAUDE REVIEW
   snapshot-now via snapperd, updates + undo-update (fake rpm-ostree JSON).
 - Note for Step 3: the window must handle exit 4 ("virus found — not restored").
 - STATUS: READY FOR STEP 3
+
+## Step 3 — Undo Button window + right-click — 2026-10-25
+What I did:
+- Created forgeos-undo-gui, the forgeos-undo.desktop menu entry and the Dolphin service menu exactly as given.
+- forgeos-setup.sh: chmod for /usr/bin/forgeos-undo-gui.
+Files changed:
+- files/system/usr/bin/forgeos-undo-gui (new)
+- files/system/usr/share/applications/forgeos-undo.desktop (new)
+- files/system/usr/share/kio/servicemenus/forgeos-undo.desktop (new)
+- files/scripts/forgeos-setup.sh
+STATUS: WAITING FOR CLAUDE REVIEW
+
+### Claude review — Step 3 — 2026-10-25 — APPROVED (after fixes)
+- All 3 new files are byte-identical to the prompt after the line-ending fix (forgeos-undo-gui == tested prototype, md5 d3c09d3d760c5b33725ba936284d0852).
+  - Fixed: CRLF → LF in forgeos-undo-gui (110 CR), forgeos-undo.desktop (10), servicemenus/forgeos-undo.desktop (13).
+- forgeos-setup.sh: chmod line now ends with /usr/bin/forgeos-undo-gui — correct, nothing else changed.
+- shellcheck -S warning: clean. bash -n: OK.
+- desktop-file-validate: menu entry clean. Service menu reports "MimeType/Actions only valid for Application" — EXPECTED, that is the KDE service-menu format (develop.kde.org/docs/apps/dolphin/service-menus).
+- Smoke test (fake kdialog + fake engine): right-click restore OK, virus (exit 4) → error "NOT restored", no versions → info, cancel → quiet exit, main menu About shows status, no kdialog → exit 3. Full prototype tests (real btrfs + snapper + real ClamAV) were done before the prompt.
+- STATUS: READY FOR STEP 4
