@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+# ForgeOS Undo Button engine (Job 5 Step 2).
+# Normal-user tool: reads the snapper snapshots of /var/home directly (read-only),
+# never needs root to look at or get back a file.
+#   forgeos-undo status                 -> on/off + how many snapshots   (exit 0 on, 1 off)
+#   forgeos-undo versions <path>        -> older versions: NUM<TAB>DATE<TAB>DESCRIPTION<TAB>KIND (exit 1 = none)
+#   forgeos-undo restore <num> <path>   -> copy that version back; prints the new path
+#   forgeos-undo snapshot-now [text]    -> take a snapshot right now (snapper via snapperd)
+#   forgeos-undo updates                -> system versions (rpm-ostree)
+#   forgeos-undo undo-update            -> go back to the previous system version (rpm-ostree rollback)
+# Exit codes: 0 ok, 1 nothing found / off, 2 bad usage, 3 error, 4 virus found (copy removed).
+set -uo pipefail
+
+UNDO_HOME="${FORGEOS_UNDO_HOME:-/var/home}"
+SNAP_DIR="$UNDO_HOME/.snapshots"
+SNAPPER_CONFIG="root"   # Bazzite's name for the /var/home config (ujust configure-snapshots)
+
+die() { printf '%s\n' "$2" >&2; exit "$1"; }
+
+usage() {
+  cat <<'EOF'
+Usage: forgeos-undo [status | versions <path> | restore <number> <path> | snapshot-now [text] | updates | undo-update]
+  status                 Is the Undo Button on? How many snapshots are kept?
+  versions <path>        List older versions of a file or folder in your home
+  restore <number> <path>  Get that older version back (never overwrites anything)
+  snapshot-now [text]    Take a snapshot right now
+  updates                List system versions you can go back to
+  undo-update            Go back to the previous system version (after a restart)
+EOF
+}
+
+# Snapshot numbers, newest first (numeric folder names that hold a snapshot/ folder).
+snap_numbers() {
+  local d n
+  for d in "$SNAP_DIR"/*/; do
+    n="${d%/}"; n="${n##*/}"
+    case "$n" in ''|*[!0-9]*) continue ;; esac
+    [ -d "$SNAP_DIR/$n/snapshot" ] && printf '%s\n' "$n"
+  done | sort -rn
+}
+
+# <tag> value from a snapshot's info.xml (one-line tags, as snapper writes them).
+info_field() {
+  local file="$SNAP_DIR/$1/info.xml" tag="$2"
+  [ -r "$file" ] || return 0
+  sed -n "s:.*<$tag>\(.*\)</$tag>.*:\1:p" "$file" | head -n 1
+}
+
+# info.xml dates are UTC — show local time.
+snap_date() {
+  local d
+  d="$(info_field "$1" date)"
+  [ -n "$d" ] || { printf 'unknown date'; return; }
+  date -d "$d UTC" '+%Y-%m-%d %H:%M' 2>/dev/null || printf '%s' "$d"
+}
+
+snap_desc() {
+  local d
+  d="$(info_field "$1" description)"
+  case "$(info_field "$1" cleanup)" in
+    timeline) printf 'Automatic snapshot' ;;
+    *) printf '%s' "${d:-Snapshot}" ;;
+  esac
+}
+
+# Turn <path> into a path relative to UNDO_HOME, or fail. Works for deleted files too.
+rel_path() {
+  local p="$1" real
+  [ -n "$p" ] || return 1
+  real="$(realpath -m -- "$p")" || return 1
+  local base
+  base="$(realpath -m -- "$UNDO_HOME")"
+  # /home -> /var/home symlink on Fedora Atomic: realpath already resolved it.
+  case "$real" in
+    "$base"/.snapshots|"$base"/.snapshots/*) return 1 ;;
+    "$base"/?*) printf '%s' "${real#"$base"/}" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Same content? (files: cmp; folders/other: treat as different)
+same_content() {
+  [ -f "$1" ] && [ -f "$2" ] && cmp -s -- "$1" "$2"
+}
+
+cmd_status() {
+  if [ ! -d "$SNAP_DIR" ]; then
+    echo "Undo Button: OFF (no snapshots folder at $SNAP_DIR)"; exit 1
+  fi
+  if [ ! -r "$SNAP_DIR" ] || [ ! -x "$SNAP_DIR" ]; then
+    echo "Undo Button: ON, but you are not allowed to see the snapshots (ask an admin to add you to the wheel group)"; exit 3
+  fi
+  local count newest oldest
+  count="$(snap_numbers | wc -l)"
+  newest="$(snap_numbers | head -n 1)"; oldest="$(snap_numbers | tail -n 1)"
+  if [ "$count" -eq 0 ]; then
+    echo "Undo Button: ON — no snapshots yet (the first one is taken within the hour)"; exit 0
+  fi
+  echo "Undo Button: ON — $count snapshots, from $(snap_date "$oldest") to $(snap_date "$newest")"
+  exit 0
+}
+
+cmd_versions() {
+  [ $# -eq 1 ] || die 2 "Usage: forgeos-undo versions <path>"
+  local rel n src last="" kind found=0 cur
+  rel="$(rel_path "$1")" || die 2 "Only files inside your home folder can be undone: $1"
+  [ -r "$SNAP_DIR" ] || die 3 "Undo Button is off or you cannot see the snapshots."
+  cur="$UNDO_HOME/$rel"
+  while IFS= read -r n; do
+    src="$SNAP_DIR/$n/snapshot/$rel"
+    [ -e "$src" ] || [ -L "$src" ] || continue
+    if [ -d "$src" ]; then kind="folder"; else kind="file"; fi
+    if [ "$kind" = "file" ]; then
+      same_content "$src" "$cur" && continue          # identical to what you have now
+      [ -n "$last" ] && same_content "$src" "$last" && continue   # identical to the newer one listed
+      last="$src"
+    fi
+    printf '%s\t%s\t%s\t%s\n' "$n" "$(snap_date "$n")" "$(snap_desc "$n")" "$kind"
+    found=1
+  done < <(snap_numbers)
+  [ "$found" -eq 1 ] || { echo "No older versions found." >&2; exit 1; }
+  exit 0
+}
+
+# "taxes.txt" + "2026-10-25 02:31" -> "taxes (from 2026-10-25 02.31).txt"
+restored_name() {
+  local name="$1" stamp="$2" base ext
+  stamp="${stamp//:/.}"
+  if [[ "$name" == ?*.* && "$name" != .* ]]; then
+    base="${name%.*}"; ext=".${name##*.}"
+  else
+    base="$name"; ext=""
+  fi
+  printf '%s (from %s)%s' "$base" "$stamp" "$ext"
+}
+
+# Virus-check the copy we just restored (clamscan: 0 clean, 1 virus, 2 error).
+# A virus: remove ONLY the new copy (it did not exist before) and exit 4.
+# A scan error: keep the copy, warn. No clamscan installed: skip the check.
+virus_check() {
+  local dest="$1" rc=0
+  command -v clamscan >/dev/null 2>&1 || return 0
+  clamscan -r -i --no-summary -- "$dest" >/dev/null 2>&1 || rc=$?
+  case "$rc" in
+    0) return 0 ;;
+    1)
+      rm -rf -- "$dest"
+      die 4 "A virus was found in that old copy, so it was NOT restored." ;;
+    *)
+      printf 'Warning: the restored copy could not be virus-checked.\n' >&2
+      return 0 ;;
+  esac
+}
+
+cmd_restore() {
+  [ $# -eq 2 ] || die 2 "Usage: forgeos-undo restore <number> <path>"
+  local n="$1" rel src dest dir name i=2 stem
+  case "$n" in ''|*[!0-9]*) die 2 "Snapshot number must be a number: $n" ;; esac
+  rel="$(rel_path "$2")" || die 2 "Only files inside your home folder can be undone: $2"
+  src="$SNAP_DIR/$n/snapshot/$rel"
+  [ -e "$src" ] || [ -L "$src" ] || die 1 "Snapshot $n has no copy of that file."
+  dest="$UNDO_HOME/$rel"
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    dir="${dest%/*}"; name="${dest##*/}"
+    stem="$(restored_name "$name" "$(snap_date "$n")")"
+    dest="$dir/$stem"
+    while [ -e "$dest" ] || [ -L "$dest" ]; do
+      dest="$dir/$(restored_name "$name" "$(snap_date "$n") #$i")"; i=$((i+1))
+    done
+  fi
+  mkdir -p -- "${dest%/*}" || die 3 "Could not create the folder for $dest"
+  # No -a: new files get YOU as owner and the normal home label (same rule as Clean Sweep).
+  cp -R --preserve=mode,timestamps --reflink=auto -- "$src" "$dest" || die 3 "Copy failed."
+  virus_check "$dest"
+  printf '%s\n' "$dest"
+  exit 0
+}
+
+cmd_snapshot_now() {
+  local text="${1:-Manual snapshot (Undo Button)}"
+  command -v snapper >/dev/null 2>&1 || die 3 "snapper not found."
+  snapper -c "$SNAPPER_CONFIG" create -c number -d "$text" || die 3 "Could not take a snapshot."
+  echo "Snapshot taken."
+  exit 0
+}
+
+cmd_updates() {
+  command -v rpm-ostree >/dev/null 2>&1 || die 3 "rpm-ostree not found."
+  command -v jq >/dev/null 2>&1 || die 3 "jq not found."
+  rpm-ostree status --json | jq -r '.deployments[] |
+    [(if .booted then "NOW" elif .staged then "NEXT" else "BACKUP" end),
+     (.timestamp | strflocaltime("%Y-%m-%d %H:%M")),
+     (.version // "unknown")] | @tsv' || die 3 "Could not read system versions."
+  exit 0
+}
+
+cmd_undo_update() {
+  command -v rpm-ostree >/dev/null 2>&1 || die 3 "rpm-ostree not found."
+  rpm-ostree rollback || die 3 "Could not go back to the previous system version."
+  echo "Done — restart the computer to use the previous system version."
+  exit 0
+}
+
+case "${1:-}" in
+  status) shift; cmd_status "$@" ;;
+  versions) shift; cmd_versions "$@" ;;
+  restore) shift; cmd_restore "$@" ;;
+  snapshot-now) shift; cmd_snapshot_now "$@" ;;
+  updates) shift; cmd_updates "$@" ;;
+  undo-update) shift; cmd_undo_update "$@" ;;
+  ""|-h|--help|help) usage; exit 0 ;;
+  *) usage >&2; exit 2 ;;
+esac
