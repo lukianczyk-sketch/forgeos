@@ -596,3 +596,23 @@ STATUS: REVIEWED
 - Mutation tests (broke the engine on purpose, each must be caught): no chmod 000 → B fails; never moves → B fails; threat name lost → B fails; tamper ignored → D fails; rkhunter error ignored → E fails; wrong headline → A fails; engine missing → FAIL + exit 1. All caught.
 - Not wired into CI yet (Step 8c).
 - Next: Step 8b — more cases in the same file: quarantine list / restore / delete --yes, reset-system --dry-run keep-list, full-wipe without WIPE refuses / --dry-run.
+
+## Step 8b — quarantine / reset / wipe tests — 2026-10-25
+Files changed: tests/test-clean-sweep.sh (fake runuser shim, run_keep(), cases H-N, header comment), plus this PROGRESS.md entry
+What Rabbit Team / Cline did:
+- EDIT 1: fake `runuser` shim in $WORK/bin right after `unset PKEXEC_UID` — drops every argument up to and including "--", then execs the rest; chmod +x (same style as the other shims).
+- EDIT 2: added run_keep() right after run() — same as run() but WITHOUT deleting $WORK/log and $WORK/quar, so the quarantine survives between steps; still writes $WORK/out and sets RC.
+- EDIT 3: cases H-N inserted before the failures summary (one pass/fail line each): H list -> RC 0, ID = field 1 of line 2 ($WORK/out via awk -F'\t'), out contains Eicar-Test-Signature; I restore without --yes -> RC 3 (chmod u+r $WORK/quar/$ID first — the engine runs as root and can read a mode-000 file, this test is a normal user); J restore --yes -> RC 0, bad.txt back with mode 640, quarantine entry gone; K delete --yes -> RC 0 + entry gone, then list says "Quarantine is empty."; L restore ../x --yes -> RC 3 + "Bad ID"; M reset-system --dry-run -> RC 0 with KEEP /etc/hostname, KEEP /etc/passwd, REMOVE /etc/ld.so.preload, "1 to remove", "2 kept" (KEEP+5 spaces, REMOVE+3); N full-wipe safety -> `full-wipe --yes NOPE` RC 3, `full-wipe </dev/null` RC 3 (refuses before changing anything), `full-wipe --dry-run` RC 0 + "Full Wipe plan" — one pass line only if all three are right.
+- EDIT 4: header comment now says cases A-N (scan, quarantine, reset plan, full-wipe safety).
+What I ran: nothing (per instruction).
+STATUS: REVIEWED
+
+### Claude review — Step 8b — 2026-10-25
+- APPROVED. All 5 edits match the blueprint; LF line endings this time. 4 safety/strength fixes (Claude applied):
+  1. **The test can never touch the real machine.** If a future engine bug let full-wipe / reset start for real, it would empty /tmp + /var/tmp and erase homes. Now the engine copy also has ETC_DIR, USR_ETC_DIR, TMP_DIR and VARTMP_DIR pointed into the work dir; a guard checks all 7 dir lines were rewritten (FAIL + exit 1 if an engine line changes); fake `getent passwd` lists only root + a "tester" whose home is inside the work dir (not under /home, so never erased); systemctl / flatpak / passwd are no-op fakes.
+  2. **N checks the wipe really did not start:** RC 3 alone was not enough — a broken `--yes <any word>` ran the wipe and still exited 3 (non-root errors). Both refusals now also require no "Full Wipe started" in the output. N's dry-run also checks "SKIP     tester" (the fake home is skipped, never erased).
+  3. **Empty ID guard:** if case H finds no ID, later cases use "missing" instead of acting on the quarantine folder itself.
+  4. Header comment updated for the new fakes.
+- Checked on Linux: `bash -n` OK, `shellcheck` clean (no findings). Run: 14/14 PASS, exit 0, < 1 s; no tmp.* left behind.
+- Mutation tests (each must be caught): confirm ignores no-terminal → I + N fail; restore loses the mode → J fails; delete does nothing → K fails; ".." allowed in ID → L fails; ld.so.preload on the keep-list → M fails; full-wipe accepts any word after --yes → N fails; engine dir line renamed → guard FAIL. All caught (plus the 8a ones still caught).
+- Next: Step 8c — tests.yml: run `bash tests/test-clean-sweep.sh .` in CI + real ClamAV EICAR test (apt install clamav, EICAR string, confirm FOUND). Then final review → tag v0.5.0.
