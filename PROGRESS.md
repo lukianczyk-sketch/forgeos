@@ -10,3 +10,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED. Blueprint, forgeos-privacy-lib and the user service byte-identical to the tested prototype after CRLF -> LF fix (Cline wrote CRLF). forgeos-privacy: the part 2 join added one extra blank line before the case block — replaced with the prototype. forgeos-setup.sh (chmod + global enable) and recipe.yml (pipewire-utils) exactly as asked. Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+
+## Step 2 — Privacy Report block button + window + menu entry
+- Files changed: files/system/usr/bin/forgeos-privacy-block (new), files/system/usr/bin/forgeos-privacy-gui (new), files/system/usr/share/applications/forgeos-privacy.desktop (new), files/scripts/forgeos-setup.sh
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-25): APPROVED. forgeos-privacy-block, forgeos-privacy-gui and the menu entry byte-identical to the tested prototype after CRLF -> LF fix. forgeos-setup.sh chmod line exactly as asked. Next: Step 3 (tests).
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)

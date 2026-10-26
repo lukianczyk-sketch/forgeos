@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# ForgeOS Privacy Report window (Job 7). kdialog front end for forgeos-privacy + forgeos-privacy-block.
+set -uo pipefail
+# shellcheck source=/dev/null
+. "${FORGEOS_PRIVACY_LIB:-/usr/libexec/forgeos-privacy-lib}"
+
+TITLE="ForgeOS Privacy Report"
+REPORT="${FORGEOS_PRIVACY_ENGINE:-/usr/bin/forgeos-privacy}"
+BLOCK="${FORGEOS_PRIVACY_BLOCKER:-/usr/bin/forgeos-privacy-block}"
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Privacy Report window. Use forgeos-privacy report in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+fail() { kdialog --title "$TITLE" --error "$1" || true; }
+
+show_report() {
+  local f
+  f="$(mktemp)" || { fail "Could not create a temporary file."; return; }
+  "$REPORT" report > "$f" 2>&1
+  kdialog --title "$TITLE" --textbox "$f" 760 600 || true
+  rm -f -- "$f"
+}
+
+# Apps to pick from: every app seen using the camera/mic/screen, plus every Flatpak app.
+app_list() {
+  {
+    [ -f "$PRIV_LOG" ] && awk -F'\t' '$2 == "start" { print $4 "\t" $5 }' "$PRIV_LOG"
+    command -v flatpak >/dev/null 2>&1 && flatpak list --app --columns=application,name 2>/dev/null
+  } | awk -F'\t' '$1 != "" && !s[$1]++'
+}
+
+do_block() {
+  local app name kind warn close="" out rc=0 key nm
+  local -a items=()
+  while IFS="$TAB" read -r key nm; do items+=("$key" "$(app_name "$key" "$nm")"); done < <(app_list)
+  [ "${#items[@]}" -gt 0 ] || { info "No apps found yet."; return; }
+  app="$(kdialog --title "$TITLE" --menu "Which app do you want to block?" "${items[@]}")" || return
+  name="$(app_name "$app")"
+  kind="$(kdialog --title "$TITLE" --menu "Block $name from:" \
+    camera "My camera" mic "My microphone" files "All my files")" || return
+  case "$kind" in
+    camera) warn="$name will not be able to use your camera. Video calls in this app will show no picture.${NL}${NL}Game controllers and other plugged-in devices may also stop working in this app." ;;
+    mic) warn="$name will only hear silence from your microphone. Its sound still plays." ;;
+    files) warn="$name will only see the files you pick for it. It may not open or save files by itself anymore." ;;
+    *) return ;;
+  esac
+  kdialog --title "$TITLE" --warningyesno "$warn${NL}${NL}Block it?" || return
+  if [ "$kind" != mic ]; then
+    kdialog --title "$TITLE" --yesno "Close $name now so the block works right away?${NL}${NL}Save your work in it first." && close="--close"
+  fi
+  out="$("$BLOCK" block "$app" "$kind" ${close:+"$close"} 2>&1)" || rc=$?
+  if [ "$rc" -eq 0 ]; then info "$out"; else fail "$out"; fi
+}
+
+do_unblock() {
+  local kind key pick out rc=0 what
+  local -a items=()
+  while IFS="$TAB" read -r kind key; do
+    [ -n "$key" ] || continue
+    case "$kind" in camera) what="camera" ;; mic) what="microphone" ;; files) what="all my files" ;; *) continue ;; esac
+    items+=("$kind $key" "$(app_name "$key"): $what")
+  done < <("$BLOCK" list 2>/dev/null)
+  [ "${#items[@]}" -gt 0 ] || { info "Nothing is blocked."; return; }
+  pick="$(kdialog --title "$TITLE" --menu "Which block do you want to undo?" "${items[@]}")" || return
+  out="$("$BLOCK" unblock "${pick#* }" "${pick%% *}" 2>&1)" || rc=$?
+  if [ "$rc" -eq 0 ]; then info "$out"; else fail "$out"; fi
+}
+
+while :; do
+  choice="$(kdialog --title "$TITLE" --menu "See which apps used your camera, microphone and screen, and block the ones you don't trust." \
+    report "See my Privacy Report" block "Block an app" unblock "Undo a block")" || exit 0
+  case "$choice" in
+    report) show_report ;;
+    block) do_block ;;
+    unblock) do_unblock ;;
+  esac
+done

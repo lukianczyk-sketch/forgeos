@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Privacy Report
+GenericName=Who used my camera and microphone
+Comment=See which apps used your camera, microphone and screen, and block the ones you don't trust
+Exec=/usr/bin/forgeos-privacy-gui
+Icon=preferences-system-privacy
+Terminal=false
+Categories=System;Security;
+Keywords=privacy;camera;webcam;microphone;mic;screen;spy;permissions;block;report;

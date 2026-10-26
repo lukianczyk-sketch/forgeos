@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# ForgeOS Privacy Report (Job 7): the Block button.
+#   forgeos-privacy-block block   <app> camera|mic|files [--close]
+#   forgeos-privacy-block unblock <app> camera|mic|files
+#   forgeos-privacy-block list
+# <app> = a Flatpak app id (org.example.App) or a program name. Exit: 0 ok, 1 failed, 2 bad use,
+# 3 cannot block this kind for a program that is not a sandboxed (Flatpak) app.
+set -u
+# shellcheck source=/dev/null
+. "${FORGEOS_PRIVACY_LIB:-/usr/libexec/forgeos-privacy-lib}"
+
+die() { echo "$2" >&2; exit "$1"; }
+is_flatpak() { command -v flatpak >/dev/null 2>&1 && flatpak info "$1" >/dev/null 2>&1; }
+perm() { flatpak info --show-permissions "$1" 2>/dev/null | sed -n "s/^$2=//p" | head -n 1; }
+
+# Saved blocks: kind<TAB>app[<TAB>what we removed, comma-separated]
+saved() { [ -f "$PRIV_BLOCKS" ] && awk -F'\t' -v k="$1" -v a="$2" '$1 == k && $2 == a { print $3; f = 1 } END { exit !f }' "$PRIV_BLOCKS"; }
+forget() {
+  [ -f "$PRIV_BLOCKS" ] || return 0
+  awk -F'\t' -v k="$1" -v a="$2" '!($1 == k && $2 == a)' "$PRIV_BLOCKS" > "$PRIV_BLOCKS.tmp" && mv -f "$PRIV_BLOCKS.tmp" "$PRIV_BLOCKS"
+}
+remember() {
+  mkdir -p "${PRIV_BLOCKS%/*}"
+  forget "$1" "$2"
+  if [ -n "${3:-}" ]; then printf '%s\t%s\t%s\n' "$1" "$2" "$3"; else printf '%s\t%s\n' "$1" "$2"; fi >> "$PRIV_BLOCKS"
+}
+
+block() {
+  local app="$1" kind="$2" close="$3" name tok="" t
+  name="$(app_name "$app")"
+  saved "$kind" "$app" >/dev/null && { echo "$name is already blocked from your ${WHAT[$kind]}."; return 0; }
+  case "$kind" in
+    mic)
+      remember mic "$app"
+      enforce_mic >/dev/null
+      echo "$name is blocked from your microphone. It will only hear silence. Its sound still plays." ;;
+    camera)
+      is_flatpak "$app" || die 3 "$name is not a sandboxed app, so ForgeOS cannot block its camera. Close it, or remove it."
+      if [[ ";$(perm "$app" devices);" == *";all;"* ]]; then
+        flatpak override --user --nodevice=all "$app" || die 1 "Could not block the camera for $name."
+        tok="all"
+      fi
+      flatpak permission-set devices camera "$app" no >/dev/null 2>&1 || [ -n "$tok" ] || die 1 "Could not block the camera for $name."
+      remember camera "$app" "$tok"
+      echo "$name is blocked from your camera." ;;
+    files)
+      is_flatpak "$app" || die 3 "$name is not a sandboxed app, so ForgeOS cannot limit its files."
+      for t in $(perm "$app" filesystems | tr ';' ' '); do
+        case "$t" in home|home:r[ow]|host|host:r[ow]) ;; *) continue ;; esac
+        flatpak override --user --nofilesystem="${t%%:*}" "$app" || die 1 "Could not limit the files of $name."
+        tok="${tok:+$tok,}$t"
+      done
+      [ -n "$tok" ] || { echo "$name already cannot see all your files."; return 0; }
+      remember files "$app" "$tok"
+      echo "$name can no longer see all your files. It only gets files you pick for it." ;;
+  esac
+  if [ "$close" = 1 ] && [ "$kind" != mic ]; then
+    flatpak kill "$app" >/dev/null 2>&1 && echo "$name was closed. Open it again when you need it."
+  elif [ "$kind" != mic ]; then
+    echo "Close $name and open it again for the block to work."
+  fi
+  return 0
+}
+
+unblock() {
+  local app="$1" kind="$2" name tok t idx key
+  name="$(app_name "$app")"
+  tok="$(saved "$kind" "$app")" || { echo "$name was not blocked from your ${WHAT[$kind]}."; return 0; }
+  case "$kind" in
+    mic)
+      forget mic "$app"
+      while IFS="$TAB" read -r idx key; do
+        [ "$key" = "$app" ] && pactl set-source-output-mute "$idx" 0 >/dev/null 2>&1
+      done < <(command -v pactl >/dev/null 2>&1 && pactl -f json list source-outputs 2>/dev/null \
+        | jq -r ".[] | select(.mute == true) | [.index, $PACTL_KEY] | @tsv" 2>/dev/null) ;;
+    camera)
+      [ "$tok" = all ] && { flatpak override --user --device=all "$app" || die 1 "Could not give $name its camera back."; }
+      flatpak permission-remove devices camera "$app" >/dev/null 2>&1
+      forget camera "$app" ;;
+    files)
+      for t in ${tok//,/ }; do
+        flatpak override --user --filesystem="$t" "$app" || die 1 "Could not give $name its files back."
+      done
+      forget files "$app" ;;
+  esac
+  echo "$name can use your ${WHAT[$kind]} again."
+}
+
+declare -A WHAT=([camera]="camera" [mic]="microphone" [files]="files")
+case "${1:-}" in
+  list) [ -f "$PRIV_BLOCKS" ] && cut -f1,2 "$PRIV_BLOCKS"; exit 0 ;;
+  block|unblock)
+    [ "$#" -ge 3 ] || die 2 "Usage: forgeos-privacy-block block|unblock <app> camera|mic|files [--close]"
+    case "$3" in camera|mic|files) ;; *) die 2 "What to block must be camera, mic or files." ;; esac
+    [[ "$2" =~ ^[A-Za-z0-9._+-]+$ ]] || die 2 "That app name is not valid."
+    if [ "$1" = block ]; then block "$2" "$3" "$([ "${4:-}" = --close ] && echo 1 || echo 0)"
+    else unblock "$2" "$3"; fi ;;
+  *) die 2 "Usage: forgeos-privacy-block block|unblock <app> camera|mic|files [--close] | list" ;;
+esac
