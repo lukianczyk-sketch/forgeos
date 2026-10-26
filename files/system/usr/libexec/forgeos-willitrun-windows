@@ -1,0 +1,54 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): the answer for a Windows file (.exe, .msi, .bat, .lnk).
+# Sourced by /usr/bin/forgeos-willitrun. The file is only read, never run.
+
+# windows_file <file> <kind> <name>
+windows_file() {
+  local f="$1" kind="$2" name="$3" r w id t arch type net ac names inst wn wa base dir
+  if r="$(app_lookup "$name")"; then IFS='|' read -r w id t <<< "$r"; from_list "$w" "$id" "$t"; fi
+  arch=""; type=""; net=0
+  [ "$kind" = windows ] && read -r arch type net <<< "$(pe_info "$f")"
+  case "$arch $type" in
+    arm64*) echo "No. It is made for Windows on ARM chips (like Snapdragon laptops). It will not run on this PC."; finish no ;;
+    *driver) echo "No. This is a Windows driver."
+      echo "ForgeOS does not need it: Linux has its drivers built in, and most devices just work."; finish no ;;
+    *dll) echo "No. This is a part of a program (a library), not something you can start."
+      echo "Check the program it belongs to instead."; finish no ;;
+  esac
+  ac="$(anticheat_scan "$f")"
+  if grep -q '|1$' <<< "$ac"; then
+    names="$(grep '|1$' <<< "$ac" | cut -d '|' -f 1 | paste -sd ',' - | sed 's/,/, /g')"
+    echo "No, this will not run on ForgeOS."
+    echo "It uses anti-cheat that digs into the heart of Windows ($names). It does not run on Linux or in a virtual machine. Only a PC with real Windows can play it."
+    finish no
+  fi
+  base="${f##*/}"; dir="${f%/*}"
+  if r="$(awacy_lookup "${base%.*}")" || { ! dump_dir "$dir" && r="$(awacy_lookup "${dir##*/}")"; }; then
+    IFS='|' read -r w id t <<< "$r"; from_awacy "$w" "$id" "$t"
+  fi
+  wn=bottles; wa="$f"
+  flatpak info com.usebottles.bottles >/dev/null 2>&1 || { wn=flatpak; wa=com.usebottles.bottles; }
+  if [ -n "$ac" ]; then
+    names="$(cut -d '|' -f 1 <<< "$ac" | paste -sd ',' - | sed 's/,/, /g')"
+    echo "Maybe. It uses anti-cheat ($names)."
+    echo "That works on Linux only if the game maker turned it on, and this game is not on the anti-cheat list yet. Try it in Bottles or Steam: single-player parts often work."
+    finish maybe "$wn" "$wa"
+  fi
+  case "$kind" in
+    shortcut) echo "Maybe. This is a Windows shortcut, not the program itself."
+      echo "Check the program it points to instead."; finish maybe ;;
+    winscript) echo "Maybe. This is a Windows batch file (a list of Windows commands)."
+      echo "Some run in Bottles, many do not. Only run it if you trust where it came from."
+      finish maybe "$wn" "$wa" ;;
+  esac
+  echo "Yes, it should run in Bottles."
+  echo "Bottles (already on ForgeOS) runs Windows programs in their own safe box, away from your files."
+  [ "$kind" = msi ] && echo "It is a Windows installer package (.msi): run it in Bottles and the program lands inside that bottle."
+  inst=""; [ "$kind" = windows ] && inst="$(installer_kind "$f")"
+  [ -n "$inst" ] && echo "It is an installer ($inst): run it in Bottles and the program lands inside that bottle."
+  game_folder "$f" && echo "It looks like a game: pick \"Gaming\" when you make the bottle. Or add it to Steam as a non-Steam game, so Steam runs it with Proton."
+  [ "$net" = 1 ] && echo "It is a .NET program: if it does not start, open the bottle's Dependencies and add dotnet."
+  [ "$arch" = x86 ] && echo "It is an older 32-bit program. Bottles runs those too."
+  echo "If it still does not work, GNOME Boxes (free) can run a full copy of Windows in a window. You need your own Windows license for that."
+  finish yes "$wn" "$wa"
+}

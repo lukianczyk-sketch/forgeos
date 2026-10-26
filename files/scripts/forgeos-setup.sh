@@ -2,7 +2,7 @@
 # Runs at image BUILD time (not on users' machines).
 set -oue pipefail
 
-chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder /usr/libexec/forgeos-undo-setup /usr/bin/forgeos-undo /usr/bin/forgeos-undo-gui /usr/bin/forgeos-panic /usr/libexec/forgeos-panic-helper /usr/bin/forgeos-privacy /usr/bin/forgeos-privacy-block /usr/bin/forgeos-privacy-gui /usr/bin/forgeos-scamshield /usr/libexec/forgeos-scamshield-update /usr/bin/forgeos-scamshield-gui /usr/bin/forgeos-askpc /usr/bin/forgeos-askpc-gui
+chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder /usr/libexec/forgeos-undo-setup /usr/bin/forgeos-undo /usr/bin/forgeos-undo-gui /usr/bin/forgeos-panic /usr/libexec/forgeos-panic-helper /usr/bin/forgeos-privacy /usr/bin/forgeos-privacy-block /usr/bin/forgeos-privacy-gui /usr/bin/forgeos-scamshield /usr/libexec/forgeos-scamshield-update /usr/bin/forgeos-scamshield-gui /usr/bin/forgeos-askpc /usr/bin/forgeos-askpc-gui /usr/bin/forgeos-willitrun
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service

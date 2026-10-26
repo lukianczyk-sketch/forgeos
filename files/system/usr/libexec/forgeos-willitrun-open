@@ -1,0 +1,73 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): starts the way to run a program. Sourced by /usr/bin/forgeos-willitrun.
+# Only called after the user said yes in the window. Installs only apps on ForgeOS's checked lists.
+WIR_WAYDROID_CFG="${FORGEOS_WIR_WAYDROID_CFG:-/var/lib/waydroid/waydroid.cfg}"
+WIR_WAIT="${FORGEOS_WIR_WAIT:-60}"
+WIR_EXTRA_APPS="com.usebottles.bottles io.github.dosbox-staging it.mijorus.gearlever"
+
+# app_ok <app-id>: 0 if the app is on ForgeOS's checked lists.
+app_ok() {
+  case " $WIR_EXTRA_APPS " in *" $1 "*) return 0 ;; esac
+  [ -n "$1" ] && grep -hqF -- " ~ $1 ~ " "$WIR_LISTS"/*.txt 2>/dev/null
+}
+
+# full_path <file>: the file's full path, or fail if it is gone.
+full_path() {
+  [ -f "$1" ] || { echo "That file is gone: $1" >&2; return 1; }
+  echo "$(cd "$(dirname -- "$1")" && pwd)/${1##*/}"
+}
+
+# open_way <way> [file or app-id]
+open_way() {
+  local way="$1" arg="${2:-}" f dir i out
+  case "$way" in
+    bottles)
+      f="$(full_path "$arg")" || return 3
+      flatpak info com.usebottles.bottles >/dev/null 2>&1 || { echo "Bottles is not installed. Install it first (Will It Run? offers it)." >&2; return 1; }
+      dir="${f%/*}"
+      # Bottles may only see this program's own folder, never the whole home folder.
+      if dump_dir "$dir" || [[ "$dir" != "$HOME"/* ]]; then
+        setsid -f flatpak run --file-forwarding com.usebottles.bottles -e @@ "$f" @@ >/dev/null 2>&1
+      else
+        setsid -f flatpak run --filesystem="$dir" com.usebottles.bottles -e "$f" >/dev/null 2>&1
+      fi
+      echo "Bottles is opening. Pick a bottle (or make a new one) and Bottles runs the program in it." ;;
+    flatpak)
+      app_ok "$arg" || { echo "Will It Run? only installs apps from its checked list." >&2; return 2; }
+      setsid -f konsole --hold -e flatpak install flathub "$arg" >/dev/null 2>&1
+      echo "A window opens to install it from Flathub (free). Type y and press Enter when it asks. Then find the app in your menu." ;;
+    open)
+      app_ok "$arg" || { echo "Will It Run? only opens apps from its checked list." >&2; return 2; }
+      flatpak info "$arg" >/dev/null 2>&1 || { echo "That app is not installed yet." >&2; return 1; }
+      setsid -f flatpak run "$arg" >/dev/null 2>&1
+      echo "Opening it now." ;;
+    waydroid)
+      f="$(full_path "$arg")" || return 3
+      if [ ! -f "$WIR_WAYDROID_CFG" ]; then
+        setsid -f konsole --hold -e ujust setup-waydroid >/dev/null 2>&1
+        echo "Android apps are not set up yet. A window opens to set them up. When it is done, check the app again." >&2
+        return 1
+      fi
+      if [[ "$(waydroid status 2>/dev/null)" != *RUNNING* ]]; then
+        setsid -f waydroid show-full-ui >/dev/null 2>&1
+        for ((i = 0; i < WIR_WAIT; i += 2)); do
+          [[ "$(waydroid status 2>/dev/null)" == *RUNNING* ]] && break
+          sleep 2
+        done
+      fi
+      out="$(waydroid app install "$f" 2>&1)" || out="error $out"
+      if grep -qiE 'error|stopped' <<< "$out"; then
+        echo "Waydroid could not install the app. Open Waydroid from the menu, wait until Android has started, then try again." >&2
+        return 1
+      fi
+      echo "Installed. The app shows up in your menu in a few seconds." ;;
+    gearlever)
+      f="$(full_path "$arg")" || return 3
+      setsid -f flatpak run --file-forwarding it.mijorus.gearlever @@ "$f" @@ >/dev/null 2>&1
+      echo "Gear Lever is opening. Follow its steps to add the app to your menu." ;;
+    steam)
+      setsid -f steam >/dev/null 2>&1
+      echo "Steam is opening." ;;
+    *) usage ;;
+  esac
+}

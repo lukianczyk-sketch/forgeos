@@ -10,3 +10,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. All 7 files byte-identical to the tested prototype after CRLF -> LF fix (Cline wrote CRLF; it also wrote the Step 1 entry straight into the new PROGRESS.md, which is fine). Robert asked for more safety: Claude added a safety check (virus scan with ClamAV, fake double endings like invoice.pdf.exe, the download website checked against the Scam Shield lists, cracked-program warning) to the prototype; it comes in Steps 2 and 4-5 (new file forgeos-willitrun-safety + tests/test-willitrun-safety.sh, case Q). Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+
+## Step 2 — Will It Run? command + answers + open + safety check
+- Files changed: files/system/usr/bin/forgeos-willitrun (new), files/system/usr/libexec/forgeos-willitrun-answers (new), files/system/usr/libexec/forgeos-willitrun-check (new), files/system/usr/libexec/forgeos-willitrun-windows (new), files/system/usr/libexec/forgeos-willitrun-open (new), files/system/usr/libexec/forgeos-willitrun-safety (new), RABBIT-BLUEPRINT.md, files/scripts/forgeos-setup.sh
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED after two fixes. forgeos-willitrun, -check, -windows, -open, -safety and the forgeos-setup.sh chmod line byte-identical to the tested prototype after CRLF -> LF fix. forgeos-willitrun-answers: Cline moved a quote at the end of the AI request (`)]}'") || return 1` instead of `)}]}')" || return 1`, would break the script; same slip as Job 9 Step 2) — replaced with the prototype. RABBIT-BLUEPRINT.md: Cline only changed part of it (the safety-check section was missing) — replaced with the prototype. On Robert's PC: Will It Run? tests A-L and Q pass (M-P need Step 3). Next: Step 3.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)

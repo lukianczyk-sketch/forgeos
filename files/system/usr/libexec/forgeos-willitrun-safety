@@ -1,0 +1,63 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): safety check BEFORE any answer. Sourced by /usr/bin/forgeos-willitrun
+# (uses finish from there). Virus scan (ClamAV), fake double endings, cracked programs, and the website
+# the file came from (checked against the Scam Shield lists). The file is only read, never run.
+SCAM_DIR="${FORGEOS_SCAM_DIR:-/var/lib/forgeos-scamshield}"
+WIR_SCAN_TIME="${FORGEOS_WIR_SCAN_TIMEOUT:-120}"
+WIR_NOTES=()
+
+# origin_site <file>: the website the browser downloaded the file from (Brave/Chrome save it), if known.
+origin_site() {
+  local u
+  u="$(getfattr --only-values -n user.xdg.origin.url -- "$1" 2>/dev/null | head -c 2000)" || return 1
+  u="${u#*://}"; u="${u%%/*}"; u="${u%%:*}"; u="${u##*@}"
+  u="$(tr '[:upper:]' '[:lower:]' <<< "$u")"
+  [ -n "$u" ] && echo "${u#www.}"
+}
+
+# scam_site <site>: 0 if the site (or a site it belongs to) is on the Scam Shield lists.
+scam_site() {
+  local d="$1"
+  while [ -n "$d" ]; do
+    grep -hqxF -- "$d" "$SCAM_DIR"/*.list 2>/dev/null && return 0
+    case "$d" in *.*.*) d="${d#*.}" ;; *) return 1 ;; esac
+  done
+  return 1
+}
+
+# safety_check <file>: says "No" and stops if the file is dangerous. Otherwise adds notes to WIR_NOTES
+# (finish prints them under the answer).
+safety_check() {
+  local f="$1" base low site out rc=0
+  base="${f##*/}"
+  low="$(tr '[:upper:]' '[:lower:]' <<< "$base")"
+  if [[ "$low" =~ [.](pdf|docx?|xlsx?|pptx?|txt|rtf|jpe?g|png|gif|mp3|mp4|mov|zip|rar)[[:space:]]*[.](exe|scr|com|pif|bat|cmd|msi|lnk|js|vbs|ps1)$ ]] \
+    || [[ "$low" =~ [[:space:]]{3,}[.](exe|scr|com|pif|bat|cmd|msi|lnk)$ ]]; then
+    echo "No. Do not open this file: it is pretending to be something else."
+    echo "Its name ends in .${base##*.}, so it is a program dressed up as a document, picture or song. This is a common trick to spread viruses. Delete it."
+    finish no
+  fi
+  site="$(origin_site "$f")" || site=""
+  if [ -n "$site" ] && scam_site "$site"; then
+    echo "No. Do not open this file: it came from a known scam or virus website ($site)."
+    echo "Scam Shield's list of dangerous websites has this one. Delete the file."
+    finish no
+  fi
+  if command -v clamscan >/dev/null 2>&1; then
+    out="$(timeout "$WIR_SCAN_TIME" clamscan --no-summary --infected --max-filesize=500M --max-scansize=500M -- "$f" 2>/dev/null)" || rc=$?
+    if [ "$rc" -eq 1 ]; then
+      echo "No. Do not open this file: the virus check found something bad in it."
+      out="$(head -n 1 <<< "$out")"; out="${out##*: }"
+      echo "Found: ${out% FOUND}. Open Clean Sweep to put it in quarantine."
+      finish no
+    fi
+    if [ "$rc" -eq 0 ]; then WIR_NOTES+=("Virus check: nothing bad found."); else WIR_NOTES+=("Virus check: could not finish, so be careful."); fi
+  else
+    WIR_NOTES+=("Virus check: not available on this PC, so be careful.")
+  fi
+  [ -n "$site" ] && WIR_NOTES+=("Downloaded from: $site. Only run programs from websites you trust.")
+  if [[ "$low" =~ crack|keygen|activator|kmspico|kms[^a-z]|warez|free.?robux|robux.?gen|serial.?key|license.?key ]]; then
+    WIR_NOTES+=("Warning: the name looks like a cracked or pirated program. Those very often hide viruses or password stealers.")
+  fi
+  return 0
+}

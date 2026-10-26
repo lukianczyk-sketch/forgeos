@@ -25,7 +25,12 @@ it, with one button to do it. Menu entry "Will It Run?" + Dolphin right-click "W
    Konsole window (only IDs on the checked lists), open an installed app, Waydroid (sets it up
    first with `ujust setup-waydroid` if needed, starts it, `waydroid app install`), Gear Lever for
    AppImages, Steam. Old DOS programs = DOSBox Staging.
-5. **Names it does not know**: the private AI (local Ollama) gives a best guess, clearly marked
+5. **Safety check first (added 2026-10-26, Robert asked)**: before ANY answer for a file: virus scan
+   with ClamAV (already in ForgeOS; found = No + Clean Sweep), fake double endings (invoice.pdf.exe,
+   "song.mp3      .scr") = No, the website the file came from (Brave/Chrome save it in the file's
+   user.xdg.origin.url attribute) is shown, and if it is on the Scam Shield lists = No; cracked or
+   pirated names (crack, keygen, activator, KMS, "free robux") get a warning.
+6. **Names it does not know**: the private AI (local Ollama) gives a best guess, clearly marked
    "it can be wrong". No AI = honest "not on my list" with tips. Nothing leaves the computer.
 
 ## How (key facts — all verified by Claude on 2026-10-26)
@@ -45,21 +50,22 @@ it, with one button to do it. Menu entry "Will It Run?" + Dolphin right-click "W
 - files/system/usr/libexec/forgeos-willitrun-lib — file type + Windows header reader (sourced)
 - files/system/usr/libexec/forgeos-willitrun-match — anti-cheat check + list lookups (sourced)
 - files/system/usr/share/forgeos/willitrun/1-games.txt, 2-office-media.txt, 3-internet-tools.txt
-- files/system/usr/libexec/forgeos-willitrun-answers, -check, -windows, -open (sourced)
+- files/system/usr/libexec/forgeos-willitrun-answers, -check, -windows, -open, -safety (sourced)
 - files/system/usr/bin/forgeos-willitrun — command: check [--no-ai] FILE-OR-NAME / open WAY [ARG]
 - files/system/usr/libexec/forgeos-willitrun-update + forgeos-willitrun-update.service/.timer
 - files/system/usr/bin/forgeos-willitrun-gui — kdialog window (+ --file FILE)
 - files/system/usr/share/applications/forgeos-willitrun.desktop, kio/servicemenus/forgeos-willitrun.desktop
 - files/scripts/forgeos-setup.sh — chmod, enable the timer, build-day copy of the list
-- tests/willitrun-fakes.sh + test-willitrun.sh (A-D), -games.sh (E-H), -open.sh (I-L), -extras.sh (M-P)
+- tests/willitrun-fakes.sh + test-willitrun.sh (A-D), -games.sh (E-H), -open.sh (I-L), -extras.sh (M-P),
+  -safety.sh (Q)
 - .github/workflows/tests.yml — new step "Run Will It Run? tests (fake tools)"
 
 ## Steps (Cline does one step per prompt, then stops)
 1. Blueprint + PROGRESS + lib + match + the 3 list files.
-2. The command + answers + check + windows + open + chmod for the command.
+2. The command + answers + check + windows + open + safety + chmod for the command (+ this blueprint again).
 3. The list download + timer + window + menu entries + setup.
 4. Fakes + tests A-H.
-5. Tests I-P + CI step.
+5. Tests I-Q + CI step.
 After each step Claude reviews (diff against the prototype), runs the tests, commits and pushes.
 
 ## Rules for the Rabbit Team

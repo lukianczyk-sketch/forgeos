@@ -1,0 +1,52 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): the answer for a file. Sourced by /usr/bin/forgeos-willitrun
+# (uses finish, from_list and app_way). The file is only read, never run.
+
+# check_file <file>
+check_file() {
+  local f="$1" kind base name dir r w id t
+  [ -f "$f" ] && [ -r "$f" ] || { echo "Cannot read that file: $f" >&2; exit 3; }
+  dir="$(cd "$(dirname -- "$f")" && pwd)"
+  base="${f##*/}"
+  f="$dir/$base"
+  name="${base%.*}"
+  dump_dir "$dir" || name="$name ${dir##*/}"
+  kind="$(file_kind "$f")"
+  safety_check "$f"
+  case "$kind" in
+    fake) echo "No. This file is not what its name says."
+      echo "Its name ends in .${base##*.}, but inside it is something else. It may be damaged, or a trick to get you to open it. Do not open it."
+      finish no ;;
+    android) echo "Yes: it is an Android app. It runs in Waydroid (Android apps on ForgeOS)."
+      echo "Apps that need Google Play (like some banking apps) may not work."
+      finish yes waydroid "$f" ;;
+    appimage) echo "Yes: it is a Linux app (AppImage)."
+      echo "Gear Lever (already on ForgeOS) adds it to your menu and keeps it up to date."
+      finish yes gearlever "$f" ;;
+    linux) echo "Yes: it is a Linux program. It runs on ForgeOS as it is."; finish yes ;;
+    linuxscript) echo "Maybe: it is a Linux script (a list of commands)."
+      echo "It can run, but only run scripts from people you trust."; finish maybe ;;
+    flatpak) echo "Yes: it is a Linux app for the app store. Double-click it to install it."; finish yes ;;
+    dos) echo "Yes: it is an old DOS or early Windows program."
+      echo "DOSBox Staging (free) runs old programs and games like this."
+      # shellcheck disable=SC2046  # "<way> <id>" splits into two words on purpose
+      finish yes $(app_way io.github.dosbox-staging) ;;
+    powershell) echo "No, this will not run on ForgeOS."
+      echo "It is a Windows PowerShell script, a list of Windows commands. Never run scripts a stranger sent you."
+      finish no ;;
+    linuxpkg|mac)
+      if r="$(app_lookup "$name")"; then IFS='|' read -r w id t <<< "$r"; from_list "$w" "$id" "$t"; fi
+      if [ "$kind" = mac ]; then
+        echo "No. This is a program for Apple Mac computers. It will not run on ForgeOS."
+        echo "Look for the same program on Flathub (the app store), or for a free one that does the same job."
+        finish no
+      fi
+      echo "Maybe. This package is for other Linux systems (like Ubuntu or Fedora)."
+      echo "ForgeOS keeps its core locked for safety, so packages are not installed this way. Look for the same app on Flathub (the app store)."
+      finish maybe ;;
+    windows|msi|winscript|shortcut) windows_file "$f" "$kind" "$name" ;;
+    *) echo "Maybe. This does not look like a program."
+      echo "Will It Run? checks Windows programs (.exe, .msi), Android apps (.apk) and Linux apps (AppImage)."
+      finish maybe ;;
+  esac
+}

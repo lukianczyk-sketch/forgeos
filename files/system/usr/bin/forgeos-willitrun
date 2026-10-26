@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# ForgeOS Will It Run? (Job 10): says in plain English if a program will run on ForgeOS and the best
+# way to run it: its own Linux version, a free swap, Bottles, Steam (Proton), Waydroid or Gear Lever.
+# It only LOOKS inside the file (and checks it for viruses), it never runs it. Nothing about you leaves the computer.
+# Output: the answer, then "VERDICT: yes|swap|maybe|no" and maybe "WAY: <way> [file or app]".
+# Exit: 0 = yes (or a free swap), 1 = maybe, 2 = no, 3 = could not check.
+set -uo pipefail
+LIBDIR="${FORGEOS_WIR_LIBDIR:-/usr/libexec}"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-lib"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-match"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-answers"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-check"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-windows"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-open"
+# shellcheck source=/dev/null
+. "$LIBDIR/forgeos-willitrun-safety"
+
+usage() {
+  echo "usage: forgeos-willitrun check [--no-ai] FILE-OR-PROGRAM-NAME..." >&2
+  echo "       forgeos-willitrun open bottles|waydroid|gearlever FILE | flatpak|open APP-ID | steam" >&2
+  exit 3
+}
+
+# finish <verdict> [way] [file or app]: print the safety notes and the verdict lines, then stop
+# with the matching exit code.
+finish() {
+  local v="$1" n
+  shift
+  for n in "${WIR_NOTES[@]}"; do echo "$n"; done
+  echo "VERDICT: $v"
+  [ $# -gt 0 ] && echo "WAY: $*"
+  case "$v" in yes|swap) exit 0 ;; maybe) exit 1 ;; *) exit 2 ;; esac
+}
+
+# check_name <name> <use-ai 1/0>: answer for a program name typed in.
+check_name() {
+  local r w id t n s a
+  if r="$(app_lookup "$1")"; then IFS='|' read -r w id t <<< "$r"; from_list "$w" "$id" "$t"; fi
+  if r="$(awacy_lookup "$1")"; then IFS='|' read -r n s a <<< "$r"; from_awacy "$n" "$s" "$a"; fi
+  if [ "$2" = 1 ] && ask_ai "$1"; then finish maybe; fi
+  echo "Maybe. \"$1\" is not on my list of known programs."
+  echo "If you have its Windows file (.exe or .msi), check the file instead: that tells a lot more."
+  echo "Most Windows programs run in Bottles (already on ForgeOS). Many have a Linux version on Flathub (the app store)."
+  finish maybe
+}
+
+cmd="${1:-}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  check)
+    ai=1
+    if [ "${1:-}" = "--no-ai" ]; then ai=0; shift; fi
+    [ $# -gt 0 ] || usage
+    what="$*"
+    [ -n "${what//[[:space:]]/}" ] || { echo "Please pick a file or type a program name." >&2; exit 3; }
+    if [ -e "$what" ]; then check_file "$what"; else check_name "$what" "$ai"; fi ;;
+  open) [ $# -ge 1 ] && [ $# -le 2 ] || usage; open_way "$@"; exit $? ;;
+  *) usage ;;
+esac
