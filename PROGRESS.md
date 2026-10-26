@@ -10,3 +10,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. RABBIT-BLUEPRINT.md, forgeos-askpc-lib and forgeos-askpc-fixes byte-identical to the tested prototype after CRLF -> LF fix (Cline wrote CRLF). Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+
+## Step 2 — Ask Your PC command + setup
+- Files changed: files/system/usr/bin/forgeos-askpc (new), files/scripts/forgeos-setup.sh
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED after one fix. forgeos-setup.sh (chmod line) exactly as asked. forgeos-askpc: Cline moved a quote at the end of the AI request (`}]}'") || body=""` instead of `}]}')" || body=""`, would break the script) and added a blank last line — replaced with the prototype. On Robert's PC: Ask Your PC tests A-L + N1 pass (the window, menu entry and CI checks come in Steps 3-4). Next: Step 3.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)
