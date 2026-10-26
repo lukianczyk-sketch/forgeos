@@ -31,3 +31,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED after one fix. test-willitrun.sh and test-willitrun-games.sh byte-identical to the tested prototype after CRLF -> LF fix. willitrun-fakes.sh: Cline doubled the backslashes in the fake Ollama answer (line 31) — replaced with the prototype. On Robert's PC: Will It Run? tests A-H pass, and every older ForgeOS test still passes. Next: Step 5.
 - STATUS: STEP 4 DONE — next: Step 5 (Cline)
+
+## Step 5 — Will It Run? tests I-Q + CI
+- Files changed: tests/test-willitrun-open.sh (new), tests/test-willitrun-extras.sh (new), tests/test-willitrun-safety.sh (new), .github/workflows/tests.yml
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED after a tiny fix. tests.yml edit exact; the 3 new test files byte-identical except a missing last newline (Cline) — replaced with the prototype. Every Job 10 file in the repo now matches the tested prototype exactly. On Robert's PC: all Will It Run? tests pass (A-Q) and every older ForgeOS test still passes. Job 10 complete.
+- STATUS: STEP 5 DONE — Job 10 complete (tag v0.11.0 after CI is green)

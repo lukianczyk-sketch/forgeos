@@ -79,3 +79,11 @@ jobs:
         run: |
           bash tests/test-askpc.sh .
           bash tests/test-askpc-extras.sh .
+
+      - name: Run Will It Run? tests (fake tools)
+        run: |
+          bash tests/test-willitrun.sh .
+          bash tests/test-willitrun-games.sh .
+          bash tests/test-willitrun-open.sh .
+          bash tests/test-willitrun-extras.sh .
+          bash tests/test-willitrun-safety.sh .
