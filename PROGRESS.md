@@ -10,3 +10,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED. Helper + policy byte-identical to the tested prototype after CRLF -> LF fix (Cline wrote CRLF). forgeos-setup.sh chmod line and recipe.yml packages exactly as asked. Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+
+## Step 2 — Panic Button command + menu entries + shortcut
+- Files changed: files/system/usr/bin/forgeos-panic (new), files/system/usr/share/applications/forgeos-panic.desktop (new), files/system/usr/share/applications/forgeos-all-clear.desktop (new)
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-25): APPROVED. All 3 files byte-identical to the tested prototype after CRLF -> LF fix. Next: Step 3 (tests).
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)

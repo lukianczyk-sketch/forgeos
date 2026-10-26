@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=All Clear
+GenericName=Turn camera, mic and internet back on
+Comment=Undo the Panic Button: turn the camera, microphones and internet back on
+Exec=/usr/bin/forgeos-panic off
+Icon=security-low
+Terminal=false
+Categories=System;Security;
+Keywords=panic;all clear;camera;microphone;internet;online;restore;

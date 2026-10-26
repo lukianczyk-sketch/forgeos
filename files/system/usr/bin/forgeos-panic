@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# ForgeOS Panic Button (Job 6): one key (Meta+Shift+Esc) cuts the camera,
+# every microphone and the internet, then locks the screen.
+#   forgeos-panic on          - panic (the shortcut runs this)
+#   forgeos-panic off [--yes] - All Clear: turn everything back on (asks first)
+#   forgeos-panic status
+set -u
+
+HELPER="${FORGEOS_PANIC_HELPER:-/usr/libexec/forgeos-panic-helper}"
+PKEXEC="${FORGEOS_PANIC_PKEXEC:-pkexec}"
+STATE="${FORGEOS_PANIC_STATE:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/forgeos-panic}"
+
+# Every microphone = every PipeWire source except speaker "monitor" sources.
+mic_sources() {
+  pactl list short sources 2>/dev/null | awk '$2 !~ /\.monitor$/ { print $2 }'
+}
+
+mute_mics() {
+  local s n=0
+  if command -v pactl >/dev/null 2>&1; then
+    while IFS= read -r s; do
+      [ -n "$s" ] || continue
+      # Remember mics that were ON, so All Clear only turns those back on.
+      if pactl get-source-mute "$s" 2>/dev/null | grep -q 'Mute: no'; then
+        grep -qxF "$s" "$STATE/mics" 2>/dev/null || echo "$s" >> "$STATE/mics"
+      fi
+      pactl set-source-mute "$s" 1 2>/dev/null && n=$((n + 1))
+    done < <(mic_sources)
+  elif command -v wpctl >/dev/null 2>&1; then
+    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 1 2>/dev/null && n=1
+  fi
+  echo "$n"
+}
+
+lock_screen() {
+  dbus-send --session --type=method_call --dest=org.freedesktop.ScreenSaver \
+    /ScreenSaver org.freedesktop.ScreenSaver.Lock >/dev/null 2>&1 && return 0
+  loginctl lock-session >/dev/null 2>&1 && return 0
+  loginctl lock-sessions >/dev/null 2>&1
+}
+
+notify() { # $1 = normal|critical, $2 = message
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -u "$1" -i security-high -a "Panic Button" "Panic Button" "$2" 2>/dev/null
+  fi
+}
+
+# While the panic is on, keep every mic muted (catches a newly plugged
+# headset, or an app that unmutes). Stops when All Clear runs.
+guard() {
+  while [ -e "$STATE/active" ]; do
+    mute_mics >/dev/null
+    [ "${1:-}" = "--once" ] && return 0
+    sleep 2
+  done
+}
+
+cmd_on() {
+  local mics out rc=0 cam nonusb net msg
+  mkdir -p "$STATE"
+  touch "$STATE/active"
+  mics="$(mute_mics)"
+  out="$("$PKEXEC" "$HELPER" cut 2>/dev/null)" || rc=1
+  cam="$(echo "$out" | awk '$1 == "camera_off" { print $2 }')"
+  nonusb="$(echo "$out" | awk '$1 == "camera_nonusb" { print $2 }')"
+  net="$(echo "$out" | awk '$1 == "internet" { print $2 }')"
+  lock_screen || rc=1
+
+  if [ "${cam:-0}" -gt 0 ]; then msg="Camera: OFF"; else msg="Camera: none found"; fi
+  if [ "${nonusb:-0}" -gt 0 ]; then
+    msg="$msg
+Built-in camera could not be switched off - cover it."
+  fi
+  msg="$msg
+Microphones: $mics muted"
+  if [ "$net" = "off" ]; then msg="$msg
+Internet: OFF"; else msg="$msg
+Internet: could NOT be cut - unplug the cable"; rc=1; fi
+  msg="$msg
+To turn everything back on, open All Clear from the menu."
+  notify critical "$msg"
+  echo "$msg"
+
+  if [ -z "${FORGEOS_PANIC_NOGUARD:-}" ]; then
+    setsid "$0" guard >/dev/null 2>&1 < /dev/null &
+  fi
+  return "$rc"
+}
+
+cmd_off() {
+  local rc=0 s
+  if [ "${1:-}" != "--yes" ]; then
+    if command -v kdialog >/dev/null 2>&1; then
+      kdialog --title "All Clear" --yesno \
+        "Turn the camera, microphones and internet back on?" || return 1
+    else
+      echo "Run: forgeos-panic off --yes" >&2
+      return 1
+    fi
+  fi
+  rm -f "$STATE/active"    # stops the guard
+  if [ -f "$STATE/mics" ] && command -v pactl >/dev/null 2>&1; then
+    while IFS= read -r s; do
+      [ -n "$s" ] && pactl set-source-mute "$s" 0 2>/dev/null
+    done < "$STATE/mics"
+  fi
+  rm -f "$STATE/mics"
+  "$PKEXEC" "$HELPER" restore >/dev/null 2>&1 || rc=1
+  if [ "$rc" -eq 0 ]; then
+    notify normal "All Clear: camera, microphones and internet are back on."
+    echo "All Clear: everything is back on."
+  else
+    notify critical "All Clear: something could not be turned back on. Restart the computer to reset it."
+    echo "All Clear: something could not be turned back on." >&2
+  fi
+  return "$rc"
+}
+
+case "${1:-}" in
+  on) cmd_on ;;
+  off) cmd_off "${2:-}" ;;
+  status)
+    if [ -e "$STATE/active" ]; then echo "Panic Button: ON"; else echo "Panic Button: off"; fi
+    ;;
+  guard) guard "${2:-}" ;;
+  *)
+    echo "usage: forgeos-panic on | off [--yes] | status" >&2
+    exit 2
+    ;;
+esac

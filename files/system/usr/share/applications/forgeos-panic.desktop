@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Panic Button
+GenericName=Cut camera, mic and internet now
+Comment=One key (Meta+Shift+Esc) cuts the camera, microphones and internet, then locks the screen
+Exec=/usr/bin/forgeos-panic on
+Icon=security-high
+Terminal=false
+Categories=System;Security;
+Keywords=panic;privacy;camera;webcam;microphone;mic;internet;offline;lock;hacked;
+X-KDE-Shortcuts=Meta+Shift+Esc
