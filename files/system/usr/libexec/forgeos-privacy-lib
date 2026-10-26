@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # these paths are used by the scripts that source this file
+# Privacy Report (Job 7): shared parts, sourced by forgeos-privacy and forgeos-privacy-block.
+# Finds which apps are using the camera, microphone or screen RIGHT NOW.
+
+PRIV_STATE="${FORGEOS_PRIVACY_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/forgeos-privacy}"
+PRIV_LOG="$PRIV_STATE/usage.log"
+PRIV_BLOCKS="${FORGEOS_PRIVACY_CONF:-${XDG_CONFIG_HOME:-$HOME/.config}/forgeos-privacy}/blocked"
+PRIV_RUN="${FORGEOS_PRIVACY_RUN:-${XDG_RUNTIME_DIR:-/tmp}/forgeos-privacy}"
+PRIV_PROC="${FORGEOS_PRIVACY_PROC:-/proc}"
+PRIV_APPS="${FORGEOS_PRIVACY_APPS:-$HOME/.local/share/flatpak/exports/share/applications:/var/lib/flatpak/exports/share/applications}"
+TAB=$'\t'
+
+now_epoch() { echo "${FORGEOS_PRIVACY_NOW:-$(date +%s)}"; }
+
+# Friendly name: the app's menu name if it is a Flatpak, else $2 (or the key).
+app_name() {
+  local d n
+  local IFS=:
+  for d in $PRIV_APPS; do
+    if [ -f "$d/$1.desktop" ]; then
+      n="$(sed -n 's/^Name=//p' "$d/$1.desktop" | head -n 1)"
+      [ -n "$n" ] && { echo "$n"; return; }
+    fi
+  done
+  echo "${2:-$1}"
+}
+
+# Apps using PipeWire: mic (recording from a real/virtual mic, not speaker sound,
+# not volume meters), camera (a real camera device), screen (KWin screen sharing).
+pw_users() {
+  command -v pw-dump >/dev/null 2>&1 || return 0
+  pw-dump 2>/dev/null | jq -r '
+    (map(select(.type == "PipeWire:Interface:Client")) | map({key: (.id | tostring), value: (.info.props // {})}) | from_entries) as $cl
+    | (map(select(.type == "PipeWire:Interface:Node")) | map({key: (.id | tostring), value: .}) | from_entries) as $nd
+    | .[] | select(.type == "PipeWire:Interface:Link") | .info
+    | ($nd[(.["output-node-id"] | tostring)].info.props // {}) as $src
+    | $nd[(.["input-node-id"] | tostring)] as $n | select($n != null)
+    | select($n.info.state == "running")
+    | ($n.info.props // {}) as $p
+    | ($cl[($p["client.id"] // "" | tostring)] // {}) as $c
+    | (if ($src["media.class"] // "" | startswith("Audio/Source")) and $p["media.class"] == "Stream/Input/Audio"
+            and ($p["stream.monitor"] // "" | tostring) != "true" then "mic"
+       elif $src["media.class"] == "Video/Source" and $src["device.api"] != null then "camera"
+       elif $src["media.class"] == "Stream/Output/Video" and ($src["media.name"] // "" | startswith("kwin-screencast")) then "screen"
+       else empty end) as $kind
+    | ($c["pipewire.access.portal.app_id"] // $p["pipewire.access.portal.app_id"] // $p["application.process.binary"]
+       // $c["application.process.binary"] // $p["application.name"] // $c["application.name"] // "unknown") as $key
+    | select($key | IN("plasmashell", "kwin_wayland", "xdg-desktop-portal-kde", "pipewire", "wireplumber") | not)
+    | [$kind, $key, ($p["application.name"] // $c["application.name"] // $key)] | @tsv' 2>/dev/null
+}
+
+# Flatpak app id from the process's systemd scope (app-flatpak-<id>-<n>.scope), else its name.
+key_for_pid() {
+  local k
+  k="$(sed -n 's/.*app-flatpak-\(.*\)-[0-9]*\.scope$/\1/p' "$PRIV_PROC/$1/cgroup" 2>/dev/null | head -n 1)"
+  k="${k//\\x2d/-}"
+  echo "${k:-$2}"
+}
+
+# Programs that opened the camera directly (not through PipeWire).
+proc_cam_users() {
+  local fd pid comm
+  find "$PRIV_PROC"/[0-9]*/fd -maxdepth 1 -lname '/dev/video*' 2>/dev/null | while IFS= read -r fd; do
+    pid="${fd#"$PRIV_PROC"/}"; pid="${pid%%/*}"
+    comm="$(cat "$PRIV_PROC/$pid/comm" 2>/dev/null)"
+    case "$comm" in pipewire|wireplumber|"") continue ;; esac
+    printf 'camera\t%s\t%s\n' "$(key_for_pid "$pid" "$comm")" "$comm"
+  done
+}
+
+# Everything in use now: kind<TAB>key<TAB>name, one line per app per kind.
+now_users() {
+  local kind key name
+  { pw_users; proc_cam_users; } | sort -t "$TAB" -k1,1 -k2,2 -u | while IFS="$TAB" read -r kind key name; do
+    [ -n "$key" ] || continue
+    printf '%s\t%s\t%s\n' "$kind" "$key" "$(app_name "$key" "$name")"
+  done
+}
+
+# Key of a recording stream, the same way pw_users picks it (pactl merges client props in).
+PACTL_KEY='(.properties["pipewire.access.portal.app_id"] // .properties["application.process.binary"] // .properties["application.name"] // "unknown")'
+
+# Mute every recording stream of an app the user blocked from the microphone.
+# Prints "<stream>\t<key>" for each stream it muted.
+enforce_mic() {
+  [ -s "$PRIV_BLOCKS" ] && grep -q "^mic$TAB" "$PRIV_BLOCKS" || return 0
+  command -v pactl >/dev/null 2>&1 || return 0
+  local idx key
+  while IFS="$TAB" read -r idx key; do
+    [ -n "$idx" ] || continue
+    grep -qxF "mic$TAB$key" "$PRIV_BLOCKS" || continue
+    pactl set-source-output-mute "$idx" 1 >/dev/null 2>&1 && printf '%s\t%s\n' "$idx" "$key"
+  done < <(pactl -f json list source-outputs 2>/dev/null | jq -r ".[] | select(.mute == false) | [.index, $PACTL_KEY] | @tsv" 2>/dev/null)
+}

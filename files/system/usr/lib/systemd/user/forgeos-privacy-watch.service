@@ -1,0 +1,12 @@
+[Unit]
+Description=ForgeOS Privacy Report - notes which apps use the camera, microphone and screen
+PartOf=graphical-session.target
+After=graphical-session.target pipewire.service
+
+[Service]
+ExecStart=/usr/bin/forgeos-privacy watch
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

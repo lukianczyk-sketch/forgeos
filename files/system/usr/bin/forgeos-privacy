@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# ForgeOS Privacy Report (Job 7): notes which apps use the camera, microphone and screen,
+# and explains it in plain English.
+#   forgeos-privacy watch [--once] - background note-taker (runs as a user service)
+#   forgeos-privacy now            - what is in use right now
+#   forgeos-privacy report [days]  - the plain-English report (default: last 7 days)
+set -u
+# shellcheck source=/dev/null
+. "${FORGEOS_PRIVACY_LIB:-/usr/libexec/forgeos-privacy-lib}"
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send -a "Privacy Report" -i preferences-system-privacy "Privacy Report" "$1" 2>/dev/null
+  return 0
+}
+log_line() { printf '%s\t%s\t%s\t%s\t%s\n' "$(now_epoch)" "$1" "$2" "$3" "$4" >> "$PRIV_LOG"; }
+
+# Mute blocked apps' microphones; say so once per recording.
+mic_guard() {
+  local idx key
+  while IFS="$TAB" read -r idx key; do
+    grep -qxF "$idx" "$PRIV_RUN/muted" 2>/dev/null && continue
+    echo "$idx" >> "$PRIV_RUN/muted"
+    notify "Blocked $(app_name "$key") from using your microphone."
+  done < <(enforce_mic)
+}
+
+tick() {
+  local cur="$PRIV_RUN/now" new="$PRIV_RUN/now.new" kind key name
+  touch "$cur"
+  now_users > "$new"
+  while IFS="$TAB" read -r kind key name; do
+    log_line start "$kind" "$key" "$name"
+    case "$kind" in
+      camera) notify "$name turned on your camera." ;;
+      screen) notify "$name can see your screen." ;;
+    esac
+  done < <(awk -F'\t' 'FILENAME == ARGV[1] { s[$1 FS $2] = 1; next } !(($1 FS $2) in s)' "$cur" "$new")
+  while IFS="$TAB" read -r kind key name; do
+    log_line stop "$kind" "$key" "$name"
+  done < <(awk -F'\t' 'FILENAME == ARGV[1] { s[$1 FS $2] = 1; next } !(($1 FS $2) in s)' "$new" "$cur")
+  mv -f "$new" "$cur"
+  mic_guard
+}
+
+# Close every open use (logout/shutdown, or left over from a crash) so the minutes add up.
+close_all() {
+  local kind key name
+  [ -f "$PRIV_RUN/now" ] || return 0
+  while IFS="$TAB" read -r kind key name; do log_line stop "$kind" "$key" "$name"; done < "$PRIV_RUN/now"
+  : > "$PRIV_RUN/now"
+}
+stop_all() {
+  close_all
+  [ -n "${SUBPID:-}" ] && kill "$SUBPID" 2>/dev/null
+  [ -n "${PACPID:-}" ] && kill "$PACPID" 2>/dev/null
+  exit 0
+}
+
+cmd_watch() {
+  mkdir -p "$PRIV_STATE" "$PRIV_RUN"
+  touch "$PRIV_LOG"
+  if [ "${1:-}" = "--once" ]; then tick; return 0; fi
+  # Keep 90 days of notes.
+  awk -F'\t' -v cut="$(( $(now_epoch) - 90 * 86400 ))" '$1 >= cut' "$PRIV_LOG" > "$PRIV_LOG.tmp" && mv -f "$PRIV_LOG.tmp" "$PRIV_LOG"
+  close_all
+  trap stop_all TERM INT HUP
+  # A blocked app's new recording is muted the moment it starts.
+  if command -v pactl >/dev/null 2>&1; then
+    exec 3< <(exec pactl subscribe 2>/dev/null)
+    PACPID=$!
+    while IFS= read -r ev <&3; do
+      case "$ev" in *"on source-output"*) mic_guard ;; esac
+    done &
+    SUBPID=$!
+  fi
+  while :; do tick; sleep 2 & wait $!; done
+}
+
+fmt_time() { date -d "@$1" '+%a %b %-d, %-I:%M %p'; }
+fmt_secs() {
+  if [ "$1" -lt 60 ]; then echo "less than a minute"
+  elif [ "$1" -lt 3600 ]; then echo "about $(( ($1 + 30) / 60 )) minutes"
+  else
+    local h=$(( $1 / 3600 )) m=$(( ($1 % 3600) / 60 ))
+    if [ "$h" -eq 1 ]; then echo "about 1 hour $m minutes"; else echo "about $h hours $m minutes"; fi
+  fi
+}
+
+# section <kind> <title> <text when nobody>
+section() {
+  local id name cnt secs last live line n=0
+  echo; echo "$2"
+  while IFS="$TAB" read -r id name cnt secs last live; do
+    [ -n "$id" ] || continue
+    n=$((n + 1))
+    if [ "$cnt" -eq 1 ]; then line="  $name - 1 time"; else line="  $name - $cnt times"; fi
+    line="$line, $(fmt_secs "$secs") in all. Last time: $(fmt_time "$last")."
+    [ "$live" = 1 ] && line="$line  USING IT RIGHT NOW."
+    echo "$line"
+  done < <(awk -F'\t' -v k="$1" -v since="$SINCE" -v now="$NOW" '
+    FILENAME != LOG { if ($1 == k) on[$2] = 1; next }
+    $3 != k { next }
+    $2 == "start" { id = $4; name[id] = $5; open[id] = $1; if ($1 >= since) { cnt[id]++; last[id] = $1 } ; next }
+    $2 == "stop" && ($4 in open) { s = open[$4]; if (s < since && $1 >= since) cnt[$4]++; if (s < since) s = since; if ($1 > s) secs[$4] += $1 - s; if ($1 >= since && !($4 in last)) last[$4] = $1; delete open[$4] }
+    END {
+      for (id in open) if (id in on) { s = open[id]; if (s < since) { s = since; cnt[id]++ } secs[id] += now - s; if (!(id in last)) last[id] = now }
+      for (id in last) { if (cnt[id] < 1) cnt[id] = 1; printf "%s\t%s\t%d\t%d\t%d\t%d\n", id, name[id], cnt[id], secs[id], last[id], (id in on) ? 1 : 0 }
+    }' LOG="$PRIV_LOG" "$LIVE" "$PRIV_LOG" 2>/dev/null | sort -t "$TAB" -k5,5nr)
+  [ "$n" -gt 0 ] || echo "  $3"
+}
+
+# What each sandboxed (Flatpak) app is ALLOWED to do, even when it is not doing it.
+perms_section() {
+  local id name p dev sock fs camok locok cam="" mic="" files="" loc=""
+  echo; echo "WHAT YOUR APPS ARE ALLOWED TO DO"
+  if ! command -v flatpak >/dev/null 2>&1; then echo "  (No sandboxed apps on this PC.)"; return; fi
+  # Apps you said "yes" to in a camera or location question.
+  camok="$(flatpak permissions devices camera 2>/dev/null | awk -F'\t' '$4 == "yes" { print $3 }')"
+  locok="$(flatpak permissions location location 2>/dev/null | awk -F'\t' '$3 != "" && $4 !~ /^NONE/ { print $3 }')"
+  while IFS="$TAB" read -r id name; do
+    [ -n "$id" ] || continue
+    name="$(app_name "$id" "$name")"
+    p="$(flatpak info --show-permissions "$id" 2>/dev/null)"
+    dev=";$(printf '%s\n' "$p" | sed -n 's/^devices=//p' | head -n 1)"
+    sock=";$(printf '%s\n' "$p" | sed -n 's/^sockets=//p' | head -n 1)"
+    fs=";$(printf '%s\n' "$p" | sed -n 's/^filesystems=//p' | head -n 1)"
+    if [[ "$dev" == *";all;"* ]] || grep -qxF "$id" <<< "$camok"; then cam="$cam, $name"; fi
+    [[ "$sock" == *";pulseaudio;"* ]] && mic="$mic, $name"
+    if [[ "$fs" =~ \;(home|host)(:r[ow])?\; ]]; then files="$files, $name"; fi
+    grep -qxF "$id" <<< "$locok" && loc="$loc, $name"
+  done < <(flatpak list --app --columns=application,name 2>/dev/null | sort -t "$TAB" -k1,1 -u)
+  cam="${cam#, }"; mic="${mic#, }"; files="${files#, }"; loc="${loc#, }"
+  echo "  Camera: ${cam:-no apps}"
+  echo "  Microphone (any app with sound can also record): ${mic:-no apps}"
+  echo "  All your files: ${files:-no apps}"
+  echo "  Your location: ${loc:-no apps}"
+}
+
+blocked_section() {
+  local kind key what n=0
+  echo; echo "WHAT YOU BLOCKED"
+  if [ -f "$PRIV_BLOCKS" ]; then
+    while IFS="$TAB" read -r kind key _; do
+      [ -n "$key" ] || continue
+      case "$kind" in camera) what="your camera" ;; mic) what="your microphone" ;; files) what="seeing all your files" ;; *) continue ;; esac
+      echo "  $(app_name "$key"): blocked from $what."
+      n=$((n + 1))
+    done < "$PRIV_BLOCKS"
+  fi
+  [ "$n" -gt 0 ] || echo "  Nothing blocked."
+}
+
+cmd_report() {
+  local days="${1:-7}"
+  case "$days" in ''|*[!0-9]*) echo "Days must be a number." >&2; return 2 ;; esac
+  NOW="$(now_epoch)"; SINCE=$(( NOW - days * 86400 ))
+  LIVE="$PRIV_RUN/now"; [ -f "$LIVE" ] || LIVE=/dev/null
+  echo "ForgeOS Privacy Report - the last $days days"
+  echo "Made $(fmt_time "$NOW")"
+  [ -s "$PRIV_LOG" ] || { echo; echo "No notes yet. ForgeOS writes down camera, microphone and screen use from now on."; }
+  section camera "WHO USED YOUR CAMERA" "No app used your camera."
+  section mic "WHO USED YOUR MICROPHONE" "No app used your microphone."
+  section screen "WHO SAW YOUR SCREEN (sharing or recording)" "No app saw your screen."
+  blocked_section
+  perms_section
+  echo
+  echo "To stop an app: open Privacy Report from the menu and pick \"Block an app\"."
+}
+
+case "${1:-}" in
+  watch) shift; cmd_watch "$@" ;;
+  now) now_users ;;
+  report) shift; cmd_report "$@" ;;
+  *) echo "Usage: forgeos-privacy watch|now|report [days]" >&2; exit 2 ;;
+esac
