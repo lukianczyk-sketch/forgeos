@@ -17,3 +17,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED. All 3 files byte-identical to the tested prototype after CRLF -> LF fix. Next: Step 3 (tests).
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+
+## Step 3 — Panic Button tests
+- Files changed: tests/test-panic.sh (new), .github/workflows/tests.yml
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-25): APPROVED. test-panic.sh identical to the tested prototype after CRLF -> LF fix + adding the missing final newline (the part B join). tests.yml step exactly as asked. On Robert's PC: `bash tests/test-panic.sh .` = A-M ALL PASS. Next: GitHub Actions green, then tag v0.7.0.
+- STATUS: STEP 3 DONE — next: Actions run green, then tag v0.7.0

@@ -61,3 +61,8 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends snapper btrfs-progs
           sudo bash tests/test-undo-real.sh .
+
+      - name: Run Panic Button tests (fake tools)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils libxml2-utils
+          bash tests/test-panic.sh .
