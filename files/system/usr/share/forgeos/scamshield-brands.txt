@@ -1,0 +1,39 @@
+# ForgeOS Scam Shield (Job 8): names scammers copy, and their real websites.
+# name real-website real-website ...   (a web address that uses the name but is
+# not one of these sites gets a warning; .gov and .mil sites are always trusted)
+paypal paypal.com paypal.me
+amazon amazon.com amazon.ca amazon.co.uk amzn.to amzn.com a.co
+apple apple.com icloud.com apple.co
+icloud icloud.com apple.com
+microsoft microsoft.com live.com outlook.com office.com microsoftonline.com
+outlook outlook.com microsoft.com live.com office.com
+netflix netflix.com
+google google.com gmail.com
+gmail gmail.com google.com
+facebook facebook.com fb.com meta.com
+instagram instagram.com
+whatsapp whatsapp.com
+chase chase.com
+wellsfargo wellsfargo.com wf.com
+bankofamerica bankofamerica.com bofa.com
+citibank citi.com citibank.com
+capitalone capitalone.com
+usps usps.com
+fedex fedex.com
+dhl dhl.com
+venmo venmo.com
+zelle zellepay.com
+coinbase coinbase.com
+walmart walmart.com
+costco costco.com
+ebay ebay.com
+geeksquad geeksquad.com bestbuy.com
+bestbuy bestbuy.com
+norton norton.com
+mcafee mcafee.com
+verizon verizon.com verizonwireless.com
+spectrum spectrum.com spectrum.net
+steamcommunity steamcommunity.com steampowered.com
+steampowered steampowered.com steamcommunity.com
+irs irs.gov
+medicare medicare.gov

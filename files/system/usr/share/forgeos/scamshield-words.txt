@@ -1,0 +1,17 @@
+# ForgeOS Scam Shield (Job 8): warning words. One rule per line:
+# id ~ points ~ pattern (grep -E, any upper/lower case) ~ plain-English reason
+# 6 or more points = "Looks like a scam", 3 to 5 = "Be careful".
+giftcard ~ 5 ~ (buy|purchase|pay (with|in)|send|get)( [a-z0-9$]+){0,4} gift ?cards?|gift ?cards? (numbers?|codes?|pins?)|(itunes|google play|steam|vanilla) (gift )?cards? ~ It asks for gift cards. Real companies and the government never take payment in gift cards.
+payment ~ 3 ~ bitcoin|crypto ?currency|wire (the )?(money|transfer|payment)|western union|moneygram|pay (with|by|through|via) (zelle|cash ?app|venmo|crypto) ~ It asks you to pay in a way that is very hard to get back (crypto, wire, Zelle, Cash App).
+remote ~ 5 ~ anydesk|teamviewer|ultraviewer|rustdesk|logmein|screenconnect|quick ?assist|remote (access|control|desktop|support) ~ It asks you to let someone control your computer. Never let a stranger into your computer.
+code ~ 5 ~ (send|give|read|tell|share|forward)( it)?( back)?( to)? (me|us)( the| that| your)? (code|verification code|security code|pin|numbers) ~ It asks you to share a code. Never share a code someone texted you. It unlocks your accounts.
+infected ~ 4 ~ (computer|pc|device|phone|system) (is|has been|was) (infected|hacked|compromised|locked)|virus (detected|found|alert)|(call|contact) (microsoft|apple|windows|norton|mcafee|geek squad) ~ It says your computer has a virus and wants you to call someone. That is a classic fake tech support trick.
+threat ~ 3 ~ \b(arrest(ed)?|warrants?|lawsuits?|legal action|police|deport(ed|ation)?|jail)\b|social security number ~ It threatens police, arrest or legal trouble, or asks for your Social Security number.
+prize ~ 3 ~ you (have |'ve )?won|\bwinner\b|lottery|sweepstakes|claim your (prize|reward|gift)|inheritance|unclaimed (funds|money) ~ It says you won a prize or money. If you did not enter, it is a trick.
+verify ~ 3 ~ (verify|confirm|update|validate|unlock) your (account|identity|information|details|payment|card|billing|password) ~ It asks you to "verify" your account or payment details. Real companies rarely ask for this in a message.
+secret ~ 3 ~ (don't|do not|dont) (tell|hang up)|keep (this|it) (a )?(secret|private|confidential|between us) ~ It tells you to keep it secret or stay on the line. Scammers want to stop you from asking someone you trust.
+urgent ~ 2 ~ urgent|immediately|right away|within (24|48) hours|final (notice|warning)|act now|account (has been |will be |is )?(suspended|locked|closed|disabled|limited)|expires? today ~ It tries to rush or scare you. Scammers push you to act before you think.
+refund ~ 2 ~ overpaid|overpayment|refund (of|for) \$|(send|pay|give) (back )?the (difference|extra) ~ It talks about a refund or extra money you must send back. This is a common money trick.
+delivery ~ 2 ~ (package|parcel|delivery|shipment).{0,40}(on hold|held|failed|could not be delivered|undeliverable|redeliver|incomplete address|update (your )?address) ~ It says a package is stuck and needs you to act. Fake delivery messages are very common.
+family ~ 2 ~ (grandma|grandpa|mom|dad),? it'?s me|this is my new number|i lost my phone|i'?m in (jail|trouble|the hospital) ~ It sounds like a family member in trouble. Call them on the number you already have to check.
+login ~ 2 ~ (click|tap) (here|the link|below) to (log ?in|sign ?in|verify|confirm|restore|unlock) ~ It wants you to log in through a link. Go to the company's website yourself instead.

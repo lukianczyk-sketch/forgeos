@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# shellcheck disable=SC2034  # SCORE, REASONS and LINKS are read by forgeos-scamshield
+# Scam Shield (Job 8): the rule check. Sourced by forgeos-scamshield.
+# Looks at the words and links in a message. Never opens or visits a link.
+
+SCAM_DIR="${FORGEOS_SCAM_DIR:-/var/lib/forgeos-scamshield}"
+SCAM_DATA="${FORGEOS_SCAM_DATA:-/usr/share/forgeos}"
+SHORTENERS=" bit.ly tinyurl.com t.co is.gd rb.gy cutt.ly ow.ly buff.ly shorturl.at tiny.cc s.id t.ly rebrand.ly goo.su qrco.de "
+RISKY_TLDS=" zip mov top xyz click country gq tk ml cf ga work rest icu cyou sbs buzz lol cfd bond qpon live shop "
+SCORE=0
+REASONS=""
+LINKS=0
+FIRED=" "
+
+# add_hit <id> <points> <reason>: count each kind of warning only once.
+add_hit() {
+  case "$FIRED" in *" $1 "*) return 0 ;; esac
+  FIRED="$FIRED$1 "
+  SCORE=$((SCORE + $2))
+  REASONS="$REASONS$3"$'\n'
+}
+
+# Main part of a web address: mail.paypal.com -> paypal.com, www.bbc.co.uk -> bbc.co.uk
+reg_domain() {
+  echo "$1" | awk -F. '{
+    if (NF >= 3 && length($NF) == 2 && $(NF-1) ~ /^(co|com|org|net|gov|ac|edu)$/) print $(NF-2) "." $(NF-1) "." $NF
+    else if (NF >= 2) print $(NF-1) "." $NF
+    else print $0 }'
+}
+
+# Is this name (or the site it belongs to) on a downloaded scam list?
+on_bad_list() {
+  local h="$1" f
+  for f in "$SCAM_DIR"/*.list; do
+    [ -f "$f" ] || return 1
+    break
+  done
+  while :; do
+    grep -Fxq -- "$h" "$SCAM_DIR"/*.list 2>/dev/null && return 0
+    case "$h" in *.*.*) h="${h#*.}" ;; *) return 1 ;; esac
+  done
+}
+
+# Words and web addresses, one per line: "url <address>", "bare <name>" or "mail <name>".
+find_links() {
+  tr "\"'<>=" '     ' < "$1" | tr -s '[:space:]' '\n' | sed -e 's/^[]<>"(),;:[]*//' -e 's/[]<>"(),;:.!?[]*$//' | awk '
+    tolower($0) ~ /^(https?:\/\/|www\.)/ { print "url " $0; next }
+    /^[^@\/]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/ { sub(/^.*@/, ""); print "mail " tolower($0); next }
+    tolower($0) ~ /\.(pdf|txt|docx?|xlsx?|pptx?|jpe?g|png|gif|heic|webp|mp3|mp4|wav|csv|json|html?|eml|exe|msi|js|py|sh)(\/|$)/ { next }
+    /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z][A-Za-z]+(\/.*)?$/ { print "bare " $0 }'
+}
+
+# check_host <kind> <full text> <host>: every warning about one web address.
+check_host() {
+  local kind="$1" full="$2" h="$3" reg norm tld brand real ok line
+  reg="$(reg_domain "$h")"
+  tld="${h##*.}"
+  if on_bad_list "$h"; then
+    add_hit badlist 10 "The web address $h is on a list of known scam and fake websites."
+  fi
+  if [ "$kind" = url ] && [[ "$full" =~ ^[A-Za-z]+://[^/?#]*@ ]]; then
+    add_hit attrick 5 "The link hides its real address after an @ sign. It really goes to $h."
+  fi
+  case "$h" in *xn--*) add_hit puny 4 "The web address $h uses look-alike letters from other alphabets to copy a real name." ;; esac
+  if [[ "$h" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+    add_hit ipaddr 4 "The link goes to a bare number ($h) instead of a company name."
+  fi
+  case "$SHORTENERS" in *" $h "*) add_hit short 2 "It uses a short link ($h) that hides where it really goes." ;; esac
+  case "$RISKY_TLDS" in *" $tld "*) add_hit tld 2 "The web address ends in .$tld, which scammers use a lot." ;; esac
+  if [ "$(echo "$h" | tr -cd . | wc -c)" -ge 4 ]; then
+    add_hit deep 2 "The web address $h is very long, which is often done to look like a real company."
+  fi
+  if [ "$kind" = url ] && [[ "$full" =~ ^[Hh][Tt][Tt][Pp]:// ]]; then
+    add_hit http 1 "The link is not secure (http instead of https)."
+  fi
+  case "$h" in *.gov|*.mil) return 0 ;; esac
+  norm="$(echo "$h" | tr '0135' 'oles')"
+  [ -f "$SCAM_DATA/scamshield-brands.txt" ] || return 0
+  while read -r brand line; do
+    case "$brand" in ''|'#'*) continue ;; esac
+    [[ "$norm" =~ (^|[.-])$brand([.-]|$) ]] || continue
+    ok=0
+    for real in $line; do [ "$reg" = "$real" ] && ok=1; done
+    [ "$ok" -eq 1 ] || add_hit brand 4 "The web address $h uses the name \"$brand\" but it is not the real $brand website."
+  done < "$SCAM_DATA/scamshield-brands.txt"
+}
+
+check_links() {
+  local kind word host n=0
+  while read -r kind word; do
+    n=$((n + 1))
+    [ "$n" -le 40 ] || break
+    host="${word#*://}"
+    host="${host%%[/?#]*}"
+    host="${host##*@}"
+    host="${host%%:*}"
+    host="$(echo "${host%.}" | tr '[:upper:]' '[:lower:]')"
+    [ -n "$host" ] || continue
+    [ "$kind" = mail ] || LINKS=$((LINKS + 1))
+    check_host "$kind" "$word" "$host"
+  done < <(find_links "$1")
+}
+
+# Warning words. Rules live in scamshield-words.txt: id ~ points ~ pattern ~ reason
+check_words() {
+  local id pts pat why
+  [ -f "$SCAM_DATA/scamshield-words.txt" ] || return 0
+  while IFS='~' read -r id pts pat why; do
+    id="$(echo "$id" | tr -d ' ')"
+    case "$id" in ''|'#'*) continue ;; esac
+    pts="$(echo "$pts" | tr -d ' ')"
+    pat="${pat# }"; pat="${pat% }"; why="${why# }"
+    if grep -qiE -- "$pat" "$1"; then add_hit "$id" "$pts" "$why"; fi
+  done < "$SCAM_DATA/scamshield-words.txt"
+}
+
+# rules_check <file>: fills SCORE, REASONS and LINKS.
+rules_check() {
+  local f
+  f="$(mktemp)" || return 3
+  head -c 20000 -- "$1" | sed -e "s/’/'/g" -e "s/‘/'/g" > "$f"
+  check_words "$f"
+  check_links "$f"
+  rm -f -- "$f"
+}
+
+# 2 = looks like a scam, 1 = be careful, 0 = no scam signs found
+level_of() {
+  if [ "$1" -ge 6 ]; then echo 2; elif [ "$1" -ge 3 ]; then echo 1; else echo 0; fi
+}
