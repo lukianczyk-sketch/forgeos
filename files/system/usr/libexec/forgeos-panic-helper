@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# ForgeOS Panic Button - root helper (Job 6).
+# Runs as root through pkexec, with no password for the person at the screen
+# (polkit action org.forgeos.panic). Accepts ONLY: cut | restore | status.
+# pkexec wipes the environment, so the FORGEOS_PANIC_* test settings below
+# can never be set by a normal user - they only work in the tests.
+set -u
+
+SYS="${FORGEOS_PANIC_SYS:-/sys}"
+RUN="${FORGEOS_PANIC_RUN:-/run/forgeos-panic}"
+
+if [ "$(id -u)" -ne 0 ] && [ -z "${FORGEOS_PANIC_TEST:-}" ]; then
+  echo "forgeos-panic-helper: must run as root (use pkexec)" >&2
+  exit 2
+fi
+
+# One line per camera: its USB device folder (has idVendor + authorized),
+# or NOUSB for a built-in camera that is not on USB.
+camera_usb_devices() {
+  local v dev found
+  for v in "$SYS"/class/video4linux/video*; do
+    [ -e "$v/device" ] || continue
+    dev="$(readlink -f "$v/device")"
+    found=""
+    while [ -n "$dev" ] && [ "$dev" != "$SYS" ]; do
+      if [ -f "$dev/idVendor" ] && [ -f "$dev/authorized" ]; then
+        found="$dev"
+        break
+      fi
+      dev="${dev%/*}"
+    done
+    echo "${found:-NOUSB}"
+  done | sort -u
+}
+
+cut_all() {
+  local rc=0 d n=0 nonusb=0
+  mkdir -p "$RUN"
+  chmod 0755 "$RUN"
+
+  # 1) Camera: switch the USB camera off at the USB level.
+  #    Apps cannot switch it back on - only root (All Clear) can.
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    if [ "$d" = NOUSB ]; then
+      nonusb=$((nonusb + 1))
+      continue
+    fi
+    if echo 0 > "$d/authorized" 2>/dev/null; then
+      grep -qxF "$d" "$RUN/cameras" 2>/dev/null || echo "$d" >> "$RUN/cameras"
+      n=$((n + 1))
+    else
+      echo "camera: could not switch off $d" >&2
+      rc=1
+    fi
+  done < <(camera_usb_devices)
+  echo "camera_off $n"
+  echo "camera_nonusb $nonusb"
+
+  # 2) Internet: Wi-Fi + mobile radios off, then every network connection off
+  #    (cable and VPN too). Bluetooth stays on so keyboards and mice still work.
+  #    The "before" state is saved only on the FIRST press.
+  if command -v rfkill >/dev/null 2>&1; then
+    if [ ! -e "$RUN/radios" ]; then
+      rfkill --noheadings --output ID,TYPE,SOFT 2>/dev/null \
+        | awk '($2 == "wlan" || $2 == "wwan") && $3 == "unblocked" { print $1 }' > "$RUN/radios"
+    fi
+    rfkill block wlan 2>/dev/null || rc=1
+    rfkill block wwan 2>/dev/null || true
+  fi
+  if command -v nmcli >/dev/null 2>&1; then
+    if [ ! -e "$RUN/networking" ]; then
+      nmcli networking 2>/dev/null > "$RUN/networking"
+    fi
+    if nmcli networking off; then
+      echo "internet off"
+    else
+      echo "internet failed"
+      rc=1
+    fi
+  else
+    echo "internet failed"
+    rc=1
+  fi
+  touch "$RUN/active"
+  return "$rc"
+}
+
+restore_all() {
+  local rc=0 d id
+  # Cameras come back (after a restart they are back on by themselves).
+  if [ -f "$RUN/cameras" ]; then
+    while IFS= read -r d; do
+      case "$d" in
+        "$SYS"/devices/*) ;;
+        *) continue ;;
+      esac
+      if [ -f "$d/authorized" ]; then
+        echo 1 > "$d/authorized" 2>/dev/null || rc=1
+      fi
+    done < "$RUN/cameras"
+  fi
+  # Radios: unblock only the ones that were on before. No saved list
+  # (e.g. after a restart) -> turn Wi-Fi back on.
+  if command -v rfkill >/dev/null 2>&1; then
+    if [ -f "$RUN/radios" ]; then
+      while IFS= read -r id; do
+        case "$id" in
+          ''|*[!0-9]*) continue ;;
+        esac
+        rfkill unblock "$id" 2>/dev/null || rc=1
+      done < "$RUN/radios"
+    else
+      rfkill unblock wlan 2>/dev/null || rc=1
+    fi
+  fi
+  # Network: back on unless it was already off before the panic.
+  if command -v nmcli >/dev/null 2>&1; then
+    if [ "$(cat "$RUN/networking" 2>/dev/null)" != "disabled" ]; then
+      nmcli networking on || rc=1
+    fi
+  else
+    rc=1
+  fi
+  rm -f "$RUN/cameras" "$RUN/radios" "$RUN/networking" "$RUN/active"
+  return "$rc"
+}
+
+case "${1:-}" in
+  cut) cut_all ;;
+  restore) restore_all ;;
+  status)
+    if [ -e "$RUN/active" ]; then echo "panic on"; else echo "panic off"; fi
+    ;;
+  *)
+    echo "usage: forgeos-panic-helper cut|restore|status" >&2
+    exit 2
+    ;;
+esac

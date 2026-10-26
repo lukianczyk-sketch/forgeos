@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Panic Button (Job 6): the person sitting at the computer can cut and
+     restore camera + internet instantly, with no password. Remote/inactive: admin only. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.panic">
+    <description>Panic Button: cut or restore camera and internet</description>
+    <message>Panic Button needs permission to cut or restore the camera and internet</message>
+    <icon_name>security-high</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-panic-helper</annotate>
+  </action>
+</policyconfig>

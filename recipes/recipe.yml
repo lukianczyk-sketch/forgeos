@@ -29,6 +29,8 @@ modules:
         - rkhunter
         - chkrootkit
         - jq                 # Undo Button (Job 5): reads system versions from rpm-ostree
+        - pulseaudio-utils   # Panic Button (Job 6): pactl mutes every microphone
+        - libnotify          # Panic Button (Job 6): notify-send shows what was cut
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.
