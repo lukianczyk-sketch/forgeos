@@ -1,0 +1,27 @@
+# ForgeOS Will It Run? (Job 10): well-known Windows office, photo, video and music programs and what to use on ForgeOS.
+# Format: words ~ way ~ Flathub app ID (or -) ~ plain-English answer
+# words = lowercase pattern found anywhere in the program's name (letters and digits, spaces between words).
+# way: builtin = already on ForgeOS, linux = has its own Linux version, swap = use a free program instead,
+#      steam / heroic / lutris = use that game launcher, web = use the website, no = will not run.
+# Files are read in name order; the first match wins. Every app ID was checked on Flathub (2026-10-26).
+outlook ~ builtin ~ org.mozilla.thunderbird ~ Outlook does not run on Linux. Thunderbird (already on ForgeOS) reads Outlook, Gmail and other email, or use outlook.com in Brave.
+onenote|evernote ~ swap ~ net.cozic.joplin_desktop ~ Use Joplin (free) for notes. It can import Evernote notes.
+winword|microsoft word|ms word|excel|powerpoint|microsoft office|officesetup|office setup|microsoft 365|office 365 ~ builtin ~ org.onlyoffice.desktopeditors ~ Microsoft Office does not run well on Linux. ONLYOFFICE (already on ForgeOS) opens and saves Word, Excel and PowerPoint files. You can also use Office free on the web at office.com in Brave.
+visio ~ swap ~ com.jgraph.drawio.desktop ~ Use draw.io (free). It opens Visio files and makes the same kind of charts.
+libreoffice ~ linux ~ org.libreoffice.LibreOffice ~ LibreOffice has its own Linux version. Install it from Flathub.
+photoshop|photoshop elements ~ swap ~ org.kde.krita ~ Photoshop does not run on Linux. GIMP (already on ForgeOS) and Krita (free) do the same jobs.
+lightroom ~ swap ~ org.darktable.Darktable ~ Lightroom does not run on Linux. darktable (free) edits and sorts your photos the same way.
+illustrator|coreldraw|corel draw|affinity ~ swap ~ org.inkscape.Inkscape ~ This does not run on Linux. Inkscape (free) makes logos and drawings and opens Illustrator files.
+premiere|vegas pro|filmora|camtasia ~ builtin ~ org.kde.kdenlive ~ This video editor does not run on Linux. Kdenlive (already on ForgeOS) is a full video editor.
+paint net|paintdotnet|mspaint|ms paint ~ builtin ~ com.github.PintaProject.Pinta ~ Use Pinta (already on ForgeOS). It works like Paint.NET.
+gimp ~ builtin ~ org.gimp.GIMP ~ GIMP is already on ForgeOS. Open it from the menu.
+inkscape ~ linux ~ org.inkscape.Inkscape ~ Inkscape has its own Linux version. Install it from Flathub.
+krita ~ linux ~ org.kde.krita ~ Krita has its own Linux version. Install it from Flathub.
+blender ~ linux ~ org.blender.Blender ~ Blender has its own Linux version. Install it from Flathub.
+godot ~ linux ~ org.godotengine.Godot ~ Godot has its own Linux version. Install it from Flathub.
+audacity ~ linux ~ org.audacityteam.Audacity ~ Audacity has its own Linux version. Install it from Flathub.
+fl studio|flstudio|ableton|cubase|pro tools ~ swap ~ io.lmms.LMMS ~ This music program does not run well on Linux. LMMS (free) makes music the same way.
+obs studio|obsstudio ~ builtin ~ com.obsproject.Studio ~ OBS Studio is already on ForgeOS. Open it from the menu.
+handbrake ~ linux ~ fr.handbrake.ghb ~ HandBrake has its own Linux version. Install it from Flathub.
+vlc ~ linux ~ org.videolan.VLC ~ VLC has its own Linux version. Install it from Flathub. Haruna (already on ForgeOS) plays videos too.
+itunes ~ builtin ~ org.kde.elisa ~ iTunes does not run well on Linux. Elisa (already on ForgeOS) plays your music. iPhone backups still need a Windows PC or a Mac.

@@ -1,0 +1,70 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): shared code. Looks INSIDE a program file without ever running it.
+# Sourced by /usr/bin/forgeos-willitrun.
+
+# norm <text>: lowercase letters and digits only, everything else becomes one space.
+norm() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | LC_ALL=C sed -E 's/[^a-z0-9]+/ /g; s/^ +//; s/ +$//'; }
+
+# le <file> <offset> <count>: read a little-endian number from the file (empty + fail if too short).
+le() {
+  local v=0 i=0 b
+  for b in $(od -An -tu1 -v -j "$2" -N "$3" -- "$1" 2>/dev/null); do
+    v=$((v + (b << (8 * i))))
+    i=$((i + 1))
+  done
+  [ "$i" -eq "$3" ] && echo "$v"
+}
+
+# magic <file>: the first 4 bytes as hex, like 4d5a9000.
+magic() { od -An -tx1 -N 4 -- "$1" 2>/dev/null | tr -d '[:space:]'; }
+
+# file_kind <file>: what sort of file this is, from its ending AND its first bytes.
+file_kind() {
+  local f="$1" base ext m
+  base="${f##*/}"
+  ext="$(norm "${base##*.}")"
+  [ "${base##*.}" = "$base" ] && ext=""
+  m="$(magic "$f")"
+  case "$ext" in
+    apk) [ "$m" = 504b0304 ] && echo android || echo fake; return ;;
+    appimage) [ "${m:0:8}" = 7f454c46 ] && echo appimage || echo fake; return ;;
+    exe|dll|scr|com) case "$m" in 4d5a*) if pe_info "$f" >/dev/null; then echo windows; else echo dos; fi ;; *) echo fake ;; esac; return ;;
+    msi) [ "$m" = d0cf11e0 ] && echo msi || echo fake; return ;;
+    bat|cmd) echo winscript; return ;;
+    lnk) echo shortcut; return ;;
+    ps1) echo powershell; return ;;
+    deb|rpm) echo linuxpkg; return ;;
+    flatpak|flatpakref) echo flatpak; return ;;
+    dmg|pkg|app) echo mac; return ;;
+    sh) echo linuxscript; return ;;
+  esac
+  case "$m" in
+    7f454c46) if [ "$(od -An -tx1 -j 8 -N 2 -- "$f" | tr -d '[:space:]')" = 4149 ]; then echo appimage; else echo linux; fi ;;
+    4d5a*) if pe_info "$f" >/dev/null; then echo windows; else echo dos; fi ;;
+    *) echo unknown ;;
+  esac
+}
+
+# pe_info <file>: for a Windows program prints "<arch> <type> <dotnet 0/1>", e.g. "x64 gui 0".
+# arch: x86 / x64 / arm64 / other. type: gui / console / driver / dll / other.
+pe_info() {
+  local f="$1" pe opt mach ch magic sub dd clr arch type
+  pe="$(le "$f" 60 4)" || return 1
+  [ "$(le "$f" "$pe" 4)" = 17744 ] || return 1   # "PE" + two zero bytes
+  mach="$(le "$f" $((pe + 4)) 2)"; ch="$(le "$f" $((pe + 22)) 2)"
+  opt=$((pe + 24)); magic="$(le "$f" "$opt" 2)"; sub="$(le "$f" $((opt + 68)) 2)"
+  case "$mach" in 332) arch=x86 ;; 34404) arch=x64 ;; 43620) arch=arm64 ;; *) arch=other ;; esac
+  case "$sub" in 1) type=driver ;; 2) type=gui ;; 3) type=console ;; *) type=other ;; esac
+  [ $((ch & 8192)) -ne 0 ] && [ "$type" != driver ] && type=dll
+  case "$magic" in 267) dd=$((opt + 96)) ;; 523) dd=$((opt + 112)) ;; *) dd="" ;; esac
+  clr=0
+  [ -n "$dd" ] && clr="$(le "$f" $((dd + 112)) 4)"
+  echo "$arch $type $([ "${clr:-0}" -gt 0 ] && echo 1 || echo 0)"
+}
+
+# installer_kind <file>: Inno Setup / NSIS / InstallShield, if the program is a known installer.
+installer_kind() {
+  case "$(head -c 8388608 -- "$1" | LC_ALL=C grep -a -o -m 1 -E 'Inno Setup|Nullsoft|InstallShield' | head -n 1)" in
+    "Inno Setup") echo "Inno Setup" ;; Nullsoft) echo NSIS ;; InstallShield) echo InstallShield ;;
+  esac
+}

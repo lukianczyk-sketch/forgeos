@@ -1,0 +1,15 @@
+# ForgeOS Will It Run? (Job 10): well-known Windows games, game stores and drivers and what to use on ForgeOS.
+# Format: words ~ way ~ Flathub app ID (or -) ~ plain-English answer
+# words = lowercase pattern found anywhere in the program's name (letters and digits, spaces between words).
+# way: builtin = already on ForgeOS, linux = has its own Linux version, swap = use a free program instead,
+#      steam / heroic / lutris = use that game launcher, web = use the website, no = will not run.
+# Files are read in name order; the first match wins. Every app ID was checked on Flathub (2026-10-26).
+geforce|nvidia app|amd software|adrenalin|radeon software|intel driver|intel graphics ~ no ~ - ~ This is a Windows graphics driver tool. ForgeOS does not need it: its graphics drivers are built in and update by themselves.
+valorant|league of legends|riot client ~ no ~ - ~ Riot games use the Vanguard anti-cheat, which digs into the heart of Windows. They will not run on Linux, and not in a virtual machine either.
+steamsetup|^steam ~ steam ~ - ~ Steam is already built into ForgeOS. Open Steam from the menu: Windows games run there with Proton by themselves.
+epic games|epicinstaller|epicgameslauncher|gog galaxy|goggalaxy|amazon games ~ heroic ~ com.heroicgameslauncher.hgl ~ Use Heroic Games Launcher (already on ForgeOS). It signs in to Epic, GOG and Amazon and runs their games.
+battle net|battlenet|blizzard|eaapp|ea app|ubisoft|uplay|rockstar games launcher ~ lutris ~ net.lutris.Lutris ~ Use Lutris (free). It sets up this game store for you with the right settings.
+minecraft ~ linux ~ org.prismlauncher.PrismLauncher ~ Minecraft Java Edition runs on Linux with Prism Launcher (free, you still sign in with your Microsoft account). The Microsoft Store (Bedrock) version does not run.
+roblox ~ swap ~ org.vinegarhq.Sober ~ The Windows Roblox app is blocked on Linux. Sober (free) runs Roblox on ForgeOS.
+skype ~ no ~ - ~ Microsoft shut Skype down in May 2025. Use Zoom, Teams or Signal instead.
+virtualbox|vmware ~ swap ~ org.gnome.Boxes ~ Use GNOME Boxes (free) to run other systems in a window. A Windows copy needs its own Windows license.

@@ -1,0 +1,35 @@
+# ForgeOS Will It Run? (Job 10): well-known Windows internet, chat and tool programs and what to use on ForgeOS.
+# Format: words ~ way ~ Flathub app ID (or -) ~ plain-English answer
+# words = lowercase pattern found anywhere in the program's name (letters and digits, spaces between words).
+# way: builtin = already on ForgeOS, linux = has its own Linux version, swap = use a free program instead,
+#      steam / heroic / lutris = use that game launcher, web = use the website, no = will not run.
+# Files are read in name order; the first match wins. Every app ID was checked on Flathub (2026-10-26).
+spotify ~ linux ~ com.spotify.Client ~ Spotify has its own Linux version. Install it from Flathub.
+discord ~ linux ~ com.discordapp.Discord ~ Discord has its own Linux version. Install it from Flathub.
+zoom ~ linux ~ us.zoom.Zoom ~ Zoom has its own Linux version. Install it from Flathub.
+teams ~ swap ~ com.github.IsmaelMartinez.teams_for_linux ~ Microsoft has no Teams app for Linux. Use teams.microsoft.com in Brave, or Teams for Linux (free, made by volunteers).
+slack ~ linux ~ com.slack.Slack ~ Slack has its own Linux version. Install it from Flathub.
+telegram ~ linux ~ org.telegram.desktop ~ Telegram has its own Linux version. Install it from Flathub.
+signal ~ linux ~ org.signal.Signal ~ Signal has its own Linux version. Install it from Flathub.
+whatsapp ~ web ~ - ~ WhatsApp has no Linux app. Use web.whatsapp.com in Brave and link it to your phone.
+chromesetup|google chrome|chrome ~ linux ~ com.google.Chrome ~ Google Chrome has its own Linux version. Install it from Flathub. Brave (already on ForgeOS) is built on the same engine.
+msedge|microsoft edge|edgesetup ~ linux ~ com.microsoft.Edge ~ Microsoft Edge has its own Linux version. Install it from Flathub.
+firefox ~ linux ~ org.mozilla.firefox ~ Firefox has its own Linux version. Install it from Flathub.
+brave ~ builtin ~ com.brave.Browser ~ Brave is already on ForgeOS. Open it from the menu.
+7z|7 zip|winrar|winzip|peazip ~ builtin ~ - ~ Not needed: ForgeOS opens ZIP, RAR and 7z files by itself. Right-click the file and pick Extract.
+notepad ~ swap ~ org.kde.kate ~ Use Kate (free). It is a text editor like Notepad++.
+vscode|visual studio code|vscodeusersetup ~ linux ~ com.visualstudio.code ~ Visual Studio Code has its own Linux version. Install it from Flathub.
+visual studio ~ swap ~ com.visualstudio.code ~ Visual Studio does not run on Linux. Visual Studio Code (free) does most of the same work.
+qbittorrent|utorrent|bittorrent ~ swap ~ org.qbittorrent.qBittorrent ~ Use qBittorrent (free, no ads). It has its own Linux version.
+autocad|sketchup|solidworks|fusion 360 ~ swap ~ org.freecad.FreeCAD ~ This design program does not run well on Linux. FreeCAD (free) makes 3D and 2D drawings.
+quickbooks|quicken ~ swap ~ org.gnucash.GnuCash ~ QuickBooks Online works in Brave. For a free money program on the PC, use GnuCash.
+dropbox ~ linux ~ com.dropbox.Client ~ Dropbox has its own Linux version. Install it from Flathub.
+onedrive ~ web ~ - ~ OneDrive has no Linux app. Use onedrive.live.com in Brave.
+icloud ~ web ~ - ~ iCloud has no Linux app. Use icloud.com in Brave.
+kindle ~ swap ~ com.calibre_ebook.calibre ~ Read Kindle books at read.amazon.com in Brave. Calibre (free) keeps your other e-books in order.
+acrobat|adobe reader|acrord|foxit ~ builtin ~ org.kde.okular ~ Use Okular (already on ForgeOS). It opens PDFs and can fill in and sign forms.
+teamviewer|anydesk ~ builtin ~ com.rustdesk.RustDesk ~ RustDesk (already on ForgeOS) does free remote control. Only let people you know connect.
+keepass|lastpass|1password ~ builtin ~ org.keepassxc.KeePassXC ~ KeePassXC (already on ForgeOS) keeps your passwords safe on this PC.
+bitwarden ~ linux ~ com.bitwarden.desktop ~ Bitwarden has its own Linux version. Install it from Flathub.
+malwarebytes|norton|mcafee|avast|avg|kaspersky|bitdefender|defender ~ builtin ~ - ~ Windows antivirus does not run on Linux, and you do not need it: Clean Sweep (built into ForgeOS) checks for viruses.
+ccleaner ~ builtin ~ org.kde.filelight ~ Not needed: ForgeOS cleans up by itself. Filelight (already on ForgeOS) shows what fills your drive.

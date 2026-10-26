@@ -1,0 +1,80 @@
+# shellcheck shell=bash
+# ForgeOS Will It Run? (Job 10): anti-cheat check and the lists of known programs and games.
+# Sourced by /usr/bin/forgeos-willitrun after forgeos-willitrun-lib (needs norm from there).
+WIR_LISTS="${FORGEOS_WIR_LISTS:-/usr/share/forgeos/willitrun}"   # known programs (*.txt)
+WIR_DIR="${FORGEOS_WIR_DIR:-/var/lib/forgeos-willitrun}"         # anticheat.list (daily download)
+WIR_BASE="${FORGEOS_WIR_BASE:-/usr/share/forgeos/willitrun-base}" # anticheat.list from the day ForgeOS was built
+
+# Anti-cheat programs: file name (any case) | name | kernel (1 = digs into the heart of Windows, never runs on Linux)
+ac_table() {
+  cat <<'EOF'
+vgk.sys|Vanguard|1
+vgc.exe|Vanguard|1
+faceit*|FACEIT|1
+eaanticheat*|EA anticheat|1
+gameguard|nProtect GameGuard|1
+gamemon*.des|nProtect GameGuard|1
+xhunter1.sys|XIGNCODE3|1
+ace-*.sys|Anti-Cheat Expert|1
+anticheatexpert|Anti-Cheat Expert|1
+easyanticheat*|Easy Anti-Cheat|0
+beservice*.exe|BattlEye|0
+battleye|BattlEye|0
+EOF
+}
+
+# dump_dir <dir>: 1 if this folder collects many unrelated files (then the folder is not searched).
+dump_dir() {
+  local d="${1%/}"
+  case "$d" in "" | / | /tmp | /var/tmp | "$HOME" | "$HOME/Downloads" | "$HOME/Desktop" | "$HOME/Documents") return 0 ;; esac
+  return 1
+}
+
+# anticheat_scan <file>: "name|kernel" for each anti-cheat found next to the program or inside it.
+anticheat_scan() {
+  local f="$1" dir pat name k s
+  dir="$(cd "$(dirname -- "$f")" && pwd)"
+  {
+    if ! dump_dir "$dir"; then
+      while IFS='|' read -r pat name k; do
+        [ -n "$(find "$dir" -maxdepth 3 -iname "$pat" -print -quit 2>/dev/null)" ] && echo "$name|$k"
+      done < <(ac_table)
+    fi
+    for s in $(head -c 67108864 -- "$f" | LC_ALL=C grep -a -o -E 'EasyAntiCheat|BattlEye|vgk[.]sys|xhunter1|GameGuard' | sort -u); do
+      case "$s" in
+        EasyAntiCheat) echo "Easy Anti-Cheat|0" ;; BattlEye) echo "BattlEye|0" ;; vgk.sys) echo "Vanguard|1" ;;
+        xhunter1) echo "XIGNCODE3|1" ;; GameGuard) echo "nProtect GameGuard|1" ;;
+      esac
+    done
+  } | sort -u
+}
+
+# game_folder <file>: 0 if the program sits in a game folder (Unity or Unreal game files next to it).
+game_folder() {
+  local dir
+  dir="$(cd "$(dirname -- "$1")" && pwd)"
+  dump_dir "$dir" && return 1
+  [ -e "$dir/UnityPlayer.dll" ] || [ -n "$(find "$dir" -maxdepth 1 -name '*_Data' -type d -print -quit)" ] \
+    || [ -d "$dir/Engine/Binaries" ] || [ -d "$dir/../../../Engine/Binaries" ]
+}
+
+# app_lookup <name>: "way|app-id|answer" from the known-programs lists (first match wins).
+app_lookup() {
+  local s
+  s="$(norm "$1")"
+  [ -n "$s" ] || return 1
+  awk -F ' ~ ' -v s="$s" '/^#/ || NF < 4 { next }
+    s ~ $1 { print $2 "|" $3 "|" $4; f = 1; exit } END { exit !f }' "$WIR_LISTS"/*.txt 2>/dev/null
+}
+
+# awacy_lookup <game name>: "name|status|anti-cheats" from the Are We Anti-Cheat Yet? list.
+awacy_lookup() {
+  local q l="$WIR_DIR/anticheat.list"
+  q="$(norm "$1" | tr -d ' ')"
+  [ -s "$l" ] || l="$WIR_BASE/anticheat.list"
+  [ "${#q}" -ge 3 ] && [ -s "$l" ] || return 1
+  awk -F '|' -v q="$q" 'function n(s) { s = tolower(s); gsub(/[^a-z0-9]/, "", s); return s }
+    n($1) == q { print; f = 1; exit }
+    { s = $1; sub(/[:(].*/, "", s); if (b == "" && n(s) == q) b = $0 }
+    END { if (!f && b != "") print b; exit !(f || b != "") }' "$l"
+}
