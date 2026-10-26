@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Service
+Name=ForgeOS Scam Shield
+MimeType=message/rfc822;text/plain;text/html;
+Actions=forgeosScamCheck
+X-KDE-Priority=TopLevel
+X-KDE-Protocols=file
+X-KDE-MaxNumberOfUrls=1
+
+[Desktop Action forgeosScamCheck]
+Name=Check for scams
+Icon=security-high
+Exec=/usr/bin/forgeos-scamshield-gui --file %f

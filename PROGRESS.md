@@ -17,3 +17,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED after one fix. forgeos-scamshield-update, the service and the timer byte-identical to the tested prototype after CRLF -> LF fix. forgeos-setup.sh (chmod + timer) and recipe.yml (wl-clipboard) exactly as asked. forgeos-scamshield: Cline doubled the backslashes in the AI prompt text (`\\n`, `\\\"`), which would have sent broken text to the AI — replaced with the prototype. Smoke test on Robert's PC: a gift-card + fake USPS message = "Looks like a scam" (exit 2). Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+
+## Step 3 — Scam Shield window + menu entry + Dolphin right-click
+- Files changed: files/system/usr/bin/forgeos-scamshield-gui (new), files/system/usr/share/applications/forgeos-scamshield.desktop (new), files/system/usr/share/kio/servicemenus/forgeos-scamshield.desktop (new), files/scripts/forgeos-setup.sh
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-25): APPROVED. forgeos-scamshield-gui, the menu entry and the Dolphin right-click entry byte-identical to the tested prototype after CRLF -> LF fix. forgeos-setup.sh chmod line exactly as asked. Next: Step 4 (tests).
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)

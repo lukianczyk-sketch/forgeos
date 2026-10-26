@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Scam Shield
+GenericName=Is this a scam?
+Comment=Check a message, email or link for scams with the private AI on this PC
+Exec=/usr/bin/forgeos-scamshield-gui
+Icon=security-high
+Terminal=false
+Categories=System;Security;
+Keywords=scam;fraud;phishing;fake;email;text;link;spam;safe;check;

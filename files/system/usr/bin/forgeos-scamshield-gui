@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# ForgeOS Scam Shield window (Job 8). kdialog front end for forgeos-scamshield.
+# forgeos-scamshield-gui            -> main window
+# forgeos-scamshield-gui --file F   -> check one file right away (Dolphin right-click)
+set -uo pipefail
+
+TITLE="ForgeOS Scam Shield"
+ENGINE="${FORGEOS_SCAM_ENGINE:-/usr/bin/forgeos-scamshield}"
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Scam Shield window. Use forgeos-scamshield check in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# run_check <engine args...>: busy bar while checking, then the answer.
+run_check() {
+  local ref="" out rc=0
+  ref="$(kdialog --title "$TITLE" --progressbar "Checking... The private AI can take up to a minute." 0 2>/dev/null)" || ref=""
+  out="$("$ENGINE" "$@" 2>&1)" || rc=$?
+  if [ -n "$ref" ]; then
+    dbus-send --session --type=method_call --dest="${ref% *}" "${ref#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  case "$rc" in
+    2) kdialog --title "$TITLE" --error "$out" || true ;;
+    1) kdialog --title "$TITLE" --sorry "$out" || true ;;
+    0) kdialog --title "$TITLE" --msgbox "$out" || true ;;
+    *) kdialog --title "$TITLE" --error "Scam Shield could not check this.${NL}${NL}$out" || true ;;
+  esac
+}
+
+check_paste() {
+  local text f
+  text="$(kdialog --title "$TITLE" --textinputbox "Paste the message, email or link here (Ctrl+V), then press OK." "" 640 420)" || return
+  if [ -z "${text//[[:space:]]/}" ]; then info "Nothing was pasted."; return; fi
+  f="$(mktemp)" || { info "Could not create a temporary file."; return; }
+  printf '%s\n' "$text" > "$f"
+  run_check check "$f"
+  rm -f -- "$f"
+}
+
+check_file() {
+  local f
+  f="$(kdialog --title "$TITLE" --getopenfilename "$HOME" "*.eml *.txt *.html *.htm|Emails and text files")" || return
+  [ -n "$f" ] && run_check check "$f"
+}
+
+about() {
+  info "Scam Shield checks a message, email or link for the tricks scammers use: fake company websites, known scam websites, gift card and crypto requests, fake virus warnings, threats and rushing.${NL}${NL}It never opens the links, and nothing you check leaves this computer. The private AI on this PC (from ForgeOS AI Setup) gives a second opinion. It can make a warning stronger, but never weaker.${NL}${NL}The list of known scam websites is downloaded free every day (phishing-filter and urlhaus-filter by malware-filter).${NL}${NL}No check is perfect. If a message asks for money, passwords or codes, stop and ask someone you trust."
+}
+
+if [ "${1:-}" = "--file" ]; then
+  [ -n "${2:-}" ] || { info "No file was given."; exit 3; }
+  run_check check "$2"
+  exit 0
+fi
+
+while :; do
+  choice="$(kdialog --title "$TITLE" --menu "Is it a scam? Copy a message or link (select it, then Ctrl+C), then pick:" \
+    copied "Check what I copied" paste "Paste or type a message" file "Check a saved email or text file" about "How Scam Shield works")" || exit 0
+  case "$choice" in
+    copied) run_check check-clipboard ;;
+    paste) check_paste ;;
+    file) check_file ;;
+    about) about ;;
+  esac
+done
