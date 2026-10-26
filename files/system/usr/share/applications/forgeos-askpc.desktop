@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ask Your PC
+GenericName=Ask a question about this computer
+Comment=Ask what is wrong with this PC in plain English and fix it safely, with the private AI on this PC
+Exec=/usr/bin/forgeos-askpc-gui
+Icon=help-browser
+Terminal=false
+Categories=System;Monitor;
+Keywords=help;fix;problem;slow;sound;internet;wifi;health;question;ask;ai;

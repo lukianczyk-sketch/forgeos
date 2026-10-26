@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# ForgeOS Ask Your PC window (Job 9). kdialog front end for forgeos-askpc.
+# Every fix is shown in plain English and runs only when the user clicks "Yes, do it".
+set -uo pipefail
+
+TITLE="Ask Your PC"
+ENGINE="${FORGEOS_ASKPC_ENGINE:-/usr/bin/forgeos-askpc}"
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Ask Your PC window. Use forgeos-askpc in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# busy_start <text> / busy_stop: a "please wait" bar while something slow runs.
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# offer_fix <plain text> <fix name> [program]: ask Yes/No, run the fix only on Yes.
+offer_fix() {
+  local text="$1" out rc=0
+  shift
+  kdialog --title "$TITLE" --yes-label "Yes, do it" --no-label "No, thanks" \
+    --yesno "${text}${NL}${NL}Do you want Ask Your PC to do this now?" || return 0
+  out="$("$ENGINE" fix "$@" 2>&1)" || rc=$?
+  if [ "$rc" -eq 0 ]; then info "$out"; else kdialog --title "$TITLE" --sorry "$out" || true; fi
+}
+
+ask_question() {
+  local question out line rc=0
+  question="$(kdialog --title "$TITLE" --inputbox "What is wrong, or what do you want to know?${NL}For example: Why is there no sound?  Why is my PC slow?" "")" || return
+  if [ -z "${question//[[:space:]]/}" ]; then info "Please type a question."; return; fi
+  busy_start "Thinking... The private AI can take up to a minute."
+  out="$("$ENGINE" ask "$question" 2>&1)" || rc=$?
+  busy_stop
+  if [ "$rc" -ne 0 ]; then kdialog --title "$TITLE" --error "Ask Your PC could not answer.${NL}${NL}$out" || true; return; fi
+  line="$(grep '^FIX: ' <<< "$out" | tail -n 1)"
+  out="$(grep -v '^FIX: ' <<< "$out")"
+  if [ -z "$line" ]; then info "$out"; return; fi
+  # shellcheck disable=SC2086  # "FIX: <name> [program]" splits into the fix arguments on purpose
+  offer_fix "$out" ${line#FIX: }
+}
+
+health() {
+  local out rc=0
+  busy_start "Checking this PC..."
+  out="$("$ENGINE" health 2>&1)" || rc=$?
+  busy_stop
+  if [ "$rc" -eq 0 ]; then info "$out"; else kdialog --title "$TITLE" --sorry "$out${NL}${NL}Tip: pick \"Fix something\" or ask a question." || true; fi
+}
+
+fix_menu() {
+  local id text prog choice i
+  local -a items=() names=() progs=() texts=()
+  while IFS=$'\t' read -r id text prog; do
+    [ -n "$id" ] || continue
+    items+=("$id" "$text")
+    names+=("$id"); progs+=("$prog"); texts+=("$text")
+  done < <("$ENGINE" fixes 2>/dev/null)
+  if [ "${#items[@]}" -eq 0 ]; then info "No fixes are available right now."; return; fi
+  choice="$(kdialog --title "$TITLE" --menu "What should Ask Your PC fix? It asks before doing anything." "${items[@]}")" || return
+  for i in "${!names[@]}"; do
+    [ "${names[$i]}" = "$choice" ] || continue
+    if [ -n "${progs[$i]}" ]; then offer_fix "${texts[$i]}." "$choice" "${progs[$i]}"; else offer_fix "${texts[$i]}." "$choice"; fi
+  done
+}
+
+about() {
+  info "Ask Your PC answers questions about this computer in plain English, like \"Why is there no sound?\" or \"Why is my PC slow?\".${NL}${NL}It looks at the PC's health (drive space, memory, internet, sound, battery, updates and errors) but only reads, it never changes anything by itself. The private AI on this PC (from ForgeOS AI Setup) writes the answer. Nothing leaves this computer.${NL}${NL}If a fix would help, it tells you exactly what it will do and waits for you to say yes. It can only pick from a short list of safe fixes, and none of them needs a password."
+}
+
+while :; do
+  choice="$(kdialog --title "$TITLE" --menu "Ask Your PC: what would you like to do?" \
+    ask "Ask a question about this PC" health "Quick health check" fix "Fix something" \
+    history "Fixes done so far" about "How Ask Your PC works")" || exit 0
+  case "$choice" in
+    ask) ask_question ;;
+    health) health ;;
+    fix) fix_menu ;;
+    history) info "$("$ENGINE" log 2>&1)" ;;
+    about) about ;;
+  esac
+done

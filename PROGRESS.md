@@ -17,3 +17,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED after one fix. forgeos-setup.sh (chmod line) exactly as asked. forgeos-askpc: Cline moved a quote at the end of the AI request (`}]}'") || body=""` instead of `}]}')" || body=""`, would break the script) and added a blank last line — replaced with the prototype. On Robert's PC: Ask Your PC tests A-L + N1 pass (the window, menu entry and CI checks come in Steps 3-4). Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+
+## Step 3 — Ask Your PC window + menu entry
+- Files changed: files/system/usr/bin/forgeos-askpc-gui (new), files/system/usr/share/applications/forgeos-askpc.desktop (new)
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. forgeos-askpc-gui and forgeos-askpc.desktop byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: all Ask Your PC tests pass except N3 (the CI step comes in Step 4). Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)
