@@ -1,0 +1,12 @@
+# ForgeOS — refreshes the Scam Shield lists 10 minutes after start-up and once a day (catches up after the PC was off).
+[Unit]
+Description=Refresh ForgeOS Scam Shield lists every day
+
+[Timer]
+OnBootSec=10min
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

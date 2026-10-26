@@ -32,6 +32,7 @@ modules:
         - pulseaudio-utils   # Panic Button (Job 6): pactl mutes every microphone
         - libnotify          # Panic Button (Job 6): notify-send shows what was cut
         - pipewire-utils     # Privacy Report (Job 7): pw-dump shows which apps use the camera, mic and screen
+        - wl-clipboard       # Scam Shield (Job 8): wl-paste reads the message or link you copied
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

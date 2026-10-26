@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# ForgeOS Scam Shield (Job 8): downloads the free lists of known scam and fake websites.
+# Run as root by forgeos-scamshield-update.service (daily). Only downloads lists; sends nothing about you.
+# Lists: malware-filter phishing-filter (CC BY-SA 4.0) and urlhaus-filter (CC0), by curbengh.
+set -uo pipefail
+SCAM_DIR="${FORGEOS_SCAM_DIR:-/var/lib/forgeos-scamshield}"
+SOURCES="phishing urlhaus"
+MIRRORS="https://malware-filter.gitlab.io/malware-filter https://curbengh.github.io/malware-filter https://malware-filter.pages.dev"
+update_lists() {
+  local s m tmp n got=0
+  mkdir -p -- "$SCAM_DIR" || return 3
+  tmp="$(mktemp "$SCAM_DIR/.download.XXXXXX")" || return 3
+  for s in $SOURCES; do
+    for m in $MIRRORS; do
+      curl -fsSL --max-time 120 --retry 2 -o "$tmp" "$m/$s-filter-hosts.txt" || continue
+      awk '$1 == "0.0.0.0" && $2 ~ /^[a-z0-9._-]+\.[a-z0-9-]+$/ { print $2 }' "$tmp" | sort -u > "$tmp.new"
+      n="$(wc -l < "$tmp.new")"
+      if [ "$n" -ge 100 ]; then
+        mv -f -- "$tmp.new" "$SCAM_DIR/$s.list" && chmod 0644 "$SCAM_DIR/$s.list"
+        echo "$s: $n scam websites"
+        got=$((got + 1))
+        break
+      fi
+    done
+  done
+  rm -f -- "$tmp" "$tmp.new"
+  [ "$got" -gt 0 ] || { echo "Could not download the scam lists. The old lists are kept." >&2; return 1; }
+}
+
+update_lists
