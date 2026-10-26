@@ -31,3 +31,6 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED. test-scamshield.sh and test-scamshield-extras.sh (part 1 + part 2 join clean) byte-identical to the tested prototype after CRLF -> LF fix; tests.yml step exactly as asked. On Robert's PC: test-scamshield 17/17 and test-scamshield-extras 15/15 PASS; privacy, panic, clean-sweep, undo tests still pass. Next: GitHub Actions green, then tag v0.9.0.
 - STATUS: STEP 4 DONE — next: Actions run green, then tag v0.9.0
+
+## Done
+- GitHub Actions on 259da6a: tests + bluebuild green. Tagged v0.9.0 (2026-10-25). Blueprint + progress moved to blueprints/job8-*; PICKUP-NOTES updated.
