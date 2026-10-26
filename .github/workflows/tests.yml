@@ -69,3 +69,8 @@ jobs:
 
       - name: Run Privacy Report tests (fake tools)
         run: bash tests/test-privacy.sh .
+
+      - name: Run Scam Shield tests (fake tools)
+        run: |
+          bash tests/test-scamshield.sh .
+          bash tests/test-scamshield-extras.sh .
