@@ -24,3 +24,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. All 6 new files and both forgeos-setup.sh edits byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: Will It Run? tests A-Q all pass except P5 (the CI step comes in Step 5). Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+
+## Step 4 — Will It Run? fakes + tests A-H
+- Files changed: tests/willitrun-fakes.sh (new), tests/test-willitrun.sh (new), tests/test-willitrun-games.sh (new)
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED after one fix. test-willitrun.sh and test-willitrun-games.sh byte-identical to the tested prototype after CRLF -> LF fix. willitrun-fakes.sh: Cline doubled the backslashes in the fake Ollama answer (line 31) — replaced with the prototype. On Robert's PC: Will It Run? tests A-H pass, and every older ForgeOS test still passes. Next: Step 5.
+- STATUS: STEP 4 DONE — next: Step 5 (Cline)
