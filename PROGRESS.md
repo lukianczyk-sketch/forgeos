@@ -17,3 +17,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-25): APPROVED. forgeos-privacy-block, forgeos-privacy-gui and the menu entry byte-identical to the tested prototype after CRLF -> LF fix. forgeos-setup.sh chmod line exactly as asked. Next: Step 3 (tests).
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+
+## Step 3 — Privacy Report tests
+- Files changed: tests/test-privacy.sh (new), .github/workflows/tests.yml
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-25): APPROVED after one fix. tests.yml step exactly as asked. test-privacy.sh: Cline turned the real tab characters in checks B1/B2 into the text "\t" (grep would then never match) — replaced with the tested prototype. On Robert's PC: `bash tests/test-privacy.sh .` = ALL PASS (41, O6 skipped: no desktop-file-validate there); panic, clean-sweep, undo tests still pass. Next: GitHub Actions green, then tag v0.8.0.
+- STATUS: STEP 3 DONE — next: Actions run green, then tag v0.8.0
