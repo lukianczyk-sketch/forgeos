@@ -1,0 +1,100 @@
+# shellcheck shell=bash
+# ForgeOS Ask Your PC (Job 9): the ONLY fixes Ask Your PC can do. Sourced by forgeos-askpc.
+# The AI can only pick one of these names. A fix runs only after the user says yes.
+# None of them needs a password, and none of them can harm the system.
+FIX_IDS="restart-internet restart-sound unmute-sound restart-taskbar close-busy-app clear-thumbnails empty-trash open-cleansweep open-undo open-privacy open-scamshield open-backup"
+AP_LOG="${XDG_STATE_HOME:-$HOME/.local/state}/forgeos/askpc.log"
+
+# Programs that are part of the desktop itself and must never be closed.
+KEEP_RUNNING='^(plasmashell|kwin_wayland|kwin_x11|Xwayland|systemd|pipewire|pipewire-pulse|wireplumber|ollama|kded6|ksmserver|dbus-daemon|dbus-broker|sddm|bash|sh|ps|kdialog|baloo_file|bwrap|kwalletd6|xdg-.*|gvfs.*|at-spi.*|polkit.*|forgeos-.*|.*portal.*)$'
+
+# busy_app: "<pid> <name>" of this user's program using the most processor time.
+busy_app() {
+  timeout 5 ps -u "$(id -u)" -o pid=,comm= --sort=-%cpu 2>/dev/null | awk -v re="$KEEP_RUNNING" '$2 !~ re {print $1, $2; exit}'
+}
+
+# fix_text <id>: what the fix does, in plain English. Fails for an unknown id.
+fix_text() {
+  local a
+  case "$1" in
+    restart-internet) echo "Turn the internet connection off and on again" ;;
+    restart-sound) echo "Restart the sound system" ;;
+    unmute-sound) echo "Turn the sound on (unmute) and set the volume to half" ;;
+    restart-taskbar) echo "Restart the taskbar and desktop (your open windows stay open)" ;;
+    close-busy-app)
+      a="$(busy_app)"
+      [ -n "$a" ] || return 1
+      echo "Close the program using the most computer power: ${a#* } (unsaved work in it may be lost)" ;;
+    clear-thumbnails) echo "Delete saved picture previews (thumbnails). They are made again when needed" ;;
+    empty-trash) echo "Empty the trash (the files in it are deleted for good)" ;;
+    open-cleansweep) echo "Open Clean Sweep to check for viruses and hackers" ;;
+    open-undo) echo "Open Undo Button to get back a lost or changed file" ;;
+    open-privacy) echo "Open Privacy Report to see which apps used the camera or microphone" ;;
+    open-scamshield) echo "Open Scam Shield to check a message or link" ;;
+    open-backup) echo "Open Pika Backup to back up your files" ;;
+    *) return 1 ;;
+  esac
+}
+
+# fix_list: one line per fix that can be done right now: id, text and (close-busy-app only) program name, TAB-separated.
+fix_list() {
+  local id t a
+  for id in $FIX_IDS; do
+    t="$(fix_text "$id")" || continue
+    a=""
+    [ "$id" = close-busy-app ] && a="$(busy_app)" && a="${a#* }"
+    printf '%s\t%s\t%s\n' "$id" "$t" "$a"
+  done
+}
+
+fix_log() { mkdir -p "${AP_LOG%/*}" 2>/dev/null && echo "$(date '+%Y-%m-%d %H:%M') $1: $2" >> "$AP_LOG"; }
+
+# open_app <command...>: start a program in the background.
+open_app() {
+  command -v "$1" >/dev/null 2>&1 || return 1
+  setsid -f "$@" >/dev/null 2>&1 < /dev/null
+}
+
+# fix_run <id> [program-name]: do one fix. For close-busy-app the program name the user
+# agreed to must still be the busiest program, or nothing is closed.
+# Returns 0 = done, 1 = did not work, 2 = unknown fix.
+fix_run() {
+  local id="$1" want="${2:-}" t a rc=0
+  if ! t="$(fix_text "$id")"; then
+    echo "Ask Your PC does not know how to do \"$id\"."
+    return 2
+  fi
+  case "$id" in
+    restart-internet)
+      nmcli networking off
+      sleep "${FORGEOS_ASKPC_WAIT:-3}"
+      nmcli networking on || rc=1 ;;
+    restart-sound) systemctl --user restart pipewire.service pipewire-pulse.service wireplumber.service || rc=1 ;;
+    unmute-sound) { wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.5; } || rc=1 ;;
+    restart-taskbar) systemctl --user restart plasma-plasmashell.service || rc=1 ;;
+    close-busy-app)
+      a="$(busy_app)"
+      if [ -z "$want" ] || [ "${a#* }" != "$want" ]; then
+        echo "The busiest program is not \"$want\" any more, so nothing was closed. Ask again."
+        fix_log "$id" "skipped"
+        return 1
+      fi
+      kill -TERM "${a%% *}" 2>/dev/null || rc=1
+      t="Close $want" ;;
+    clear-thumbnails) rm -rf -- "${XDG_CACHE_HOME:-$HOME/.cache}/thumbnails" || rc=1 ;;
+    empty-trash) gio trash --empty || rc=1 ;;
+    open-cleansweep) open_app forgeos-cleansweep-gui || rc=1 ;;
+    open-undo) open_app forgeos-undo-gui || rc=1 ;;
+    open-privacy) open_app forgeos-privacy-gui || rc=1 ;;
+    open-scamshield) open_app forgeos-scamshield-gui || rc=1 ;;
+    open-backup) open_app flatpak run org.gnome.World.PikaBackup || rc=1 ;;
+  esac
+  if [ "$rc" -eq 0 ]; then
+    fix_log "$id" "done"
+    echo "Done: $t."
+  else
+    fix_log "$id" "did not work"
+    echo "That did not work: $t. Restarting the PC often helps."
+  fi
+  return "$rc"
+}

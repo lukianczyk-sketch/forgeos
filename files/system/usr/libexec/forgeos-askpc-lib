@@ -1,0 +1,106 @@
+# shellcheck shell=bash
+# ForgeOS Ask Your PC (Job 9): a read-only look at this PC's health. Sourced by forgeos-askpc.
+# Every command in this file only READS. Nothing is changed and nothing leaves the computer.
+AP_PROC="${FORGEOS_ASKPC_PROC:-/proc}"
+AP_POWER="${FORGEOS_ASKPC_POWER:-/sys/class/power_supply}"
+AP_OSREL="${FORGEOS_ASKPC_OSREL:-/etc/os-release}"
+HEALTH_WARN=0
+
+# q <command...>: run a read-only check, give up after 5 seconds, hide errors.
+q() { timeout 5 "$@" 2>/dev/null; }
+
+# disk_used_pct <path>: how full (0-100) the drive holding <path> is.
+disk_used_pct() { q df -P -- "$1" | awk 'NR == 2 {sub(/%/, "", $5); print $5}'; }
+
+mem_free_pct() {
+  awk '/^MemTotal:/ {t = $2} /^MemAvailable:/ {a = $2} END {if (t > 0) printf "%d\n", a * 100 / t}' "$AP_PROC/meminfo" 2>/dev/null
+}
+
+# battery: "<percent> <status>" of the first battery, or nothing on a desktop PC.
+battery() {
+  local b
+  for b in "$AP_POWER"/BAT*; do
+    [ -r "$b/capacity" ] || continue
+    echo "$(cat "$b/capacity") $(cat "$b/status" 2>/dev/null)"
+    return 0
+  done
+}
+
+failed_units() {
+  { q systemctl --failed --no-legend --plain; q systemctl --user --failed --no-legend --plain; } | awk 'NF {print $1}'
+}
+
+internet_state() { q nmcli -t -f CONNECTIVITY general; }
+sound_state() { q wpctl get-volume @DEFAULT_AUDIO_SINK@; }
+
+# update_waiting: true when a downloaded system update needs a restart to finish.
+update_waiting() { q rpm-ostree status --json | jq -e '.deployments[0].booted == false' >/dev/null 2>&1; }
+
+# indent: two spaces in front of each line, or "  none" when there are no lines.
+indent() { sed 's/^/  /' | grep . || echo "  none"; }
+
+status_report() {
+  local p
+  # shellcheck source=/dev/null
+  echo "System: $(. "$AP_OSREL" 2>/dev/null; echo "${PRETTY_NAME:-unknown}")"
+  echo "Turned on for: $(q uptime -p)"
+  echo "Processor load (1, 5, 15 min): $(cut -d ' ' -f 1-3 "$AP_PROC/loadavg" 2>/dev/null) on $(nproc) cores"
+  echo "Memory free: $(mem_free_pct)%"
+  echo "Drive used: system $(disk_used_pct /)%, home $(disk_used_pct "$HOME")%"
+  p="$(q du -sh "${XDG_DATA_HOME:-$HOME/.local/share}/Trash" | cut -f 1)"
+  echo "Trash: ${p:-empty}"
+  echo "Internet: $(internet_state)"
+  echo "Network devices:"
+  q nmcli -t -f DEVICE,TYPE,STATE device | grep -v ':loopback:' | head -n 6 | indent
+  echo "Sound: $(sound_state)"
+  p="$(battery)"
+  [ -n "$p" ] && echo "Battery: ${p%% *}% (${p#* })"
+  echo "Update waiting for a restart: $(update_waiting && echo yes || echo no)"
+  echo "Busiest programs (name, processor %, memory %):"
+  q ps -eo comm=,%cpu=,%mem= --sort=-%cpu | head -n 5 | indent
+  echo "Background services that stopped working:"
+  failed_units | head -n 5 | indent
+  echo "Printers:"
+  q lpstat -p | head -n 3 | indent
+  echo "Temperatures:"
+  q sensors | grep -E '[+-][0-9]+[.][0-9]+.{1,2}C' | head -n 6 | sed 's/^ *//' | indent
+  echo "Recent errors since start-up (newest last):"
+  q journalctl -b -p 3 -q --no-pager -n 12 -o cat | cut -c 1-160 | indent
+}
+
+hw() { echo "! $1"; HEALTH_WARN=$((HEALTH_WARN + 1)); }
+
+# health_check: plain-English check-up. Lines start with "OK", "!" (a problem) or "?" (could not check).
+# Returns 0 when everything looks good, 1 when something needs attention.
+health_check() {
+  local d m b n
+  HEALTH_WARN=0
+  d="$(disk_used_pct "$HOME")"
+  if [ -z "$d" ]; then echo "? Could not check the drive space"
+  elif [ "$d" -ge 90 ]; then hw "Your drive is ${d}% full. Empty the trash or move big files off it."
+  else echo "OK Drive space (${d}% used)"; fi
+  m="$(mem_free_pct)"
+  if [ -z "$m" ]; then echo "? Could not check the memory"
+  elif [ "$m" -lt 10 ]; then hw "Memory is almost full (${m}% free). Close programs you are not using."
+  else echo "OK Memory (${m}% free)"; fi
+  case "$(internet_state)" in
+    full) echo "OK Internet" ;;
+    portal) hw "The Wi-Fi wants you to sign in (like at a hotel or cafe). Open a web browser." ;;
+    limited|none) hw "No internet. Try turning the internet off and on again." ;;
+    *) echo "? Could not check the internet" ;;
+  esac
+  case "$(sound_state)" in
+    *MUTED*) hw "The sound is turned off (muted)." ;;
+    Volume*) echo "OK Sound" ;;
+    *) echo "? Could not check the sound" ;;
+  esac
+  b="$(battery)"
+  if [ -n "$b" ] && [ "${b%% *}" -le 15 ] && [ "${b#* }" != Charging ]; then
+    hw "The battery is low (${b%% *}%). Plug in the charger."
+  fi
+  n="$(failed_units | paste -sd ',' - | sed 's/,/, /g')"
+  if [ -n "$n" ]; then hw "Some background services stopped working: $n"; else echo "OK Background services"; fi
+  if update_waiting; then hw "An update is ready. Restart the PC to finish it."; fi
+  if [ "$HEALTH_WARN" -eq 0 ]; then echo "Everything looks good."; return 0; fi
+  return 1
+}
