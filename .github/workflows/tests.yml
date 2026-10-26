@@ -74,3 +74,8 @@ jobs:
         run: |
           bash tests/test-scamshield.sh .
           bash tests/test-scamshield-extras.sh .
+
+      - name: Run Ask Your PC tests (fake tools)
+        run: |
+          bash tests/test-askpc.sh .
+          bash tests/test-askpc-extras.sh .

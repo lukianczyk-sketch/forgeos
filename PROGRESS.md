@@ -24,3 +24,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. forgeos-askpc-gui and forgeos-askpc.desktop byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: all Ask Your PC tests pass except N3 (the CI step comes in Step 4). Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+
+## Step 4 — Ask Your PC tests + CI
+- Files changed: tests/askpc-fakes.sh (new), tests/test-askpc.sh (new), tests/test-askpc-extras.sh (new), .github/workflows/tests.yml
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED after one fix. test-askpc.sh and tests.yml byte-identical to the tested prototype after CRLF -> LF fix. askpc-fakes.sh and test-askpc-extras.sh: Cline doubled backslashes in two jq strings (fake curl answer, check I2) and added a space in the fake rpm-ostree — both files replaced with the prototype. On Robert's PC: Ask Your PC 44/44 checks pass (A-N); all older tests still pass. Next: CI, then Job 9 done (v0.10.0).
+- STATUS: STEP 4 DONE — Job 9 code complete
