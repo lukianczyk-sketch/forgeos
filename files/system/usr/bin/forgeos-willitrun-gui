@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# ForgeOS Will It Run? window (Job 10). kdialog front end for forgeos-willitrun.
+# Usage: forgeos-willitrun-gui            (menu)
+#        forgeos-willitrun-gui --file FILE (check one file, from the right-click menu)
+# Nothing is installed or opened until the user clicks the button for it.
+set -uo pipefail
+
+TITLE="Will It Run?"
+ENGINE="${FORGEOS_WIR_ENGINE:-/usr/bin/forgeos-willitrun}"
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Will It Run? window. Use forgeos-willitrun in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# busy_start <text> / busy_stop: a "please wait" bar while something slow runs.
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# way_label <way>: the button text for a way to run the program.
+way_label() {
+  case "$1" in
+    bottles) echo "Open it in Bottles" ;;
+    flatpak) echo "Install it (free)" ;;
+    open) echo "Open it" ;;
+    waydroid) echo "Install it in Waydroid" ;;
+    gearlever) echo "Add it with Gear Lever" ;;
+    steam) echo "Open Steam" ;;
+    *) return 1 ;;
+  esac
+}
+
+# show <engine output> <exit code>: show the answer, then offer the way to run it (only on "yes").
+show() {
+  local out="$1" rc="$2" text line way arg label res r=0
+  text="$(grep -v -e '^VERDICT: ' -e '^WAY: ' <<< "$out")"
+  line="$(grep '^WAY: ' <<< "$out" | tail -n 1)"
+  if [ "$rc" -ge 3 ]; then kdialog --title "$TITLE" --error "Will It Run? could not check that.${NL}${NL}$out" || true; return; fi
+  if [ -z "$line" ]; then
+    if [ "$rc" -eq 0 ]; then info "$text"; else kdialog --title "$TITLE" --sorry "$text" || true; fi
+    return
+  fi
+  line="${line#WAY: }"
+  way="${line%% *}"
+  arg=""
+  [ "$line" != "$way" ] && arg="${line#* }"
+  label="$(way_label "$way")" || { info "$text"; return; }
+  kdialog --title "$TITLE" --yes-label "$label" --no-label "Not now" --yesno "$text" || return 0
+  if [ -n "$arg" ]; then res="$("$ENGINE" open "$way" "$arg" 2>&1)" || r=$?; else res="$("$ENGINE" open "$way" 2>&1)" || r=$?; fi
+  if [ "$r" -eq 0 ]; then info "$res"; else kdialog --title "$TITLE" --sorry "$res" || true; fi
+}
+
+# check <file or name>
+check() {
+  local out rc=0
+  busy_start "Checking... This can take up to a minute."
+  out="$("$ENGINE" check "$1" 2>&1)" || rc=$?
+  busy_stop
+  show "$out" "$rc"
+}
+
+pick_file() {
+  local f
+  f="$(kdialog --title "$TITLE" --getopenfilename "$HOME/Downloads")" || return
+  [ -n "$f" ] && check "$f"
+}
+
+ask_name() {
+  local n
+  n="$(kdialog --title "$TITLE" --inputbox "Which program or game? For example: Photoshop, Spotify, Fortnite" "")" || return
+  if [ -z "${n//[[:space:]]/}" ]; then info "Please type the name of a program or game."; return; fi
+  check "$n"
+}
+
+about() {
+  info "Will It Run? tells you if a Windows program, game or Android app will run on ForgeOS, and the best free way to run it.${NL}${NL}Pick the file (like setup.exe or an .apk), or type the program's name. It only looks inside the file, it never runs it.${NL}${NL}It knows the well-known programs and their free swaps, finds anti-cheat that blocks games on Linux (using the free Are We Anti-Cheat Yet? list), and picks Bottles, Steam, Waydroid or Gear Lever for you. For names it does not know, the private AI on this PC gives its best guess. Nothing leaves this computer.${NL}${NL}Nothing is installed or opened until you click the button for it."
+}
+
+if [ "${1:-}" = "--file" ]; then
+  [ -n "${2:-}" ] || exit 3
+  check "$2"
+  exit 0
+fi
+
+while :; do
+  choice="$(kdialog --title "$TITLE" --menu "Will It Run? Check if a program will run on ForgeOS." \
+    file "Check a program file (.exe, .msi, .apk...)" name "Check a program or game by name" \
+    about "How Will It Run? works")" || exit 0
+  case "$choice" in
+    file) pick_file ;;
+    name) ask_name ;;
+    about) about ;;
+  esac
+done

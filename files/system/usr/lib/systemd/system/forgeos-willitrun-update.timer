@@ -1,0 +1,12 @@
+# ForgeOS — refreshes the Will It Run? anti-cheat list 15 minutes after start-up and once a day (catches up after the PC was off).
+[Unit]
+Description=Refresh the ForgeOS Will It Run? anti-cheat list every day
+
+[Timer]
+OnBootSec=15min
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target

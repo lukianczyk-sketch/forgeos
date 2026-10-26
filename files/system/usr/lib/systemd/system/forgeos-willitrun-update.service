@@ -1,0 +1,18 @@
+# ForgeOS — Will It Run? (Job 10): downloads the free list of games with anti-cheat. Started by forgeos-willitrun-update.timer.
+# Only downloads the list. Nothing about you or what you check is ever sent.
+[Unit]
+Description=ForgeOS Will It Run?: download the list of games with anti-cheat
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/forgeos-willitrun-update
+StateDirectory=forgeos-willitrun
+StateDirectoryMode=0755
+Nice=19
+IOSchedulingClass=idle
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes

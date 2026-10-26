@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Service
+Name=ForgeOS Will It Run?
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/x-msi;application/x-ms-shortcut;application/x-bat;application/vnd.android.package-archive;application/vnd.appimage;application/x-iso9660-appimage;
+Actions=forgeosWillItRun
+X-KDE-Priority=TopLevel
+X-KDE-Protocols=file
+X-KDE-MaxNumberOfUrls=1
+
+[Desktop Action forgeosWillItRun]
+Name=Will it run on ForgeOS?
+Icon=system-run
+Exec=/usr/bin/forgeos-willitrun-gui --file %f

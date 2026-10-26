@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# ForgeOS Will It Run? (Job 10): downloads the free "Are We Anti-Cheat Yet?" list of games with anti-cheat
+# (MIT license, github.com/AreWeAntiCheatYet/AreWeAntiCheatYet). Run as root by forgeos-willitrun-update.service
+# (daily). Only downloads the list; sends nothing about you or what you check.
+set -uo pipefail
+WIR_DIR="${FORGEOS_WIR_DIR:-/var/lib/forgeos-willitrun}"
+URL="${FORGEOS_WIR_URL:-https://raw.githubusercontent.com/AreWeAntiCheatYet/AreWeAntiCheatYet/HEAD/games.json}"
+
+mkdir -p -- "$WIR_DIR" || exit 3
+tmp="$(mktemp "$WIR_DIR/.download.XXXXXX")" || exit 3
+trap 'rm -f -- "$tmp" "$tmp.new"' EXIT
+if ! curl -fsSL --max-time 120 --retry 2 -o "$tmp" "$URL"; then
+  echo "Could not download the anti-cheat list. The old list is kept." >&2
+  exit 1
+fi
+# One game per line: name|status|anti-cheats (the | and control characters are taken out of the names).
+jq -r '.[] | select((.name | type) == "string" and (.status | IN("Supported", "Running", "Planned", "Broken", "Denied")))
+  | [.name, .status, ((.anticheats // []) | join(", "))] | map(gsub("[|[:cntrl:]]"; " ")) | join("|")' \
+  "$tmp" > "$tmp.new" 2>/dev/null || : > "$tmp.new"
+n="$(wc -l < "$tmp.new")"
+if [ "$n" -lt 100 ]; then
+  echo "The downloaded anti-cheat list looks wrong ($n games). The old list is kept." >&2
+  exit 1
+fi
+mv -f -- "$tmp.new" "$WIR_DIR/anticheat.list" && chmod 0644 "$WIR_DIR/anticheat.list" || exit 3
+echo "Anti-cheat list: $n games"

@@ -17,3 +17,10 @@
 - STATUS: WAITING FOR CLAUDE REVIEW
 - CLAUDE REVIEW (2026-10-26): APPROVED after two fixes. forgeos-willitrun, -check, -windows, -open, -safety and the forgeos-setup.sh chmod line byte-identical to the tested prototype after CRLF -> LF fix. forgeos-willitrun-answers: Cline moved a quote at the end of the AI request (`)]}'") || return 1` instead of `)}]}')" || return 1`, would break the script; same slip as Job 9 Step 2) — replaced with the prototype. RABBIT-BLUEPRINT.md: Cline only changed part of it (the safety-check section was missing) — replaced with the prototype. On Robert's PC: Will It Run? tests A-L and Q pass (M-P need Step 3). Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+
+## Step 3 — Will It Run? list download + window + menu entries
+- Files changed: files/system/usr/libexec/forgeos-willitrun-update (new), files/system/usr/lib/systemd/system/forgeos-willitrun-update.service (new), files/system/usr/lib/systemd/system/forgeos-willitrun-update.timer (new), files/system/usr/bin/forgeos-willitrun-gui (new), files/system/usr/share/applications/forgeos-willitrun.desktop (new), files/system/usr/share/kio/servicemenus/forgeos-willitrun.desktop (new), files/scripts/forgeos-setup.sh
+- Notes: none
+- STATUS: WAITING FOR CLAUDE REVIEW
+- CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. All 6 new files and both forgeos-setup.sh edits byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: Will It Run? tests A-Q all pass except P5 (the CI step comes in Step 5). Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)

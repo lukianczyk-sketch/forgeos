@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Will It Run?
+GenericName=Check if a program will run
+Comment=Find out if a Windows program, game or Android app runs on ForgeOS, and the best free way to run it
+Exec=/usr/bin/forgeos-willitrun-gui
+Icon=system-run
+Terminal=false
+Categories=System;PackageManager;
+Keywords=windows;exe;msi;apk;game;wine;bottles;proton;steam;android;program;install;run;
