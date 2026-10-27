@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+"""ForgeOS GhostFinder (Job 12): see who's watching.
+
+Finds cameras on your network, spy-camera Wi-Fi and Bluetooth trackers (AirTag, SmartTag, Tile...)
+that are away from their owner, and tells you in plain English what to do. Nothing leaves this PC.
+"""
+import json
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_GHOST_LIB") or "/usr/lib/forgeos-ghost")
+from ghostlib import advice, ble, cli, store, sweep, watch  # noqa: E402
+
+
+def main(args):
+    if not args:
+        return cli.usage()
+    cmd, rest = args[0], args[1:]
+    if cmd == "sweep":
+        result = sweep.sweep(cli.secs(rest, 12), use_ble="--no-bt" not in rest)
+        store.report("Sweep at %s: %s" % (result["place"], result["level"].upper()), result["notes"] + [
+            "%s: %s" % (i["level"].upper(), i["what"]) for i in result["items"] if i["level"] != "green"])
+        if "--json" in rest:
+            print(json.dumps(result, indent=1))
+        else:
+            cli.show(result)
+        return 0
+    if cmd == "info" and len(rest) == 1:
+        found = cli.find(rest[0])
+        if not found:
+            print("Not in the last sweep: " + rest[0], file=sys.stderr)
+            return 1
+        print(found["what"])
+        if found["detail"]:
+            print("(" + found["detail"] + ")")
+        print("\n" + advice.text(found))
+        return 0
+    if cmd == "hunt" and rest:
+        return cli.hunt(rest[0], cli.secs(rest, 900))
+    if cmd == "safe" and rest:
+        safe = store.load_safe()
+        if rest[0] == "add" and len(rest) >= 2:
+            found = cli.find(rest[1])
+            safe[rest[1].upper()] = " ".join(rest[2:]) or (found["what"] if found else "")
+        elif rest[0] == "remove" and len(rest) == 2:
+            safe.pop(rest[1].upper(), None)
+        elif rest[0] == "list" and len(rest) == 1:
+            for key, name in sorted(safe.items()):
+                print("%s\t%s" % (key, name))
+            return 0
+        else:
+            return cli.usage()
+        store.save_safe(safe)
+        return 0
+    if cmd == "known-all":
+        safe, n = store.load_safe(), 0
+        for i in store.read_json("last-sweep.json", {}).get("items", []):
+            # Cameras, trackers and spy Wi-Fi must each be checked and marked one by one.
+            if i["level"] == "yellow" and i["kind"] not in cli.TRACKER_KINDS | {"hotspot", "camera"}:
+                safe[i["id"]] = i["what"].split(": ", 1)[-1]
+                n += 1
+        store.save_safe(safe)
+        print("Marked %d device(s) on this network as yours." % n)
+        return 0
+    if cmd == "trip" and len(rest) == 1 and rest[0] in ("start", "tick", "stop"):
+        return watch.trip(rest[0])
+    if cmd == "watch-tick":
+        return watch.watch_tick()
+    if cmd == "bt" and len(rest) == 1 and rest[0] in ("on", "off", "status"):
+        if rest[0] == "status":
+            print(ble.status())
+            return 0
+        return 0 if ble.power(rest[0] == "on") else 4
+    if cmd == "checklist":
+        print(advice.ROOMS)
+        return 0
+    if cmd == "beep-file":
+        return cli.beep_file()
+    return cli.usage()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

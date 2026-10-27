@@ -9,3 +9,6 @@
 - Step 2 (Cline): ghostlib names.py, wifi.py, store.py, sweep.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. names.py, wifi.py, store.py, sweep.py byte-identical to the tested prototype after CRLF -> LF fix. Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+- Step 3 (Cline): ghostlib advice.py, cli.py, watch.py and bin/forgeos-ghost written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. advice.py, cli.py, watch.py and bin/forgeos-ghost byte-identical to the tested prototype after CRLF -> LF fix. Cline tried one dir command (rejected). The engine runs on Robert's PC. Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)
