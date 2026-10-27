@@ -12,3 +12,6 @@
 - Step 3 (Cline): Find Anything window, menu entry, user service + timer, forgeos-setup.sh, common-modules.yml packages. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. forgeos-find-gui, forgeos-find.desktop, forgeos-find-index.service/.timer and both edits (forgeos-setup.sh, common-modules.yml) byte-identical to the tested prototype after CRLF -> LF fix. Older tests (recipes, cool stuff, panic, privacy, scam shield, ask your PC, will it run, flatpak list) still pass on Robert's PC. Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+- Step 4 (Cline): tests/find-fakes.sh, tests/find-fake-ollama.py, tests/test-find.sh (A-H) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. find-fakes.sh, find-fake-ollama.py and test-find.sh byte-identical to the tested prototype after CRLF -> LF fix (no doubled backslashes this time). On Robert's PC: tests A-H all pass in the real repo. Next: Step 5.
+- STATUS: STEP 4 DONE — next: Step 5 (Cline)
