@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# ForgeOS GhostFinder (Job 12): the live windows.
+#   forgeos-ghost-meter hunt ID   hot / cold meter: the bar fills and the beeps speed up as you get closer
+#   forgeos-ghost-meter trip      watch a drive: checks for trackers every minute until you press Cancel
+set -uo pipefail
+
+TITLE="GhostFinder"
+ENGINE="${FORGEOS_GHOST_ENGINE:-/usr/bin/forgeos-ghost}"
+STEP="${FORGEOS_GHOST_STEP:-1}"
+NL=$'\n'
+
+REF=""
+# bar CALL ARGS...: talk to the open kdialog progress bar.
+bar() { dbus-send --session --print-reply --type=method_call --dest="${REF% *}" "${REF#* }" "$@" 2>/dev/null; }
+set_value() { bar org.freedesktop.DBus.Properties.Set string:org.kde.kdialog.ProgressDialog string:value "variant:int32:$1" >/dev/null; }
+set_label() { bar org.kde.kdialog.ProgressDialog.setLabelText "string:$1" >/dev/null; }
+# cancelled: the Cancel button was pressed, or the window was closed.
+cancelled() {
+  local reply
+  reply="$(bar org.kde.kdialog.ProgressDialog.wasCancelled)" || return 0
+  [[ "$reply" == *"boolean true"* ]]
+}
+close_bar() { [ -n "$REF" ] && bar org.kde.kdialog.ProgressDialog.close >/dev/null; REF=""; }
+
+hunt() {
+  local id="$1" beep tag lvl words tick=0 every pid
+  beep="$("$ENGINE" beep-file 2>/dev/null)"
+  REF="$(kdialog --title "$TITLE - hunt" --progressbar "Walk around slowly with this PC.${NL}The bar fills up and the beeps speed up as you get closer." 100)" || return 0
+  bar org.kde.kdialog.ProgressDialog.showCancelButton boolean:true >/dev/null
+  exec 3< <(exec "$ENGINE" hunt "$id" 2>&1)
+  pid=$!
+  while IFS=$'\t' read -r -u 3 tag lvl words; do
+    [ "$tag" = LEVEL ] || continue
+    cancelled && break
+    set_value "$lvl"
+    set_label "$words  ($lvl%)${NL}Walk around slowly. Check bags, pockets, furniture, the car..."
+    every=0
+    if [ "$lvl" -ge 85 ]; then every=1; elif [ "$lvl" -ge 65 ]; then every=2; elif [ "$lvl" -ge 45 ]; then every=3; fi
+    if [ "$every" -gt 0 ] && [ $((tick % every)) -eq 0 ] && [ -n "$beep" ]; then
+      pw-play "$beep" >/dev/null 2>&1 &
+    fi
+    tick=$((tick + 1))
+  done
+  kill "$pid" 2>/dev/null
+  exec 3<&-
+  close_bar
+}
+
+trip() {
+  local n=0 keep out
+  kdialog --title "$TITLE" --yes-label "Start watching" --no-label "Cancel" --yesno \
+    "Watch this trip?${NL}${NL}Keep this PC open and awake during the drive (lid up). GhostFinder listens for trackers every minute. Press Cancel on the next window when you arrive.${NL}${NL}If the same tracker stays with you the whole way, it will tell you." || return 0
+  if [ "$("$ENGINE" bt status 2>/dev/null)" != on ]; then
+    kdialog --title "$TITLE" --msgbox "Bluetooth is off, so a trip can't be watched. Turn Bluetooth on and try again." || true
+    return 0
+  fi
+  "$ENGINE" trip start || return 0
+  systemd-inhibit --what=idle:sleep --who="$TITLE" --why="Watching this trip for trackers" sleep 86400 >/dev/null 2>&1 &
+  keep=$!
+  REF="$(kdialog --title "$TITLE - trip" --progressbar "Watching this trip... Press Cancel when you arrive." 0)" || REF=""
+  [ -n "$REF" ] && bar org.kde.kdialog.ProgressDialog.showCancelButton boolean:true >/dev/null
+  while [ -n "$REF" ]; do
+    "$ENGINE" trip tick >/dev/null 2>&1 && n=$((n + 1))
+    set_label "Watching this trip... $n check(s) done.${NL}Press Cancel when you arrive."
+    for _ in $(seq 40); do cancelled && break 2; sleep "$STEP"; done
+  done
+  close_bar
+  kill "$keep" 2>/dev/null
+  out="$("$ENGINE" trip stop 2>&1 | grep -v '^ITEM')"
+  kdialog --title "$TITLE - trip" --msgbox "$out${NL}${NL}(Saved in the GhostFinder report.)" || true
+}
+
+case "${1:-}" in
+  hunt) [ -n "${2:-}" ] || exit 3; hunt "$2" ;;
+  trip) trip ;;
+  *) echo "Usage: forgeos-ghost-meter hunt ID | trip" >&2; exit 3 ;;
+esac

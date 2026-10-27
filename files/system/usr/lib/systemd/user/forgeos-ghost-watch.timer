@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS GhostFinder background watch - 5 minutes after login, then every 10 minutes
+
+[Timer]
+OnStartupSec=5min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target

@@ -12,3 +12,6 @@
 - Step 3 (Cline): ghostlib advice.py, cli.py, watch.py and bin/forgeos-ghost written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. advice.py, cli.py, watch.py and bin/forgeos-ghost byte-identical to the tested prototype after CRLF -> LF fix. Cline tried one dir command (rejected). The engine runs on Robert's PC. Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+- Step 4 (Cline): GhostFinder window, meter, menu entry, user service + timer, forgeos-setup.sh, common-modules.yml packages, test-find-extras.sh T1. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED after 1 fix. Window, meter, menu entry, service, timer, forgeos-setup.sh and common-modules.yml byte-identical to the prototype (CRLF -> LF fixed). test-find-extras.sh T1: Cline dropped the backslash before the closing ) (would break the grep) — replaced with the prototype line. On Robert's PC: Find Anything, recipes, cool stuff and panic tests pass. Next: Step 5.
+- STATUS: STEP 4 DONE — next: Step 5 (Cline)

@@ -1,0 +1,7 @@
+[Unit]
+Description=ForgeOS GhostFinder background watch - listens 15 seconds for trackers travelling with you (nothing leaves this PC)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-ghost watch-tick
+Nice=19

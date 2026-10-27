@@ -30,6 +30,9 @@ modules:
         - tesseract-langpack-eng  # Find Anything (Job 11): English words for tesseract
         - poppler-utils      # Find Anything (Job 11): pdftotext + pdftoppm read PDFs
         - python3            # Find Anything (Job 11): the search engine (already in the base image)
+        - python3-dbus       # GhostFinder (Job 12): listens for Bluetooth trackers through BlueZ
+        - avahi-tools        # GhostFinder (Job 12): avahi-browse names the devices on your network
+        - hwdata             # GhostFinder (Job 12): the free list of who made each network device
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

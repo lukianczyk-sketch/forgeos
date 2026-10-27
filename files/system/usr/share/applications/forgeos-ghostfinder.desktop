@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=GhostFinder
+GenericName=Find hidden cameras and trackers
+Comment=See who's watching: finds cameras on your network, spy-camera Wi-Fi and Bluetooth trackers like AirTags. Nothing leaves this PC
+Exec=/usr/bin/forgeos-ghost-gui
+Icon=security-medium
+Terminal=false
+Categories=System;Security;
+Keywords=camera;hidden;spy;tracker;airtag;smarttag;tile;bluetooth;wifi;network;stalker;hotel;rental;

@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# ForgeOS GhostFinder window (Job 12). kdialog front end for forgeos-ghost.
+# "GhostFinder - see who's watching." One button sweeps for cameras and trackers; nothing leaves this PC.
+set -uo pipefail
+
+TITLE="GhostFinder"
+ENGINE="${FORGEOS_GHOST_ENGINE:-/usr/bin/forgeos-ghost}"
+METER="${FORGEOS_GHOST_METER:-/usr/libexec/forgeos-ghost-meter}"
+REPORT="${FORGEOS_GHOST_REPORT:-$HOME/Documents/GhostFinder/GhostFinder report.txt}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the GhostFinder window. Use forgeos-ghost in a terminal instead." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+TURNED_ON=0
+cleanup() {
+  [ "$TURNED_ON" -eq 1 ] && "$ENGINE" bt off >/dev/null 2>&1
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+textbox() { kdialog --title "$TITLE" --textbox "$1" 700 500 || true; }
+
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# bluetooth_ready: offer to turn Bluetooth on (it goes back off when this window closes).
+bluetooth_ready() {
+  [ "$("$ENGINE" bt status 2>/dev/null)" = off ] || return 0
+  kdialog --title "$TITLE" --yes-label "Turn it on" --no-label "Skip trackers" --yesno \
+    "Bluetooth is off, so trackers (AirTag, SmartTag, Tile...) can't be checked.${NL}${NL}Turn Bluetooth on? GhostFinder turns it back off when you close it." || return 0
+  if "$ENGINE" bt on >/dev/null 2>&1; then
+    TURNED_ON=1
+  else
+    info "Bluetooth could not be turned on. Airplane mode or the Panic Button may have switched it off."
+  fi
+}
+
+# item_menu ID LEVEL HUNT WHAT
+item_menu() {
+  local id="$1" hunt="$3" what="$4" pick
+  while true; do
+    if [ "$hunt" = "-" ]; then
+      pick="$(kdialog --title "$TITLE" --menu "$what" info "What is it? What do I do now?" \
+        safe "It's mine - stop warning me" back "Back")" || return 0
+    else
+      pick="$(kdialog --title "$TITLE" --menu "$what" info "What is it? What do I do now?" \
+        hunt "Hunt it - hot / cold meter" safe "It's mine - stop warning me" back "Back")" || return 0
+    fi
+    case "$pick" in
+      info) "$ENGINE" info "$id" > "$TMP/info" 2>&1; textbox "$TMP/info" ;;
+      hunt) "$METER" hunt "$id" ;;
+      safe)
+        "$ENGINE" safe add "$id" >/dev/null 2>&1
+        grep -v -F "$TAB$id$TAB" "$TMP/out" > "$TMP/out.new"; mv "$TMP/out.new" "$TMP/out"
+        info "OK - GhostFinder won't warn you about this one again."
+        return 0 ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+results() {
+  local verdict head pick line args lvl id hunt what icon
+  while true; do
+    verdict="$(sed -n 2p "$TMP/out")"
+    head="$verdict"
+    while IFS= read -r line; do head="$head${NL}Note: ${line#"NOTE$TAB"}"; done < <(grep "^NOTE$TAB" "$TMP/out")
+    args=()
+    while IFS=$'\t' read -r _ lvl id hunt what; do
+      [ "$lvl" = green ] && continue
+      icon="🟡"; [ "$lvl" = red ] && icon="🔴"
+      args+=("$id" "$icon $what")
+    done < <(grep "^ITEM$TAB" "$TMP/out")
+    if [ "${#args[@]}" -eq 0 ]; then
+      info "🟢 $verdict"
+      return 0
+    fi
+    grep -q $'^ITEM\tyellow\t[^\t]*\t-\t' "$TMP/out" && args+=(allmine "✅ These are all mine - mark every new device on this network as mine")
+    pick="$(kdialog --title "$TITLE" --menu "$head${NL}${NL}Pick one to see what it is, hunt it, or mark it as yours." "${args[@]}" back "Back")" || return 0
+    case "$pick" in
+      back) return 0 ;;
+      allmine)
+        "$ENGINE" known-all > "$TMP/msg" 2>&1
+        grep -v $'^ITEM\tyellow\t[^\t]*\t-\t' "$TMP/out" > "$TMP/out.new"; mv "$TMP/out.new" "$TMP/out"
+        info "$(cat "$TMP/msg")${NL}Cameras and trackers are never marked this way - check those one by one." ;;
+      *)
+        line="$(grep -F "$TAB$pick$TAB" "$TMP/out" | grep "^ITEM$TAB" | head -n 1)"
+        [ -n "$line" ] || continue
+        IFS=$'\t' read -r _ lvl id hunt what <<< "$line"
+        item_menu "$id" "$lvl" "$hunt" "$what" ;;
+    esac
+  done
+}
+
+sweep() {
+  bluetooth_ready
+  busy_start "Sweeping... checking this network, nearby Wi-Fi and Bluetooth (about 30 seconds)."
+  "$ENGINE" sweep > "$TMP/out" 2>/dev/null
+  busy_stop
+  results
+}
+
+while true; do
+  if [ "$(systemctl --user is-enabled forgeos-ghost-watch.timer 2>/dev/null)" = enabled ]; then
+    watch=("watch" "Background watch is ON - turn it off")
+  else
+    watch=("watch" "Background watch is OFF - turn it on")
+  fi
+  pick="$(kdialog --title "$TITLE" --menu "GhostFinder - see who's watching.${NL}${NL}One sweep checks this network for cameras, nearby spy-camera Wi-Fi and Bluetooth trackers. Nothing leaves this PC." \
+    sweep "🔍 Sweep now" trip "🚗 Watch this trip (car or travel)" rooms "🏠 Room-by-room camera check" \
+    report "📄 Saved report" "${watch[@]}")" || exit 0
+  case "$pick" in
+    sweep) sweep ;;
+    trip) bluetooth_ready; "$METER" trip ;;
+    rooms) "$ENGINE" checklist > "$TMP/rooms"; textbox "$TMP/rooms" ;;
+    report) if [ -s "$REPORT" ]; then textbox "$REPORT"; else info "Nothing saved yet. Every sweep, trip and alert is saved here:${NL}$REPORT"; fi ;;
+    watch)
+      if [ "${watch[1]}" = "Background watch is ON - turn it off" ]; then
+        systemctl --user disable --now forgeos-ghost-watch.timer >/dev/null 2>&1
+        info "Background watch is off."
+      else
+        systemctl --user enable --now forgeos-ghost-watch.timer >/dev/null 2>&1
+        info "Background watch is on. Every 10 minutes, while Bluetooth is on, GhostFinder listens for 15 seconds and warns you if the same tracker keeps showing up in different places."
+      fi ;;
+  esac
+done

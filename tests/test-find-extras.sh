@@ -66,7 +66,7 @@ check S2 'grep -qx "Nice=19" "$U/forgeos-find-index.service" && grep -qx "IOSche
 check S3 'grep -qx "OnStartupSec=10min" "$U/forgeos-find-index.timer" && grep -qx "OnUnitActiveSec=1h" "$U/forgeos-find-index.timer" && grep -qx "WantedBy=timers.target" "$U/forgeos-find-index.timer"'
 
 # T: build files: run bits, timer on for every user, the free packages, every file small and LF only
-check T1 'grep -q "^chmod 0755 .* /usr/bin/forgeos-find /usr/bin/forgeos-find-gui$" "$SETUP" && grep -qx "systemctl --global enable forgeos-find-index.timer" "$SETUP"'
+check T1 'grep -q "^chmod 0755 .* /usr/bin/forgeos-find /usr/bin/forgeos-find-gui\( \|$\)" "$SETUP" && grep -qx "systemctl --global enable forgeos-find-index.timer" "$SETUP"'
 check T2 '(for p in tesseract tesseract-langpack-eng poppler-utils python3; do grep -q "^        - $p  *# Find Anything (Job 11)" "$C" || exit 1; done)'
 check T3 'python3 -c "import ast,sys; [ast.parse(open(f).read(), f) for f in sys.argv[1:]]" "$FIND" "$LIB"/*.py'
 check T4 '(for f in "$FIND" "$GUI" "$LIB"/*.py "$U"/forgeos-find-index.* "$D" "$ROOT"/tests/*find*.sh; do [ "$(wc -c < "$f")" -lt 6000 ] && ! grep -q $'"'"'\r'"'"' "$f" && [ -z "$(tail -c 1 "$f")" ] || { echo "  too big, CRLF or no last newline: $f"; exit 1; }; done)'
