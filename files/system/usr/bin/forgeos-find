@@ -1,0 +1,145 @@
+#!/usr/bin/python3
+"""ForgeOS Find Anything (Job 11): search inside files, PDFs and photos in plain English.
+
+The search list lives in ~/.local/share/forgeos/find (only this user can read it).
+Nothing leaves this computer. Exit: 0 found, 1 nothing found, 2 search list empty, 3 wrong use.
+"""
+import os
+import sys
+import time
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_FIND_LIB") or "/usr/lib/forgeos-find")
+from findlib import ask, store, walk  # noqa: E402
+from findlib.words import clean_words  # noqa: E402
+
+USAGE = """Usage: forgeos-find index [--full] [--quiet]
+       forgeos-find search [--kind KIND] [--limit N] WORDS...
+       forgeos-find ask [--no-ai] QUESTION
+       forgeos-find status
+       forgeos-find forget PATH
+KIND: any photo pdf document spreadsheet slides text"""
+
+
+def usage():
+    print(USAGE, file=sys.stderr)
+    sys.exit(3)
+
+
+def show(rows):
+    """Plain lines for people, then one RESULT line per file for the window (tab separated)."""
+    home = os.path.expanduser("~")
+    print("Found %d:" % len(rows))
+    for n, (path, kind, mtime, snippet) in enumerate(rows, 1):
+        folder = os.path.dirname(path).replace(home, "~", 1)
+        print("%d. %s  (%s, %s, %s)" % (n, os.path.basename(path), folder, kind, time.strftime("%Y-%m-%d", time.localtime(mtime))))
+        if snippet:
+            print("   " + " ".join(snippet.split())[:160])
+    for path, kind, mtime, snippet in rows:
+        day = time.strftime("%Y-%m-%d", time.localtime(mtime))
+        print("\t".join(["RESULT", path, kind, day, " ".join((snippet or "").split())[:160]]))
+
+
+def empty(db):
+    if db.count() == 0:
+        print("The search list is empty. Run: forgeos-find index  (the first time can take a while)")
+        sys.exit(2)
+
+
+def cmd_search(db, args):
+    kind, limit, words = "any", 20, []
+    while args:
+        a = args.pop(0)
+        if a == "--kind" and args:
+            kind = args.pop(0)
+        elif a == "--limit" and args and args[0].isdigit():
+            limit = int(args.pop(0))
+        else:
+            words.append(a)
+    if kind not in ask.KINDS or not clean_words(words):
+        usage()
+    empty(db)
+    rows = db.search(words, kind, limit=limit) or db.search(words, kind, limit=limit, any_word=True)
+    if not rows:
+        print("Nothing found for: " + " ".join(clean_words(words)))
+        return 1
+    show(rows)
+    return 0
+
+
+def cmd_ask(db, args):
+    use_ai = "--no-ai" not in args
+    question = " ".join(a for a in args if a != "--no-ai").strip()
+    if question == "-":
+        question = sys.stdin.read(2000).strip()
+    if not question:
+        usage()
+    empty(db)
+    for plan in ask.plans(question, use_ai):
+        dates = [(plan["after"], plan["before"])] + ([("", "")] if plan["after"] or plan["before"] else [])
+        for any_word in (False, True):
+            for after, before in dates:
+                rows = db.search(plan["words"], plan["kind"], after, before, 20, any_word)
+                if rows:
+                    how = "asked the private AI" if plan["ai"] else "simple word search, the private AI is not on"
+                    extra = "" if plan["kind"] == "any" else ", only " + plan["kind"] + " files"
+                    if after or before:
+                        extra += ", changed %s to %s" % (after or "the start", before or "today")
+                    print("Looking for: %s (%s%s)" % (" ".join(plan["words"]), how, extra))
+                    show(rows)
+                    return 0
+    print("Nothing found. Try other words, or a word you know is inside the file.")
+    print("New files are added to the search list every hour.")
+    return 1
+
+
+def cmd_status(db):
+    last = int(db.get("last_run", "0") or 0)
+    size = os.path.getsize(db.path) / 1048576
+    print("Files in the search list: %d" % db.count())
+    print("Last updated: " + (time.strftime("%Y-%m-%d %H:%M", time.localtime(last)) if last else "never"))
+    print("Search list size: %.1f MB (only you can read it)" % size)
+    print("Search type: " + ("fast (FTS5)" if db.fts else "simple"))
+    if db.get("notes"):
+        print("Note: " + db.get("notes"))
+    return 0
+
+
+def cmd_forget(db, args):
+    if len(args) != 1:
+        usage()
+    path = os.path.abspath(os.path.expanduser(args[0])).rstrip("/") or "/"
+    gone = db.paths_under(path)
+    for p in gone:
+        db.drop(p)
+    db.commit()
+    if path not in walk.skipped():
+        os.makedirs(walk.config_dir(), exist_ok=True)
+        with open(walk.skip_file(), "a", encoding="utf-8") as f:
+            f.write(path + "\n")
+    print("Removed %d files from the search list. %s is skipped from now on." % (len(gone), path))
+    print("To search it again, delete its line from " + walk.skip_file())
+    return 0
+
+
+def main(argv):
+    if not argv:
+        usage()
+    cmd, args = argv[0], argv[1:]
+    db = store.Store()
+    if cmd == "index" and set(args) <= {"--full", "--quiet"}:
+        walk.run_index(db, "--full" in args, (lambda m: None) if "--quiet" in args else print)
+        return 0
+    if cmd == "search":
+        return cmd_search(db, args)
+    if cmd == "ask":
+        return cmd_ask(db, args)
+    if cmd == "status" and not args:
+        return cmd_status(db)
+    if cmd == "forget":
+        return cmd_forget(db, args)
+    return usage()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
