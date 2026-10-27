@@ -26,6 +26,10 @@ modules:
         - libnotify          # Panic Button (Job 6): notify-send shows what was cut
         - pipewire-utils     # Privacy Report (Job 7): pw-dump shows which apps use the camera, mic and screen
         - wl-clipboard       # Scam Shield (Job 8): wl-paste reads the message or link you copied
+        - tesseract          # Find Anything (Job 11): reads printed text in photos and scans (OCR)
+        - tesseract-langpack-eng  # Find Anything (Job 11): English words for tesseract
+        - poppler-utils      # Find Anything (Job 11): pdftotext + pdftoppm read PDFs
+        - python3            # Find Anything (Job 11): the search engine (already in the base image)
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

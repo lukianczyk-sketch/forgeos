@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Find Anything
+GenericName=Search inside files and photos
+Comment=Find any file by the words inside it, even text in photos and scans, in plain English. Nothing leaves this PC
+Exec=/usr/bin/forgeos-find-gui
+Icon=system-search
+Terminal=false
+Categories=Utility;FileTools;
+Keywords=search;find;file;document;ocr;photo;scan;pdf;where;lost;

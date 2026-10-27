@@ -9,3 +9,6 @@
 - Step 2 (Cline): findlib walk.py, ask.py, bin/forgeos-find written; tests.yml shellcheck checks shell scripts only. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. walk.py, ask.py, bin/forgeos-find and the tests.yml shellcheck edit byte-identical to the tested prototype (CRLF -> LF fixed). Cline tried a PowerShell line count once (rejected), then read the prompt in pieces. Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+- Step 3 (Cline): Find Anything window, menu entry, user service + timer, forgeos-setup.sh, common-modules.yml packages. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. forgeos-find-gui, forgeos-find.desktop, forgeos-find-index.service/.timer and both edits (forgeos-setup.sh, common-modules.yml) byte-identical to the tested prototype after CRLF -> LF fix. Older tests (recipes, cool stuff, panic, privacy, scam shield, ask your PC, will it run, flatpak list) still pass on Robert's PC. Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)

@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Find Anything - update the search list 10 minutes after login, then every hour
+
+[Timer]
+OnStartupSec=10min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

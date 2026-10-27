@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# ForgeOS Find Anything window (Job 11). kdialog front end for forgeos-find.
+# Type what you are looking for in plain English; pick a file to open it or show it in its folder.
+set -uo pipefail
+
+TITLE="Find Anything"
+ENGINE="${FORGEOS_FIND_ENGINE:-/usr/bin/forgeos-find}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Find Anything window. Use forgeos-find in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# busy_start <text> / busy_stop: a "please wait" bar while something slow runs.
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+build_list() {
+  kdialog --title "$TITLE" --yes-label "Build it now" --no-label "Not now" --yesno \
+    "Find Anything has not made its search list yet.${NL}${NL}It reads the words in your files and photos once, on this PC only (nothing leaves it). The first time can take a while. After that it keeps itself up to date every hour." || return 1
+  busy_start "Building the search list... This can take a while the first time."
+  "$ENGINE" index --quiet >/dev/null 2>&1
+  busy_stop
+}
+
+# file_menu <path>: open the file, or show it in its folder.
+file_menu() {
+  local path="$1" pick
+  pick="$(kdialog --title "$TITLE" --menu "${path##*/}${NL}in ${path%/*}" \
+    open "Open it" folder "Show it in its folder" back "Back to the results")" || return 0
+  case "$pick" in
+    open) setsid -f xdg-open "$path" >/dev/null 2>&1 ;;
+    folder) setsid -f dolphin --select "$path" >/dev/null 2>&1 ;;
+  esac
+}
+
+# results <engine output>: a menu of the files found. Returns 1 when the user wants a new search.
+results() {
+  local out="$1" tag path day snip pick
+  local -a items=() paths=()
+  while IFS="$TAB" read -r tag path _ day snip; do
+    [ "$tag" = RESULT ] && [ -n "$path" ] || continue
+    paths+=("$path")
+    items+=("${#paths[@]}" "${path##*/}  -  ${path%/*}  (${day})  ${snip:0:70}")
+  done <<< "$out"
+  [ "${#paths[@]}" -gt 0 ] || return 1
+  while :; do
+    pick="$(kdialog --title "$TITLE" --menu "$(head -n 1 <<< "$out")${NL}Pick a file:" \
+      "${items[@]}" again "Search for something else")" || exit 0
+    [ "$pick" = again ] && return 1
+    [[ "$pick" =~ ^[0-9]+$ ]] && [ "$pick" -le "${#paths[@]}" ] && file_menu "${paths[$((pick - 1))]}"
+  done
+}
+
+search() {
+  local q="$1" out rc=0
+  busy_start "Searching... The private AI can take up to a minute."
+  out="$("$ENGINE" ask "$q" 2>&1)" || rc=$?
+  busy_stop
+  if [ "$rc" -eq 2 ]; then
+    build_list || return
+    rc=0
+    out="$("$ENGINE" ask "$q" 2>&1)" || rc=$?
+  fi
+  case "$rc" in
+    0) results "$out" ;;
+    2) info "The search list is still being made in the background. Please try again in a few minutes." ;;
+    1) info "Nothing found for: ${q}${NL}${NL}Try other words, or a word you know is inside the file. New files are added every hour." ;;
+    *) kdialog --title "$TITLE" --error "Find Anything could not search.${NL}${NL}$out" || true ;;
+  esac
+}
+
+while :; do
+  q="$(kdialog --title "$TITLE" --inputbox "What are you looking for?${NL}For example: my 2023 tax papers   or   the photo of my driver's license" "")" || exit 0
+  if [ -z "${q//[[:space:]]/}" ]; then info "Please type what you are looking for."; continue; fi
+  search "$q"
+done

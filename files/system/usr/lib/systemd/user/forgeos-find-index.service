@@ -1,0 +1,10 @@
+[Unit]
+Description=ForgeOS Find Anything - updates the private search list (nothing leaves this PC)
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-find index --quiet
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle
