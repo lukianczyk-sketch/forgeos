@@ -15,3 +15,6 @@
 - Step 4 (Cline): GhostFinder window, meter, menu entry, user service + timer, forgeos-setup.sh, common-modules.yml packages, test-find-extras.sh T1. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED after 1 fix. Window, meter, menu entry, service, timer, forgeos-setup.sh and common-modules.yml byte-identical to the prototype (CRLF -> LF fixed). test-find-extras.sh T1: Cline dropped the backslash before the closing ) (would break the grep) — replaced with the prototype line. On Robert's PC: Find Anything, recipes, cool stuff and panic tests pass. Next: Step 5.
 - STATUS: STEP 4 DONE — next: Step 5 (Cline)
+- Step 5 (Cline): tests/ghost-fakes.sh, ghost-gui-fakes.sh, ghost-ble-world.py, ghost-fake-net.py, test-ghost.sh (A-C) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED after 2 fixes. ghost-gui-fakes.sh, ghost-ble-world.py, ghost-fake-net.py and test-ghost.sh byte-identical to the prototype (CRLF -> LF fixed). ghost-fakes.sh had 2 Cline mistakes (an extra ] after the neighbor list, and the escaped colon in "Neighbor\: Bob" dropped) — replaced with the prototype. On Robert's PC: tests A-C all pass. Next: Step 6.
+- STATUS: STEP 5 DONE — next: Step 6 (Cline)
