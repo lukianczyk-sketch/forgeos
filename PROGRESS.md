@@ -6,3 +6,6 @@
 - Step 1 (Cline): ghostlib __init__.py, trackers.py, ble.py, net.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. __init__.py, trackers.py, ble.py, net.py byte-identical to the tested prototype after CRLF -> LF fix. Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+- Step 2 (Cline): ghostlib names.py, wifi.py, store.py, sweep.py written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. names.py, wifi.py, store.py, sweep.py byte-identical to the tested prototype after CRLF -> LF fix. Next: Step 3.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)
