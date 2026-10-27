@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # tests/test-flatpak-list.sh — automatic check for the default Flatpak app list (Step 2).
-# Reads recipes/recipe.yml (or a path given as $1) and verifies that the
+# Reads recipes/common-modules.yml (or a path given as $1) and verifies that the
 # `install:` list is complete, duplicate-free, free of the end-of-life
 # Thunderbird ID, and made up of valid reverse-DNS app IDs.
 # Uses only bash + grep/sed/awk — no Python, no yq (nothing to install).
 set -euo pipefail
 
-RECIPE="${1:-recipes/recipe.yml}"
+RECIPE="${1:-recipes/common-modules.yml}"
 
 if [[ ! -f "$RECIPE" ]]; then
     echo "FAIL: cannot find recipe file: $RECIPE" >&2

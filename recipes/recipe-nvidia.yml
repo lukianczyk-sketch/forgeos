@@ -1,0 +1,18 @@
+---
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+# ForgeOS — an RL Forge Works product. NVIDIA version.
+# Image is published to ghcr.io/<github-owner>/forgeos-nvidia
+# For NVIDIA GeForce GTX 16xx / RTX 20xx and newer, including RTX 50 laptops.
+# AMD / Intel graphics: recipe.yml (forgeos).
+name: forgeos-nvidia
+description: ForgeOS by RL Forge Works (NVIDIA) — secure, Windows-friendly Linux with a built-in private AI helper.
+
+# Base: Bazzite with NVIDIA's open kernel driver (bazzite-nvidia-open). The open
+# driver is required for RTX 50 (Blackwell) cards and is the one NVIDIA recommends
+# for GTX 16xx / RTX 20xx and newer. Older GTX 9xx / 10xx cards are not covered.
+base-image: ghcr.io/ublue-os/bazzite-nvidia-open
+image-version: stable
+
+modules:
+  # Same ForgeOS as recipe.yml — every module is shared.
+  - from-file: common-modules.yml

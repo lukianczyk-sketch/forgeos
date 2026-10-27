@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/module-list-v1.json
+# ForgeOS — the modules BOTH images use:
+#   recipe.yml        -> forgeos         (AMD / Intel graphics)
+#   recipe-nvidia.yml -> forgeos-nvidia  (NVIDIA graphics)
+# Both recipes load this file with `- from-file: common-modules.yml`.
+# Add new files, packages, scripts and apps HERE, never in the recipe files.
+modules:
+  # ForgeOS's own system files (Clean Sweep button, branding config, policies)
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  # Phone <-> PC link: texts, notifications, shared clipboard, send files
+  # + Clean Sweep security tools (Step 2): ClamAV with daily signature updates, rkhunter, chkrootkit
+  - type: dnf
+    install:
+      packages:
+        - kde-connect
+        - clamav
+        - clamav-freshclam
+        - rkhunter
+        - chkrootkit
+        - jq                 # Undo Button (Job 5): reads system versions from rpm-ostree
+        - pulseaudio-utils   # Panic Button (Job 6): pactl mutes every microphone
+        - libnotify          # Panic Button (Job 6): notify-send shows what was cut
+        - pipewire-utils     # Privacy Report (Job 7): pw-dump shows which apps use the camera, mic and screen
+        - wl-clipboard       # Scam Shield (Job 8): wl-paste reads the message or link you copied
+
+  # Build-time setup: install Ollama (pinned version, checksum-verified), then
+  # make sure the Clean Sweep tool is executable inside the image.
+  # Runs AFTER the dnf module so the security packages exist when forgeos-setup.sh runs (order fix, 2026-10-23).
+  - type: script
+    scripts:
+      - install-ollama.sh
+      - forgeos-setup.sh
+
+  # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.
+  - type: default-flatpaks
+    configurations:
+      - notify: true
+        scope: system
+        install:
+          - com.brave.Browser             # Fast browser, ads & trackers blocked out of the box
+          - com.usebottles.bottles        # Run Windows programs (Wine, one click per app)
+          - com.heroicgameslauncher.hgl   # Epic, GOG & Amazon games (Steam is built into the base)
+          - com.jeffser.Alpaca            # Private on-device AI helper (Ollama-based, offline)
+          - com.github.tchx84.Flatseal    # See/limit what each app is allowed to touch
+          # Office & email
+          - org.onlyoffice.desktopeditors   # Office suite — opens Word/Excel/PowerPoint files
+          - org.mozilla.thunderbird         # Email client
+          # Photo & video
+          - org.gimp.GIMP                   # Full-featured photo editor
+          - com.github.PintaProject.Pinta   # Lighter, easier photo editor
+          - org.kde.kdenlive                # Video editor
+          - com.obsproject.Studio           # Screen recording & live streaming
+          - org.kde.haruna                  # Modern video player
+          - org.kde.elisa                   # Music player
+          - org.kde.gwenview                # Photo viewer / slideshow
+          # Safety
+          - org.keepassxc.KeePassXC         # Password manager (local, encrypted)
+          - org.gnome.World.PikaBackup      # Back up files to a USB stick or other drive
+          # Tools
+          - io.missioncenter.MissionCenter  # Windows-style Task Manager
+          - org.localsend.localsend_app     # Share files with nearby devices — no internet needed
+          - com.rustdesk.RustDesk           # Free remote control of other computers
+          - com.github.jeromerobert.pdfarranger   # Reorder, merge & split PDF pages
+          - org.kde.okular                  # Document viewer (PDF, e-books and more)
+          - org.kde.skanpage                # Scan documents with a scanner
+          - org.kde.kcalc                   # Calculator with formulas
+          - org.kde.filelight               # See what is using your disk space
+          - it.mijorus.gearlever            # Install & manage AppImage apps (adds them to the menu)
+          # Cool stuff
+          - net.mkiol.SpeechNote            # Talk to type, read aloud, translate — offline & private
+          - com.github.wwmm.easyeffects     # Sound equalizer + mic background-noise removal
+          - com.moonlight_stream.Moonlight  # Play your PC games on another screen
+          - io.gitlab.adhami3310.Impression # Make bootable USB sticks
+      - scope: user
+
+  # Image signing — systems only accept updates signed with our key
+  - type: signing

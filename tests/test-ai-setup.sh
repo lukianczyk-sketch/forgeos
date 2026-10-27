@@ -41,7 +41,9 @@ for pair in \
     "7999 gemma4:e2b" \
     "8000 gemma4:e4b" \
     "11999 gemma4:e4b" \
-    "12000 gpt-oss:20b" \
+    "12000 gemma4:12b" \
+    "15999 gemma4:12b" \
+    "16000 gpt-oss:20b" \
     "16384 gpt-oss:20b" \
     "19999 gpt-oss:20b" \
     "20000 qwen3.8:27b" \

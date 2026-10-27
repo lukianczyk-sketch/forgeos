@@ -3,7 +3,7 @@
 # Verifies the two ForgeOS menu-button .desktop files (Android Apps / Game
 # Streaming): they exist, contain no carriage return bytes, and carry the
 # exact required lines; validates them with desktop-file-validate when that
-# tool is installed. Also checks that recipes/recipe.yml has a `type: dnf`
+# tool is installed. Also checks that recipes/common-modules.yml has a `type: dnf`
 # module whose install packages include the exact line `- kde-connect`.
 # Uses only bash + grep/sed/awk — no Python, no yq (nothing to install).
 set -euo pipefail
@@ -12,7 +12,7 @@ ROOT="${1:-.}"
 
 ANDROID="$ROOT/files/system/usr/share/applications/forgeos-android-apps.desktop"
 STREAMING="$ROOT/files/system/usr/share/applications/forgeos-game-streaming.desktop"
-RECIPE="$ROOT/recipes/recipe.yml"
+RECIPE="$ROOT/recipes/common-modules.yml"
 
 failures=0
 pass() { echo "PASS: $1"; }
@@ -89,7 +89,7 @@ else
     skip "desktop-file-validate not installed — skipping desktop file validation (install desktop-file-utils to enable)"
 fi
 
-# Check 5 — recipe.yml has a `type: dnf` module whose install packages include `- kde-connect`.
+# Check 5 — common-modules.yml has a `type: dnf` module whose install packages include `- kde-connect`.
 if [[ ! -f "$RECIPE" ]]; then
     fail "cannot find recipe file: $RECIPE"
 else

@@ -203,7 +203,7 @@ check "N4 pactl subscribe started and ended with it" 'grep -q "pactl subscribe" 
 SET="$ROOT/files/scripts/forgeos-setup.sh"
 check "O1 setup makes all 3 commands runnable" 'grep -q "/usr/bin/forgeos-privacy " "$SET" && grep -q "/usr/bin/forgeos-privacy-block" "$SET" && grep -q "/usr/bin/forgeos-privacy-gui" "$SET"'
 check "O2 setup turns the note-taker on for everyone" 'grep -qx "systemctl --global enable forgeos-privacy-watch.service" "$SET"'
-check "O3 recipe adds pipewire-utils (pw-dump)" 'grep -q "^ *- pipewire-utils" "$ROOT/recipes/recipe.yml"'
+check "O3 recipe adds pipewire-utils (pw-dump)" 'grep -q "^ *- pipewire-utils" "$ROOT/recipes/common-modules.yml"'
 SV="$U/lib/systemd/user/forgeos-privacy-watch.service"
 check "O4 user service runs forgeos-privacy watch in the desktop session" 'grep -qx "ExecStart=/usr/bin/forgeos-privacy watch" "$SV" && grep -qx "WantedBy=graphical-session.target" "$SV"'
 D="$U/share/applications/forgeos-privacy.desktop"

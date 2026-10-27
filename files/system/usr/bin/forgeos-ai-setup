@@ -7,16 +7,19 @@ set -euo pipefail
 # --- Model table: keep tags + sizes in ONE place so they're easy to change ---
 MODEL_LARGE="qwen3.8:27b"   # 20 GB or more VRAM
 SIZE_LARGE="~18 GB"
-MODEL_MEDIUM="gpt-oss:20b"  # 12 - 19.9 GB VRAM
+MODEL_MEDIUM="gpt-oss:20b"  # 16 - 19.9 GB VRAM
 SIZE_MEDIUM="~14 GB"
+MODEL_MID="gemma4:12b"      # 12 - 15.9 GB VRAM (gpt-oss:20b needs ~14 GB, too big for a 12 GB card)
+SIZE_MID="~8 GB"
 MODEL_SMALL="gemma4:e4b"    # 8 - 11.9 GB VRAM
 SIZE_SMALL="~7 GB"
 MODEL_MINI="gemma4:e2b"     # under 8 GB, or no GPU found
 SIZE_MINI="~5 GB"
 
-# VRAM thresholds in MB (decimal gigabytes: 8 / 12 / 20)
+# VRAM thresholds in MB (decimal gigabytes: 8 / 12 / 16 / 20)
 VRAM_LARGE_MB=20000
-VRAM_MEDIUM_MB=12000
+VRAM_MEDIUM_MB=16000
+VRAM_MID_MB=12000
 VRAM_SMALL_MB=8000
 
 # Prints total VRAM in MB.
@@ -65,6 +68,8 @@ choose_model() {
         printf '%s\n' "$MODEL_LARGE"
     elif (( vram_mb >= VRAM_MEDIUM_MB )); then
         printf '%s\n' "$MODEL_MEDIUM"
+    elif (( vram_mb >= VRAM_MID_MB )); then
+        printf '%s\n' "$MODEL_MID"
     elif (( vram_mb >= VRAM_SMALL_MB )); then
         printf '%s\n' "$MODEL_SMALL"
     else
@@ -78,6 +83,7 @@ model_size() {
     case "$tag" in
         "$MODEL_LARGE")  printf '%s\n' "$SIZE_LARGE" ;;
         "$MODEL_MEDIUM") printf '%s\n' "$SIZE_MEDIUM" ;;
+        "$MODEL_MID")    printf '%s\n' "$SIZE_MID" ;;
         "$MODEL_SMALL")  printf '%s\n' "$SIZE_SMALL" ;;
         "$MODEL_MINI")   printf '%s\n' "$SIZE_MINI" ;;
         *)              printf 'unknown size\n' ;;

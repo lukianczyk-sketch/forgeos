@@ -110,7 +110,7 @@ for f in /usr/bin/forgeos-scamshield /usr/bin/forgeos-scamshield-gui /usr/libexe
   grep "^chmod 0755" "$SET" | grep -q " $f\( \|$\)" || t=1
 done
 grep -q "^systemctl enable forgeos-scamshield-update.timer" "$SET" || t=1
-grep -q "^ *- wl-clipboard" "$ROOT/recipes/recipe.yml" || t=1
+grep -q "^ *- wl-clipboard" "$ROOT/recipes/common-modules.yml" || t=1
 check T '[ "$t" -eq 0 ]'
 
 echo
