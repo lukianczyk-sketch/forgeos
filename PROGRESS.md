@@ -15,3 +15,6 @@
 - Step 4 (Cline): tests/find-fakes.sh, tests/find-fake-ollama.py, tests/test-find.sh (A-H) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. find-fakes.sh, find-fake-ollama.py and test-find.sh byte-identical to the tested prototype after CRLF -> LF fix (no doubled backslashes this time). On Robert's PC: tests A-H all pass in the real repo. Next: Step 5.
 - STATUS: STEP 4 DONE — next: Step 5 (Cline)
+- Step 5 (Cline): tests/test-find-ask.sh (I-N), tests/test-find-extras.sh (O-T), tests/test-find-real.sh (U) + 2 CI steps. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-26): APPROVED, no fixes. test-find-ask.sh, test-find-extras.sh, test-find-real.sh and tests.yml byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: all Find Anything tests A-U pass in the real repo (U with the real tesseract + pdftotext). Step 5 took ~15 min (one 19.6k-token answer). All 5 steps came out exact this job, no fixes needed.
+- STATUS: STEP 5 DONE — Job 11 complete (tag v0.12.0 after CI is green)

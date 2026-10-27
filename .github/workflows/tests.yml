@@ -91,3 +91,14 @@ jobs:
           bash tests/test-willitrun-open.sh .
           bash tests/test-willitrun-extras.sh .
           bash tests/test-willitrun-safety.sh .
+
+      - name: Run Find Anything tests (fake tools)
+        run: |
+          bash tests/test-find.sh .
+          bash tests/test-find-ask.sh .
+          bash tests/test-find-extras.sh .
+
+      - name: Run Find Anything test U with real OCR and PDF tools (free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng poppler-utils
+          bash tests/test-find-real.sh .
