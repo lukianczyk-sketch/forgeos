@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ForgeOS Call for help (Job 13): the big desktop button. Opens RustDesk (locked down by forgeos-family),
+# texts this PC's number to your helper, and closes RustDesk when the help is over.
+set -uo pipefail
+
+TITLE="Call for help"
+ENGINE="${FORGEOS_FAMILY_ENGINE:-/usr/bin/forgeos-family}"
+GUI="${FORGEOS_FAMILY_GUI:-/usr/bin/forgeos-family-gui}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Call for help window. Use forgeos-family call in a terminal instead." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+sorry() { kdialog --title "$TITLE" --sorry "$1" || true; }
+field() { grep "^$1$TAB" "$TMP/$2" | head -n 1 | cut -f 2-; }
+
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# call_flow: the Call for help button.
+call_flow() {
+  local rc name rid phone text sent=0 how
+  if ! "$ENGINE" helper show > "$TMP/who" 2>/dev/null; then
+    "$GUI" --helper || return 0
+    "$ENGINE" helper show > "$TMP/who" 2>/dev/null || return 0
+  fi
+  name="$(field name who)"
+  kdialog --title "$TITLE" --yes-label "Yes, get help" --no-label "Not now" --yesno \
+    "Get help from ${name} now?${NL}${NL}RustDesk opens so ${name} can see your screen and help you.${NL}Nobody gets in until you click Accept." || return 0
+  busy_start "Getting ready for ${name}..."
+  "$ENGINE" call > "$TMP/call" 2>&1; rc=$?
+  busy_stop
+  if [ "$rc" -ne 0 ]; then
+    sorry "$(cat "$TMP/call")"
+    return 0
+  fi
+  rid="$(field ID call)"; phone="$(field PHONE call)"; text="$(field TEXT call)"
+  if [ "$text" = ready ] && kdialog --title "$TITLE" --yes-label "Send the text" --no-label "No, I'll phone" --yesno \
+    "Send ${name} a text with this PC's number?${NL}${NL}It goes from your phone to ${phone}."; then
+    "$ENGINE" text "$rid" > "$TMP/text" 2>&1 && sent=1
+    [ "$sent" -eq 1 ] || sorry "$(cat "$TMP/text")"
+  fi
+  if [ "$sent" -eq 1 ]; then
+    how="${name} got your number in a text. If ${name} doesn't connect soon, call and read it out loud:"
+  elif [ -n "$phone" ]; then
+    how="Call ${name} at ${phone} and read this number out loud:"
+  else
+    how="Call ${name} and read this number out loud:"
+  fi
+  info "${how}${NL}${NL}        ${rid}${NL}${NL}When ${name} connects, a box pops up. Click Accept.${NL}If it asks to share your screen, click Share.${NL}${NL}Only click Accept while you are talking to ${name}. If anyone else asks to get into your computer, it is a scam - hang up.${NL}${NL}The help ends by itself after 2 hours."
+  until kdialog --title "$TITLE" --yes-label "I'm done - end help" --no-label "Not yet" --yesno \
+    "Is ${name} finished helping you?${NL}${NL}Your number (ID): ${rid}"; do
+    :
+  done
+  "$ENGINE" call-end > /dev/null 2>&1
+  info "The help is over. RustDesk is closed, so nobody can get in now."
+}
+
+call_flow
+exit 0

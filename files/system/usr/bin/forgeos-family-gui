@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# ForgeOS Family Mode window (Job 13). kdialog front end for forgeos-family.
+# "Family Mode - one switch makes this PC easy and safe." --helper = only ask who the helper is.
+set -uo pipefail
+
+TITLE="Family Mode"
+ENGINE="${FORGEOS_FAMILY_ENGINE:-/usr/bin/forgeos-family}"
+CALL="${FORGEOS_FAMILY_CALL:-/usr/libexec/forgeos-family-call}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Family Mode window. Use forgeos-family in a terminal instead." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+sorry() { kdialog --title "$TITLE" --sorry "$1" || true; }
+textbox() { kdialog --title "$TITLE" --textbox "$1" 640 420 || true; }
+ask() { kdialog --title "$TITLE" --inputbox "$1" "${2:-}"; }
+field() { grep "^$1$TAB" "$TMP/$2" | head -n 1 | cut -f 2-; }
+
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# setup_helper: ask who helps; returns 1 if the person gave up.
+setup_helper() {
+  local name="" phone="" rid="" me=""
+  "$ENGINE" helper show > "$TMP/who" 2>/dev/null
+  name="$(field name who)"; phone="$(field phone who)"; rid="$(field rustdesk_id who)"; me="$(field me who)"
+  while true; do
+    name="$(ask "Who helps you with the computer?${NL}${NL}Type their first name (for example: Brianna)." "$name")" || return 1
+    phone="$(ask "What is ${name}'s mobile number?${NL}${NL}Call for help can text it to them through your phone. Leave it empty if you'd rather phone them." "$phone")" || return 1
+    rid="$(ask "What is ${name}'s RustDesk ID? (Recommended)${NL}${NL}${name} finds it at the top of RustDesk on their own PC or phone. With it, ONLY ${name} can even ask to get in. Leave it empty if you don't know it yet." "$rid")" || return 1
+    me="$(ask "What is your name? It goes in the text to ${name}." "$me")" || return 1
+    if "$ENGINE" helper set --name "$name" --phone "$phone" --rustdesk-id "$rid" --me "$me" > "$TMP/set" 2>&1; then
+      info "$(cat "$TMP/set")"
+      return 0
+    fi
+    sorry "$(cat "$TMP/set")${NL}${NL}Please try again."
+  done
+}
+
+pick_size() {
+  kdialog --title "$TITLE" --menu "How big should the words be?" big "Big" bigger "Bigger"
+}
+
+main_menu() {
+  local status size who pick args
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    status="$(field STATUS status)"; size="$(field SIZE status)"; who="$(field HELPER status)"
+    if [ "$status" = on ]; then
+      args=(toggle "Turn Family Mode OFF" size "Text size: ${size^} - change it")
+    else
+      args=(toggle "Turn Family Mode ON")
+    fi
+    if [ -n "$who" ] && [ "$who" != "-" ]; then args+=(helper "My helper: ${who} - change"); else args+=(helper "Set up my helper"); fi
+    args+=(call "Call for help now" guards "Check my safety guards")
+    pick="$(kdialog --title "$TITLE" --menu "Family Mode is ${status^^}.${NL}One switch makes this PC easy and safe: big text, every safety guard on, and Call for help." "${args[@]}")" || return 0
+    case "$pick" in
+      toggle)
+        if [ "$status" = on ]; then
+          kdialog --title "$TITLE" --yesno "Turn Family Mode off?${NL}${NL}The text, mouse pointer and taskbar go back to how they were. The safety guards stay on." || continue
+          "$ENGINE" off > "$TMP/out" 2>&1
+        else
+          if [ -z "$who" ] || [ "$who" = "-" ]; then
+            kdialog --title "$TITLE" --yesno "Set up your helper first? Then Call for help knows who to ask." && setup_helper
+          fi
+          size="$(pick_size)" || continue
+          busy_start "Turning on Family Mode..."
+          "$ENGINE" on --size "$size" > "$TMP/out" 2>&1
+          busy_stop
+        fi
+        textbox "$TMP/out" ;;
+      size) size="$(pick_size)" || continue; "$ENGINE" size "$size" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")" ;;
+      helper) setup_helper ;;
+      call) "$CALL" ;;
+      guards) "$ENGINE" guards > "$TMP/out" 2>&1; textbox "$TMP/out" ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+if [ "${1:-}" = "--helper" ]; then
+  setup_helper
+  exit $?
+fi
+main_menu
+exit 0

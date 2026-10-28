@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Call for help
+GenericName=Let a family member help with this PC
+Comment=Your helper sees your screen and helps, only after you click Accept. RustDesk closes when you are done
+Exec=/usr/libexec/forgeos-family-call
+Icon=help-contents
+Terminal=false
+Categories=Utility;Accessibility;
+Keywords=help;call;family;remote;support;rustdesk;helper;stuck;problem;

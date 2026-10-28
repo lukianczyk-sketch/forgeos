@@ -9,3 +9,6 @@
 - Step 2 (Cline): familylib guards.py, call.py, cli.py and bin/forgeos-family written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. guards.py, cli.py and bin/forgeos-family byte-identical to the tested prototype. call.py left out an extra empty line at the very end of the prototype — Cline's version is the cleaner one, so the prototype now matches it. On Robert's PC: Family Mode tests A-R all pass with these files. Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+- Step 3 (Cline): forgeos-family-gui, libexec/forgeos-family-call, forgeos-family.desktop, forgeos-callhelp.desktop, forgeos-setup.sh chmod written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. forgeos-family-gui, libexec/forgeos-family-call, forgeos-family.desktop, forgeos-callhelp.desktop and the forgeos-setup.sh chmod line byte-identical to the tested prototype. Older build-file tests (GhostFinder T, Find Anything T, Cool Stuff, recipes) still pass. Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)

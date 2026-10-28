@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Family Mode
+GenericName=Make this PC easy and safe
+Comment=One switch: big text, every safety guard on, and Call for help so a family member can help you
+Exec=/usr/bin/forgeos-family-gui
+Icon=preferences-desktop-accessibility
+Terminal=false
+Categories=Settings;Accessibility;
+Keywords=family;senior;elderly;easy;big;large;text;font;bigger;help;safe;grandma;grandpa;parent;
