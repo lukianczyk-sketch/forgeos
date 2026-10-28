@@ -10,7 +10,7 @@
 - Own browser = ship a fast hardened one (Brave) now. A ForgeOS-branded Chromium build is a possible later step (Chromium is open source). Don't use Microsoft/Windows logos or look-alike trademarks.
 - OS image + source must be public (GPL / free GHCR hosting). Robert's money apps stay private.
 
-## Status (updated 2026-10-27, v0.13.0)
+## Status (updated 2026-10-28, v0.14.0)
 - v0.2.0 tagged (commit 7f24744): Job 1 "ForgeOS AI Setup" complete — Ollama v0.40.8 baked in (checksum-verified), local-only ollama.service, `forgeos-ai-setup` picks best Apache-2.0 model by VRAM and downloads only on Yes, menu entry + one-time first-login offer. GitHub `tests` + `bluebuild` both green.
 - v0.3.0 (deeb157): Job 2 "New Apps" — 25 verified free Flathub apps + tests/test-flatpak-list.sh.
 - v0.4.0 (955b6e1): Job 4 "Cool Stuff" — KDE Connect (dnf `kde-connect`), Speech Note, Easy Effects, Moonlight, Impression (29 Flatpaks total); menu buttons "Android Apps Setup" (`ujust setup-waydroid`) and "Game Streaming Setup" (`ujust setup-sunshine`); tests/test-cool-stuff.sh. tests + bluebuild green.
