@@ -12,3 +12,6 @@
 - Step 3 (Cline): forgeos-family-gui, libexec/forgeos-family-call, forgeos-family.desktop, forgeos-callhelp.desktop, forgeos-setup.sh chmod written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. forgeos-family-gui, libexec/forgeos-family-call, forgeos-family.desktop, forgeos-callhelp.desktop and the forgeos-setup.sh chmod line byte-identical to the tested prototype. Older build-file tests (GhostFinder T, Find Anything T, Cool Stuff, recipes) still pass. Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+- Step 4 (Cline): tests/family-fakes.sh, test-family.sh (A-D), test-family-more.sh (E-G) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-28): APPROVED after 1 fix. test-family.sh and test-family-more.sh byte-identical to the tested prototype. family-fakes.sh line 24 (fake kreadconfig6) dropped the `k=""` start value — replaced with the prototype. On Robert's PC: Family Mode tests A-G all pass. Next: Step 5.
+- STATUS: STEP 4 DONE — next: Step 5 (Cline)
