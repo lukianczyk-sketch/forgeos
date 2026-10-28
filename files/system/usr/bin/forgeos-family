@@ -1,0 +1,87 @@
+#!/usr/bin/python3
+"""ForgeOS Family Mode (Job 13): one switch makes this PC easy and safe.
+
+Big text, every safety guard on, and "Call for help": your helper gets in through RustDesk,
+only after you click Accept. Turning it off puts everything back the way it was.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_FAMILY_LIB") or "/usr/lib/forgeos-family")
+from familylib import SIZES, load_saved, store_saved  # noqa: E402
+from familylib import call, cli, guards, helper, rustdesk  # noqa: E402
+
+
+def options(rest, names):
+    """--name X --phone Y ... -> {name: X, phone: Y}; None = wrong use."""
+    found, i = {}, 0
+    while i < len(rest):
+        key = rest[i][2:].replace("-", "_") if rest[i].startswith("--") else ""
+        if key not in names or i + 1 >= len(rest):
+            return None
+        found[key] = rest[i + 1]
+        i += 2
+    return found
+
+
+def helper_cmd(rest):
+    if rest[:1] == ["show"] and len(rest) == 1:
+        who = helper.load()
+        if not who:
+            print("No helper is set up yet.")
+            return 2
+        for key in helper.FIELDS:
+            print("%s\t%s" % (key, who.get(key, "")))
+        return 0
+    if rest[:1] == ["clear"] and len(rest) == 1:
+        helper.forget()
+        print("Your helper is forgotten.")
+        return 0
+    given = options(rest[1:], helper.FIELDS) if rest[:1] == ["set"] else None
+    if given is None:
+        return cli.usage()
+    try:
+        who = helper.save(given.get("name", ""), given.get("phone", ""),
+                          given.get("rustdesk_id", ""), given.get("me", ""))
+    except ValueError as err:
+        print(err)
+        return 1
+    saved = load_saved()
+    if saved.get("on") and rustdesk.lock(saved, who["rustdesk_id"]):
+        store_saved(saved)  # Family Mode is on: only the new helper's ID may connect now
+    print("Your helper is %s." % who["name"])
+    return 0
+
+
+def main(args):
+    if not args:
+        return cli.usage()
+    cmd, rest = args[0], args[1:]
+    if cmd == "on":
+        size = cli.size_arg(rest)
+        if size is None or (rest and size == ""):
+            return cli.usage()
+        return cli.on(size)
+    if cmd == "off" and not rest:
+        return cli.off()
+    if cmd == "status" and not rest:
+        return cli.status()
+    if cmd == "size" and len(rest) == 1 and rest[0] in SIZES:
+        return cli.resize(rest[0])
+    if cmd == "guards" and not rest:
+        cli.show_guards(guards.check(turn_on=True))
+        return 0
+    if cmd == "helper" and rest:
+        return helper_cmd(rest)
+    if cmd == "call" and not rest:
+        return call.call()
+    if cmd == "text" and len(rest) == 1:
+        return call.text(rest[0])
+    if cmd == "call-end" and not rest:
+        return call.end()
+    return cli.usage()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

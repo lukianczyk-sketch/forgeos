@@ -6,3 +6,6 @@
 - Step 1 (Cline): familylib __init__.py, look.py, rustdesk.py, helper.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED after 1 fix. __init__.py, look.py and helper.py byte-identical to the tested prototype. rustdesk.py line 83 dropped the brackets around the "quoted key" part of the regex (it would then miss "key" = ... lines) — replaced with the prototype. Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+- Step 2 (Cline): familylib guards.py, call.py, cli.py and bin/forgeos-family written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. guards.py, cli.py and bin/forgeos-family byte-identical to the tested prototype. call.py left out an extra empty line at the very end of the prototype — Cline's version is the cleaner one, so the prototype now matches it. On Robert's PC: Family Mode tests A-R all pass with these files. Next: Step 3.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)
