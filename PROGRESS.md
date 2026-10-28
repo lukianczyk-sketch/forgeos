@@ -21,3 +21,6 @@
 - Step 6 (Cline): tests/test-ghost-safe.sh (D-H), test-ghost-watch.sh (I-P), test-ghost-gui.sh (Q-S) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. test-ghost-safe.sh, test-ghost-watch.sh and test-ghost-gui.sh byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: GhostFinder tests A-S all pass. Next: Step 7.
 - STATUS: STEP 6 DONE — next: Step 7 (Cline)
+- Step 7 (Cline): tests/ghost-fake-bluez.py, test-ghost-real.sh (U-V), test-ghost-files.sh (T) + 2 CI steps written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED after 1 fix. ghost-fake-bluez.py, test-ghost-real.sh and the tests.yml CI steps byte-identical to the prototype (CRLF -> LF fixed). test-ghost-files.sh had 2 garbled lines (T1 dropped the backslash before ), T4 mangled the quotes around the CR check) — replaced with the prototype. On Robert's PC: all GhostFinder tests A-V pass (U-V with real D-Bus + fake BlueZ), plus Find Anything and recipe tests. All 7 steps done.
+- STATUS: STEP 7 DONE — Job 12 complete (tag v0.13.0 after CI is green)

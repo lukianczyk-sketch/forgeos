@@ -102,3 +102,16 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng poppler-utils
           bash tests/test-find-real.sh .
+
+      - name: Run GhostFinder tests (fake tools, real sockets on 127.0.0.x)
+        run: |
+          bash tests/test-ghost.sh .
+          bash tests/test-ghost-safe.sh .
+          bash tests/test-ghost-watch.sh .
+          bash tests/test-ghost-gui.sh .
+          bash tests/test-ghost-files.sh .
+
+      - name: Run GhostFinder tests U-V with real D-Bus and a fake BlueZ (free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends dbus python3-dbus python3-gi
+          GHOST_PY=/usr/bin/python3 bash tests/test-ghost-real.sh .
