@@ -115,3 +115,12 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends dbus python3-dbus python3-gi
           GHOST_PY=/usr/bin/python3 bash tests/test-ghost-real.sh .
+
+      - name: Run Family Mode tests (fake tools)
+        run: |
+          bash tests/test-family.sh .
+          bash tests/test-family-more.sh .
+          bash tests/test-family-rustdesk.sh .
+          bash tests/test-family-call.sh .
+          bash tests/test-family-gui.sh .
+          bash tests/test-family-files.sh .

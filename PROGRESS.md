@@ -15,3 +15,6 @@
 - Step 4 (Cline): tests/family-fakes.sh, test-family.sh (A-D), test-family-more.sh (E-G) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-28): APPROVED after 1 fix. test-family.sh and test-family-more.sh byte-identical to the tested prototype. family-fakes.sh line 24 (fake kreadconfig6) dropped the `k=""` start value — replaced with the prototype. On Robert's PC: Family Mode tests A-G all pass. Next: Step 5.
 - STATUS: STEP 4 DONE — next: Step 5 (Cline)
+- Step 5 (Cline): tests/test-family-rustdesk.sh (H-K), test-family-call.sh (L-N), test-family-gui.sh (O-Q), test-family-files.sh (R) + CI step written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-28): APPROVED after 1 fix. test-family-rustdesk.sh, test-family-call.sh, test-family-gui.sh and the tests.yml CI step byte-identical to the tested prototype. test-family-files.sh R1 and R5 each dropped a backslash before `)` in `\( \|$\)` — replaced with the prototype. On Robert's PC: every ForgeOS test passes (Family Mode A-R, GhostFinder A-V incl. real D-Bus, all older jobs). All 5 steps done.
+- STATUS: STEP 5 DONE — Job 13 complete (tag v0.14.0 after CI is green)
