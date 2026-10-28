@@ -18,3 +18,6 @@
 - Step 5 (Cline): tests/ghost-fakes.sh, ghost-gui-fakes.sh, ghost-ble-world.py, ghost-fake-net.py, test-ghost.sh (A-C) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-27): APPROVED after 2 fixes. ghost-gui-fakes.sh, ghost-ble-world.py, ghost-fake-net.py and test-ghost.sh byte-identical to the prototype (CRLF -> LF fixed). ghost-fakes.sh had 2 Cline mistakes (an extra ] after the neighbor list, and the escaped colon in "Neighbor\: Bob" dropped) — replaced with the prototype. On Robert's PC: tests A-C all pass. Next: Step 6.
 - STATUS: STEP 5 DONE — next: Step 6 (Cline)
+- Step 6 (Cline): tests/test-ghost-safe.sh (D-H), test-ghost-watch.sh (I-P), test-ghost-gui.sh (Q-S) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-27): APPROVED, no fixes. test-ghost-safe.sh, test-ghost-watch.sh and test-ghost-gui.sh byte-identical to the tested prototype after CRLF -> LF fix. On Robert's PC: GhostFinder tests A-S all pass. Next: Step 7.
+- STATUS: STEP 6 DONE — next: Step 7 (Cline)
