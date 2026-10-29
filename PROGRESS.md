@@ -9,3 +9,6 @@
 - Step 2 (Cline): guardlib downloads.py, mail.py, inbox.py, watch.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. downloads.py, mail.py, inbox.py and watch.py byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests E-L pass with these files (real ClamAV, real inotify, real mail files). Next: Step 3.
 - STATUS: STEP 2 DONE — next: Step 3 (Cline)
+- Step 3 (Cline): guardlib cli.py, bin/forgeos-guard, bin/forgeos-guard-gui, libexec/forgeos-guard-hosts written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. cli.py, bin/forgeos-guard, bin/forgeos-guard-gui and libexec/forgeos-guard-hosts byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests C-D, M-N and O-P pass with these files. Next: Step 4.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)

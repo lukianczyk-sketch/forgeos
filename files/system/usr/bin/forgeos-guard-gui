@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# ForgeOS Always-On Guard window (Job 13b). kdialog front end for forgeos-guard.
+# --why ID = show why one warning was given (the "Show why" button on a pop-up).
+set -uo pipefail
+
+TITLE="Always-On Guard"
+ENGINE="${FORGEOS_GUARD_ENGINE:-/usr/bin/forgeos-guard}"
+HOSTS_HELPER="${FORGEOS_GUARD_HOSTS_HELPER:-/usr/libexec/forgeos-guard-hosts}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-guard in a terminal." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+row() { grep "^GUARD${TAB}$1${TAB}" "$TMP/status" | head -n 1 | cut -f 3-; }
+
+why() {
+  { echo "Why Always-On Guard warned you:"; echo; "$ENGINE" why "$1" 2>&1; } > "$TMP/why"
+  kdialog --title "$TITLE" --textbox "$TMP/why" 680 440 || true
+}
+
+warnings() {
+  "$ENGINE" events 30 > "$TMP/ev" 2>/dev/null
+  if [ ! -s "$TMP/ev" ]; then info "No warnings yet. Always-On Guard has not found anything bad."; return; fi
+  local args=() when kind who what eid pick
+  while IFS="$TAB" read -r when kind _ who what _ eid; do
+    case "$kind" in
+      virus) what="VIRUS locked away: $(basename -- "$who") ($what)" ;;
+      scam) what="Scam email from $who: $what" ;;
+      careful) what="Be careful - email from $who: $what" ;;
+      risky) what="Risky file: $(basename -- "$who")" ;;
+      *) what="Not checked: $(basename -- "$who") ($what)" ;;
+    esac
+    args=("$eid" "${when%:*}  $what" "${args[@]}")
+  done < "$TMP/ev"
+  pick="$(kdialog --title "$TITLE" --menu "Recent warnings (newest first). Pick one to see why:" "${args[@]}")" || return 0
+  why "$pick"
+}
+
+locked() {
+  "$ENGINE" quarantine list > "$TMP/q" 2>/dev/null
+  if ! grep -q "$TAB" "$TMP/q"; then info "No files are locked away."; return; fi
+  local args=() qid date orig virus pick what
+  while IFS="$TAB" read -r qid date orig virus; do args+=("$qid" "${date%:*}  $(basename -- "$orig")  ($virus)"); done < "$TMP/q"
+  pick="$(kdialog --title "$TITLE" --menu "Files locked away because they had a virus. They can't hurt your computer there." "${args[@]}")" || return 0
+  what="$(kdialog --title "$TITLE" --menu "What should happen to this file?" keep "Keep it locked away (safest)" delete "Delete it for good" restore "Put it back (only if you are SURE it is safe)")" || return 0
+  case "$what" in
+    delete) kdialog --title "$TITLE" --yesno "Delete this file for good?" && "$ENGINE" quarantine delete "$pick" > "$TMP/out" 2>&1 && info "$(cat "$TMP/out")" ;;
+    restore)
+      kdialog --title "$TITLE" --warningyesno "This file had a VIRUS.${NL}${NL}Only put it back if a person you trust (not someone who called you) says it is safe.${NL}${NL}Put it back anyway?" || return 0
+      "$ENGINE" quarantine restore "$pick" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")" ;;
+  esac
+}
+
+unblock() {
+  local site
+  site="$(kdialog --title "$TITLE" --inputbox "Which website should NOT be blocked? (example: example.com)${NL}${NL}Only if you are sure it is real and safe. If someone on the phone tells you to do this, it is a scam - hang up.")" || return 0
+  [ -n "$site" ] || return 0
+  kdialog --title "$TITLE" --warningyesno "Unblock ${site}?${NL}${NL}It is on a list of scam or virus websites. Your PC password is needed." || return 0
+  pkexec "$HOSTS_HELPER" allow "$site" > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+check_file() {
+  local f
+  f="$(kdialog --title "$TITLE" --getopenfilename "$HOME")" || return 0
+  [ -n "$f" ] || return 0
+  "$ENGINE" scan "$f" > "$TMP/out" 2>&1
+  case "$(cut -f 1 "$TMP/out" | head -n 1)" in
+    CLEAN) info "No virus found in $(basename -- "$f")." ;;
+    VIRUS) kdialog --title "$TITLE" --sorry "VIRUS FOUND in $(basename -- "$f"): $(cut -f 3 "$TMP/out")${NL}${NL}It was locked away so it can't hurt your computer." || true ;;
+    RISKY) info "No virus found, but be careful: $(basename -- "$f") is $(cut -f 3 "$TMP/out").${NL}${NL}Check it with Will It Run? before you open it." ;;
+    *) info "This file could not be checked (too big, or the checker is not ready)." ;;
+  esac
+}
+
+switch() { # switch downloads|email on|off
+  local name="Download Guard"
+  [ "$1" = email ] && name="Email Guard"
+  [ "$2" = on ] || kdialog --title "$TITLE" --warningyesno "Turn ${name} OFF?${NL}${NL}Your PC will be less safe." || return 0
+  "$ENGINE" "$2" "$1" > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+main_menu() {
+  local d w e pick head sw_d sw_e
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    d="$(row downloads | cut -f 1)"; w="$(row websites)"; e="$(row email | cut -f 1)"
+    head="Download Guard: ${d^^} - every new download is checked for viruses"
+    [ "$(row downloads | cut -f 2)" = low-memory ] && head+=" (low-memory mode)"
+    if [ "$(cut -f 1 <<< "$w")" = on ]; then head+="${NL}Website Guard: ON - $(cut -f 2 <<< "$w") scam and virus websites blocked"
+    else head+="${NL}Website Guard: OFF - it turns on after Scam Shield's first daily list"; fi
+    head+="${NL}Email Guard: ${e^^} - every new email is checked for scams"
+    [ "$(row email | cut -f 2)" = no-thunderbird ] && head+=" (when you set up Thunderbird)"
+    grep -q "^SERVICE${TAB}running" "$TMP/status" || head+="${NL}${NL}The guard is not running right now."
+    sw_d=on; sw_e=on; [ "$d" = on ] && sw_d=off; [ "$e" = on ] && sw_e=off
+    pick="$(kdialog --title "$TITLE" --menu "$head" warnings "Recent warnings" locked "Locked-away files" check "Check a file now" unblock "Unblock a website" dl "Turn Download Guard ${sw_d^^}" em "Turn Email Guard ${sw_e^^}")" || return 0
+    case "$pick" in
+      warnings) warnings ;;
+      locked) locked ;;
+      check) check_file ;;
+      unblock) unblock ;;
+      dl) switch downloads "$sw_d" ;;
+      em) switch email "$sw_e" ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --why) [ $# -eq 2 ] && why "$2" ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-guard-gui [--why ID]" >&2; exit 3 ;;
+esac

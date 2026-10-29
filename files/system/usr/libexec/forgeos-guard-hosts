@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# ForgeOS Always-On Guard (Job 13b): Website Guard. Blocks known scam and virus websites for the whole PC
+# (every browser, every email link, every app) with a marked block in /etc/hosts, built from Scam Shield's
+# free daily lists. Lines outside the block are never touched. Runs as root (forgeos-guard-hosts.service/.path,
+# or pkexec from the Always-On Guard window to unblock a website).
+# usage: forgeos-guard-hosts apply | remove | allow DOMAIN | unallow DOMAIN | status
+# Exit: 0 ok, 1 failed, 3 wrong use.
+set -uo pipefail
+HOSTS="${FORGEOS_HOSTS:-/etc/hosts}"
+SCAM_DIR="${FORGEOS_SCAM_DIR:-/var/lib/forgeos-scamshield}"
+ALLOW="${FORGEOS_GUARD_ALLOW:-/etc/forgeos/guard-allow.list}"
+STATE="${FORGEOS_GUARD_STATE:-/var/lib/forgeos-guard}"
+MOST="${FORGEOS_GUARD_MOST:-400000}"
+BEGIN="# >>> ForgeOS Always-On Guard: scam and virus websites blocked (made by forgeos-guard-hosts, do not edit) >>>"
+END="# <<< ForgeOS Always-On Guard <<<"
+DOMAIN_RE='^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'
+
+usage() { echo "usage: forgeos-guard-hosts apply | remove | allow DOMAIN | unallow DOMAIN | status" >&2; exit 3; }
+
+# The hosts file without our block (exactly as it was before we added it).
+outside() { awk -v b="$BEGIN" -v e="$END" '$0 == b { skip = 1; next } $0 == e { skip = 0; next } !skip' "$HOSTS"; }
+
+# The domains to block: both lists, cleaned, minus the allow list (and anything under an allowed domain).
+domains() {
+  local f
+  for f in "$SCAM_DIR"/phishing.list "$SCAM_DIR"/urlhaus.list; do [ -r "$f" ] && cat -- "$f"; done \
+    | tr '[:upper:]' '[:lower:]' | grep -E "$DOMAIN_RE" | grep -vxE 'localhost(\..*)?|.*\.localdomain|.*\.local' \
+    | awk -v allow="$ALLOW" 'BEGIN { while ((getline a < allow) > 0) { sub(/[ \t\r]+$/, "", a); if (a != "" && a !~ /^#/) ok[tolower(a)] = 1 } }
+      { d = $0; for (;;) { if (d in ok) next; i = index(d, "."); if (!i) break; d = substr(d, i + 1) } print }' \
+    | sort -u | head -n "$MOST"
+}
+
+# Write $1 into the hosts file IN PLACE (same file, same owner and SELinux label), then check it.
+# A copy of the file from just before is kept in $STATE/hosts.before and put back if writing fails.
+put() {
+  [ -w "$HOSTS" ] || { echo "Website Guard needs to run as the administrator (root)." >&2; return 1; }
+  mkdir -p -- "$STATE" && cp -- "$HOSTS" "$STATE/hosts.before" || { echo "Could not save a copy of $HOSTS." >&2; return 1; }
+  cat -- "$1" > "$HOSTS" && cmp -s -- "$1" "$HOSTS" && return 0
+  echo "Could not write $HOSTS - putting the old one back." >&2
+  cat -- "$STATE/hosts.before" > "$HOSTS"
+  return 1
+}
+
+say_status() { # state on/off, number blocked
+  mkdir -p -- "$STATE" || return 0
+  printf 'state=%s\nblocked=%s\nupdated=%s\n' "$1" "$2" "$(date '+%Y-%m-%d %H:%M')" > "$STATE/status.new" \
+    && chmod 0644 "$STATE/status.new" && mv -f -- "$STATE/status.new" "$STATE/status"
+}
+
+apply() {
+  local tmp list n
+  [ -r "$HOSTS" ] || { echo "No hosts file at $HOSTS." >&2; return 1; }
+  tmp="$(mktemp)" || return 1; list="$(mktemp)" || return 1
+  domains > "$list"
+  n="$(wc -l < "$list")"
+  if [ "$n" -eq 0 ]; then
+    rm -f -- "$tmp" "$list"
+    echo "No scam lists yet (Scam Shield downloads them every day). Nothing changed."
+    return 0
+  fi
+  { outside; echo "$BEGIN"; awk '{ print "0.0.0.0 " $0; print ":: " $0 }' "$list"; echo "$END"; } > "$tmp"
+  if cmp -s -- "$tmp" "$HOSTS"; then rm -f -- "$tmp" "$list"; say_status on "$n"; echo "Website Guard is ON: $n scam and virus websites blocked (no change)."; return 0; fi
+  put "$tmp" || { rm -f -- "$tmp" "$list"; return 1; }
+  rm -f -- "$tmp" "$list"
+  say_status on "$n"
+  echo "Website Guard is ON: $n scam and virus websites blocked."
+}
+
+remove() {
+  local tmp
+  tmp="$(mktemp)" || return 1
+  outside > "$tmp"
+  if ! cmp -s -- "$tmp" "$HOSTS"; then put "$tmp" || { rm -f -- "$tmp"; return 1; }; fi
+  rm -f -- "$tmp"
+  say_status off 0
+  echo "Website Guard is OFF: no websites are blocked by ForgeOS."
+}
+
+allow() {
+  local d
+  d="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"; d="${d#http://}"; d="${d#https://}"; d="${d%%/*}"; d="${d#www.}"
+  [[ "$d" =~ $DOMAIN_RE ]] || { echo "That doesn't look like a website name (example: example.com)." >&2; return 3; }
+  mkdir -p -- "$(dirname -- "$ALLOW")" || return 1
+  if [ "$2" = add ]; then
+    grep -qxF -- "$d" "$ALLOW" 2>/dev/null || echo "$d" >> "$ALLOW" || return 1
+    echo "Unblocked: $d"
+  else
+    [ -e "$ALLOW" ] && { grep -vxF -- "$d" "$ALLOW" > "$ALLOW.new"; cat -- "$ALLOW.new" > "$ALLOW"; rm -f -- "$ALLOW.new"; }
+    echo "Blocked again (if it is on the scam lists): $d"
+  fi
+  apply >/dev/null || return 1
+}
+
+case "${1:-}" in
+  apply) [ $# -eq 1 ] || usage; apply ;;
+  remove) [ $# -eq 1 ] || usage; remove ;;
+  allow) [ $# -eq 2 ] || usage; allow "$2" add ;;
+  unallow) [ $# -eq 2 ] || usage; allow "$2" del ;;
+  status) [ $# -eq 1 ] || usage; cat -- "$STATE/status" 2>/dev/null || echo "state=off" ;;
+  *) usage ;;
+esac

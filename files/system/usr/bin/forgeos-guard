@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+"""ForgeOS Always-On Guard (Job 13b): no buttons to remember.
+
+Every download is virus-checked the moment it lands, scam and virus websites are blocked for the
+whole PC, and every new email is checked by Scam Shield. Nothing leaves this PC.
+Exit (scan): 0 clean, 1 virus found (locked away), 2 risky file, 3 could not check / wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_GUARD_LIB") or "/usr/lib/forgeos-guard")
+from guardlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))
