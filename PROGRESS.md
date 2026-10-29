@@ -6,3 +6,6 @@
 - Step 1 (Cline): guardlib __init__.py, scan.py, quarantine.py, inotify.py, alerts.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. __init__.py, scan.py, quarantine.py, inotify.py and alerts.py byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests A-D pass with these files (real ClamAV). Next: Step 2.
 - STATUS: STEP 1 DONE — next: Step 2 (Cline)
+- Step 2 (Cline): guardlib downloads.py, mail.py, inbox.py, watch.py written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. downloads.py, mail.py, inbox.py and watch.py byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests E-L pass with these files (real ClamAV, real inotify, real mail files). Next: Step 3.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)
