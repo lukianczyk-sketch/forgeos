@@ -11,6 +11,7 @@ Secure, fast, Windows-friendly Linux with a built-in private AI helper.
 - **Clean Sweep button:** "I think I've been hacked" — resets the system to genuine ForgeOS, removes hidden auto-start programs and remote-access keys, resets app permissions, forces new passwords. Personal files are kept; anything removed goes to `/var/lib/forgeos/quarantine/`.
 - **GhostFinder — see who's watching:** one button finds cameras on your network, spy-camera Wi-Fi and Bluetooth trackers (AirTag, SmartTag, Tile...) away from their owner; hot/cold hunt meter, trip watch, background watch, plain-English "what do I do now". Nothing leaves the PC.
 - **Family Mode — one switch makes this PC easy and safe:** big text, bigger mouse pointer and taller taskbar; every safety guard on; "Call for help" lets a family member see your screen and help through RustDesk — only after you click Accept, and only their RustDesk ID can ask; it texts them the number through your phone. Turn it off and everything goes back exactly as it was.
+- **Always-On Guard — checks everything by itself:** every download is virus-checked the moment it lands (bad ones locked away, fake "invoice.pdf.exe" tricks flagged); every new email in Thunderbird is checked for scams and virus attachments; known scam and virus websites are blocked for the whole PC from free daily lists. Plain-English pop-ups with "Show why", one window to see and undo everything. Nothing leaves the PC.
 
 ## Which image?
 
