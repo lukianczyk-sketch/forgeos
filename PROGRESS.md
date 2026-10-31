@@ -18,3 +18,6 @@
 - Step 5 (Cline): tests/guard-fakes.sh, guard-gui-fakes.sh, test-guard.sh (A-B), test-guard-more.sh (C-D) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-31): APPROVED with 1 fix. Cline dropped the empty last line of tests/guard-gui-fakes.sh - replaced it with the tested prototype. guard-fakes.sh, test-guard.sh and test-guard-more.sh are byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests A-D pass in the repo (real ClamAV clamscan + clamd, no skips). Next: Step 6.
 - STATUS: STEP 5 DONE — next: Step 6 (Cline)
+- Step 6 (Cline): tests/test-guard-watch.sh (E-H), test-guard-mail.sh (I), test-guard-inbox.sh (J-L) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-31): APPROVED, no fixes. test-guard-watch.sh, test-guard-mail.sh and test-guard-inbox.sh byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests E-L pass in the repo (real ClamAV, real inotify, real mail files). Next: Step 7.
+- STATUS: STEP 6 DONE — next: Step 7 (Cline)
