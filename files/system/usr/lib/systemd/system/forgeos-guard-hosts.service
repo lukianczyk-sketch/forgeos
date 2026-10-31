@@ -1,0 +1,21 @@
+# ForgeOS Always-On Guard (Job 13b): Website Guard. Blocks known scam and virus websites for the whole PC
+# (/etc/hosts), from Scam Shield's free daily lists. Started at boot and after every list update.
+[Unit]
+Description=ForgeOS Always-On Guard - block scam and virus websites for the whole PC
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/forgeos-guard-hosts apply
+StateDirectory=forgeos-guard
+StateDirectoryMode=0755
+Nice=19
+IOSchedulingClass=idle
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/hosts
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

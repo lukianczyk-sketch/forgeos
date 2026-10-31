@@ -1,0 +1,13 @@
+# ForgeOS Always-On Guard (Job 13b): rebuild the website block list whenever Scam Shield's lists
+# or the unblock list change.
+[Unit]
+Description=ForgeOS Always-On Guard - watch the scam website lists
+
+[Path]
+PathChanged=/var/lib/forgeos-scamshield/phishing.list
+PathChanged=/var/lib/forgeos-scamshield/urlhaus.list
+PathChanged=/etc/forgeos/guard-allow.list
+Unit=forgeos-guard-hosts.service
+
+[Install]
+WantedBy=paths.target

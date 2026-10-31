@@ -33,6 +33,7 @@ modules:
         - python3-dbus       # GhostFinder (Job 12): listens for Bluetooth trackers through BlueZ
         - avahi-tools        # GhostFinder (Job 12): avahi-browse names the devices on your network
         - hwdata             # GhostFinder (Job 12): the free list of who made each network device
+        - clamd              # Always-On Guard (Job 13b): the always-ready virus checker (clamdscan is in clamav)
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

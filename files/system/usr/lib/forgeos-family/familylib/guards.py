@@ -6,10 +6,12 @@ so they are only checked and shown; Ask Your PC or your helper can turn them bac
 from . import run
 
 MINE = [("forgeos-privacy-watch.service", "Privacy Report - tells you when an app uses your camera or microphone"),
-        ("forgeos-ghost-watch.timer", "GhostFinder - warns you if a tracker is following you")]
+        ("forgeos-ghost-watch.timer", "GhostFinder - warns you if a tracker is following you"),
+        ("forgeos-guard.service", "Always-On Guard - checks every download and every new email")]
 PC_WIDE = [("clamav-freshclam.service", "Virus checker (ClamAV) - new virus list every day"),
            ("forgeos-cleansweep.timer", "Clean Sweep - virus and hacker scan every week"),
            ("forgeos-scamshield-update.timer", "Scam Shield - new list of scam websites every day"),
+           ("forgeos-guard-hosts.path", "Website Guard - blocks scam and virus websites for the whole PC"),
            ("forgeos-willitrun-update.timer", "Will It Run? - new list of games with anti-cheat every day"),
            ("snapper-timeline.timer", "Undo Button - a saved copy of your files every hour")]
 

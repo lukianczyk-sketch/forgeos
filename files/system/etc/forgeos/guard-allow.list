@@ -1,0 +1,2 @@
+# ForgeOS Always-On Guard: websites that must NOT be blocked, one per line (example.com also unblocks www.example.com).
+# Easiest way: Always-On Guard window -> "Unblock a website" (asks for the PC password).

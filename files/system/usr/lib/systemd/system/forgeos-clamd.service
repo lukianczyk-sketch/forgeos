@@ -1,0 +1,26 @@
+# ForgeOS Always-On Guard (Job 13b): the always-ready virus checker, so downloads are checked in under a second.
+# Only on PCs with about 6 GB of memory or more (the virus list needs about 1.2 GB);
+# smaller PCs use clamscan instead (slower, but uses no memory while idle).
+# Files are streamed to it, so it never opens your files itself.
+[Unit]
+Description=ForgeOS Always-On Guard - always-ready virus checker (ClamAV)
+ConditionMemory=>=5500M
+Wants=clamav-freshclam.service
+After=clamav-freshclam.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/clamd --config-file=/etc/clamd.d/forgeos.conf
+DynamicUser=yes
+RuntimeDirectory=clamd.forgeos
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=30
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateNetwork=yes
+
+[Install]
+WantedBy=multi-user.target

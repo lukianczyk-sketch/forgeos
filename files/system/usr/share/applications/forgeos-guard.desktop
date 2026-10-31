@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Always-On Guard
+GenericName=Virus, scam website and scam email guard
+Comment=Checks every download and every new email by itself, and blocks scam websites
+Exec=/usr/bin/forgeos-guard-gui
+Icon=security-high
+Terminal=false
+Categories=System;Security;
+Keywords=virus;antivirus;scam;download;email;quarantine;block;website;guard;

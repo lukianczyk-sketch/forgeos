@@ -1,0 +1,16 @@
+# ForgeOS Always-On Guard (Job 13b): virus-checks every download and checks every new email, by itself.
+# Only reads your files; nothing leaves this PC.
+[Unit]
+Description=ForgeOS Always-On Guard - checks every download and every new email
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/forgeos-guard watch
+Restart=on-failure
+RestartSec=10
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=graphical-session.target

@@ -12,3 +12,6 @@
 - Step 3 (Cline): guardlib cli.py, bin/forgeos-guard, bin/forgeos-guard-gui, libexec/forgeos-guard-hosts written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-28): APPROVED, no fixes. cli.py, bin/forgeos-guard, bin/forgeos-guard-gui and libexec/forgeos-guard-hosts byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests C-D, M-N and O-P pass with these files. Next: Step 4.
 - STATUS: STEP 3 DONE — next: Step 4 (Cline)
+- Step 4 (Cline): clamd forgeos.conf, guard-allow.list, forgeos-clamd/forgeos-guard-hosts services + path, user forgeos-guard.service, forgeos-guard.desktop, forgeos-setup.sh, common-modules.yml (clamd), Family Mode guards.py written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-31): APPROVED with 1 fix. Cline left out edit J2 (the "Website Guard" line in Family Mode guards.py) - replaced guards.py with the tested prototype. The 7 new files, forgeos-setup.sh and common-modules.yml are byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Family Mode tests (all 6), recipe tests and Always-On Guard tests C-D, M-N, O-P and Q pass. Next: Step 5.
+- STATUS: STEP 4 DONE — next: Step 5 (Cline)
