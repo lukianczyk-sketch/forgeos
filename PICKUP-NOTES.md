@@ -37,7 +37,7 @@
 
 ## Next steps
 Robert approved the "what Windows/Linux should have built in" roadmap (details in the Claude project: forgeos-feature-roadmap.md). Order:
-0. DONE in v0.11.1: NVIDIA image (forgeos-nvidia) + AI Setup 12-15.9 GB tier fix. DONE in v0.12.0: Job 11 Find Anything. DONE in v0.13.0: Job 12 GhostFinder. DONE in v0.14.0: Job 13 Family Mode. DONE in v0.15.0: Job 13b Always-On Guard.
+0. DONE in v0.11.1: NVIDIA image (forgeos-nvidia) + AI Setup 12-15.9 GB tier fix. DONE in v0.12.0: Job 11 Find Anything. DONE in v0.13.0: Job 12 GhostFinder. DONE in v0.14.0: Job 13 Family Mode. DONE in v0.15.0: Job 13b Always-On Guard. v0.15.0 tag on ca089cf after tests + bluebuild green (2026-10-31). NEXT: Job 13c Forge Helper.
 1. Job 13c Forge Helper → Job 13d Driver & BIOS Autopilot → Job 14 Moving Day → Job 15 Drive Death Warning → Job 16 Ransomware Tripwire → Job 17 Fake Tech Support Guard → Job 18 Digital Will → Job 19 Find My PC (private) → Job 20 Why Is It Slow? → Job 21 PC Report Card → Job 22 Show Me How → Job 23 Plain-English Errors → Job 24 Ask Before Connecting → Job 25 Power Outage Saver → Job 26 Never Bricks → Job 27 Offline Survival Kit → Job 28 Password Breach Alarm → Job 29 Kids Mode → Jobs 30–56 (approved 2026-10-27: Talk To Your PC … Save Your Old PC; full list in the Claude project roadmap). After the OS: ForgeOS Browser (Forge Guard add-on first).
 2. Later: branding / Windows-style layout, USB installer (ISO), AMD + NVIDIA variants, real-machine test.
 
