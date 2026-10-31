@@ -15,3 +15,6 @@
 - Step 4 (Cline): clamd forgeos.conf, guard-allow.list, forgeos-clamd/forgeos-guard-hosts services + path, user forgeos-guard.service, forgeos-guard.desktop, forgeos-setup.sh, common-modules.yml (clamd), Family Mode guards.py written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-31): APPROVED with 1 fix. Cline left out edit J2 (the "Website Guard" line in Family Mode guards.py) - replaced guards.py with the tested prototype. The 7 new files, forgeos-setup.sh and common-modules.yml are byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Family Mode tests (all 6), recipe tests and Always-On Guard tests C-D, M-N, O-P and Q pass. Next: Step 5.
 - STATUS: STEP 4 DONE — next: Step 5 (Cline)
+- Step 5 (Cline): tests/guard-fakes.sh, guard-gui-fakes.sh, test-guard.sh (A-B), test-guard-more.sh (C-D) written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-31): APPROVED with 1 fix. Cline dropped the empty last line of tests/guard-gui-fakes.sh - replaced it with the tested prototype. guard-fakes.sh, test-guard.sh and test-guard-more.sh are byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests A-D pass in the repo (real ClamAV clamscan + clamd, no skips). Next: Step 6.
+- STATUS: STEP 5 DONE — next: Step 6 (Cline)
