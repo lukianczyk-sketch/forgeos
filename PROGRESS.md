@@ -21,3 +21,6 @@
 - Step 6 (Cline): tests/test-guard-watch.sh (E-H), test-guard-mail.sh (I), test-guard-inbox.sh (J-L) written. Waiting for Claude's review.
 - CLAUDE REVIEW (2026-10-31): APPROVED, no fixes. test-guard-watch.sh, test-guard-mail.sh and test-guard-inbox.sh byte-identical to the tested prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests E-L pass in the repo (real ClamAV, real inotify, real mail files). Next: Step 7.
 - STATUS: STEP 6 DONE — next: Step 7 (Cline)
+- Step 7 (Cline): tests/test-guard-hosts.sh (M-N), test-guard-gui.sh (O-P), test-guard-files.sh (Q) + CI step written. Waiting for Claude's review.
+- CLAUDE REVIEW (2026-10-31): APPROVED with fixes. Cline mangled tests/test-guard-files.sh (extra spaces in 2 grep patterns, a broken quote in Q8) and left out the last newline of test-guard-hosts.sh and test-guard-gui.sh - all 3 replaced with the tested prototype. The tests.yml CI step is byte-identical to the prototype (only Windows line endings, turned back to Linux ones). On Robert's PC: Always-On Guard tests M-N, O-P and Q pass in the repo (all 8 Guard test files A-Q pass). Next: docs + tag v0.15.0.
+- STATUS: STEP 7 DONE — next: docs + tag v0.15.0 (Claude)

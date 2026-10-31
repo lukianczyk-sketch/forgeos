@@ -124,3 +124,15 @@ jobs:
           bash tests/test-family-call.sh .
           bash tests/test-family-gui.sh .
           bash tests/test-family-files.sh .
+
+      - name: Run Always-On Guard tests (real ClamAV + clamd with a test-only signature, free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends clamav clamav-daemon clamdscan desktop-file-utils
+          bash tests/test-guard.sh .
+          bash tests/test-guard-more.sh .
+          bash tests/test-guard-watch.sh .
+          bash tests/test-guard-mail.sh .
+          bash tests/test-guard-inbox.sh .
+          bash tests/test-guard-hosts.sh .
+          bash tests/test-guard-gui.sh .
+          bash tests/test-guard-files.sh .
