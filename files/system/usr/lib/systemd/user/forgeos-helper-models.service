@@ -1,0 +1,8 @@
+[Unit]
+Description=ForgeOS Forge Helper - tests the downloaded AI models and keeps the best one (never downloads)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-helper models
+Nice=19
+IOSchedulingClass=idle

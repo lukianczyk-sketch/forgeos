@@ -1,0 +1,49 @@
+{"q": "undo the change to my file", "tool": "undo_open"}
+{"q": "I accidentally deleted my pictures folder", "tool": "undo_open"}
+{"q": "get it back please I deleted it", "tool": "undo_open"}
+{"q": "I need the old version of my resume", "tool": "undo_open"}
+{"q": "who used my camera", "tool": "privacy_report"}
+{"q": "my camera light came on by itself", "tool": "privacy_report"}
+{"q": "is an app listening to me", "tool": "privacy_report"}
+{"q": "which apps used the microphone", "tool": "privacy_report"}
+{"q": "is someone spying on me through the webcam", "tool": "privacy_report"}
+{"q": "show me my privacy report", "tool": "privacy_report"}
+{"q": "is something recording my screen", "tool": "privacy_report"}
+{"q": "I think I've been hacked", "tool": "cleansweep_scan"}
+{"q": "my computer has a virus", "tool": "cleansweep_scan"}
+{"q": "scan for malware", "tool": "cleansweep_scan"}
+{"q": "is there a trojan on my pc", "tool": "cleansweep_scan"}
+{"q": "I think I have ransomware", "tool": "cleansweep_scan"}
+{"q": "my pc is infected", "tool": "cleansweep_scan"}
+{"q": "someone hacked my computer", "tool": "cleansweep_scan"}
+{"q": "check for spyware", "tool": "cleansweep_scan"}
+{"q": "make the text bigger", "tool": "text_bigger", "arg": "big"}
+{"q": "the letters are too small", "tool": "text_bigger", "arg": "big"}
+{"q": "I can't read the screen", "tool": "text_bigger", "arg": "big"}
+{"q": "bigger font please", "tool": "text_bigger", "arg": "big"}
+{"q": "the words are tiny", "tool": "text_bigger", "arg": "big"}
+{"q": "make everything larger", "tool": "text_bigger", "arg": "big"}
+{"q": "the print is hard to read", "tool": "text_bigger", "arg": "big"}
+{"q": "make the text even bigger", "tool": "text_bigger", "arg": "bigger"}
+{"q": "it is still too small, much bigger", "tool": "text_bigger", "arg": "bigger"}
+{"q": "call my daughter for help", "tool": "family_call"}
+{"q": "I need my son to fix this", "tool": "family_call"}
+{"q": "can my helper see my screen", "tool": "family_call"}
+{"q": "call my grandson", "tool": "family_call"}
+{"q": "I want remote help", "tool": "family_call"}
+{"q": "show my daughter the problem", "tool": "family_call"}
+{"q": "panic", "tool": "panic"}
+{"q": "cut the internet now", "tool": "panic"}
+{"q": "kill the camera now", "tool": "panic"}
+{"q": "PANIC someone is watching me", "tool": "panic"}
+{"q": "cut off my webcam right now", "tool": "panic"}
+{"q": "remember that my daughter is Brianna", "tool": "remember"}
+{"q": "remember I like big text", "tool": "remember"}
+{"q": "please remember my doctor is Dr Lee", "tool": "remember"}
+{"q": "remember: my grandson is named Alex", "tool": "remember"}
+{"q": "what do you remember about me", "tool": "memory_show"}
+{"q": "what do you know about me", "tool": "memory_show"}
+{"q": "what have I told you", "tool": "memory_show"}
+{"q": "forget everything", "tool": "forget_all"}
+{"q": "forget everything you know about me", "tool": "forget_all"}
+{"q": "please forget all", "tool": "forget_all"}

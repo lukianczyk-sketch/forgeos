@@ -1,0 +1,9 @@
+# Free AI models Forge Helper may SUGGEST (never downloads without the user's Yes). Best first.
+# model  download-size  graphics-memory-needed-GB  note
+# The weekly test decides what is used: a new model is only used if it scores HIGHER on the test questions.
+gemma4:31b   ~19GB  24  Gemma 4 31B - BenchLM 2026-10: slightly above qwen3.8:27b
+qwen3.8:27b  ~18GB  20  AI Setup's pick for 20 GB cards
+gpt-oss:20b  ~14GB  16  AI Setup's pick for 16 GB cards
+gemma4:12b   ~8GB   12  AI Setup's pick for 12 GB cards
+gemma4:e4b   ~7GB   8   AI Setup's pick for 8 GB cards
+gemma4:e2b   ~5GB   0   the quick brain; AI Setup's pick for small PCs

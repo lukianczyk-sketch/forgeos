@@ -1,0 +1,8 @@
+[Unit]
+Description=ForgeOS Forge Helper - quietly looks for problems and offers one fix (nothing leaves this PC)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-helper watch-tick
+Nice=19
+IOSchedulingClass=idle

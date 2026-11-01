@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=Forge Helper
+Description=Ask Forge Helper: type help and a question, or a question ending in ?
+Type=Service
+Icon=help-browser
+X-KDE-PluginInfo-Author=RL Forge Works
+X-KDE-PluginInfo-Name=forgeos-helper
+X-KDE-PluginInfo-Version=1.0
+X-KDE-PluginInfo-License=MIT
+X-KDE-PluginInfo-EnabledByDefault=true
+X-Plasma-API=DBus
+X-Plasma-DBusRunner-Service=org.forgeos.helper
+X-Plasma-DBusRunner-Path=/runner
+X-Plasma-Request-Actions-Once=true
+X-Plasma-Runner-Min-Letter-Count=3
+X-Plasma-Runner-Syntaxes=help :q:,:q:?
+X-Plasma-Runner-Syntax-Descriptions=Ask Forge Helper a question,Ask Forge Helper a question

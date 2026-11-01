@@ -2,7 +2,7 @@
 # Runs at image BUILD time (not on users' machines).
 set -oue pipefail
 
-chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder /usr/libexec/forgeos-undo-setup /usr/bin/forgeos-undo /usr/bin/forgeos-undo-gui /usr/bin/forgeos-panic /usr/libexec/forgeos-panic-helper /usr/bin/forgeos-privacy /usr/bin/forgeos-privacy-block /usr/bin/forgeos-privacy-gui /usr/bin/forgeos-scamshield /usr/libexec/forgeos-scamshield-update /usr/bin/forgeos-scamshield-gui /usr/bin/forgeos-askpc /usr/bin/forgeos-askpc-gui /usr/bin/forgeos-willitrun /usr/bin/forgeos-willitrun-gui /usr/libexec/forgeos-willitrun-update /usr/bin/forgeos-find /usr/bin/forgeos-find-gui /usr/bin/forgeos-ghost /usr/bin/forgeos-ghost-gui /usr/libexec/forgeos-ghost-meter /usr/bin/forgeos-family /usr/bin/forgeos-family-gui /usr/libexec/forgeos-family-call /usr/bin/forgeos-guard /usr/bin/forgeos-guard-gui /usr/libexec/forgeos-guard-hosts
+chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder /usr/libexec/forgeos-undo-setup /usr/bin/forgeos-undo /usr/bin/forgeos-undo-gui /usr/bin/forgeos-panic /usr/libexec/forgeos-panic-helper /usr/bin/forgeos-privacy /usr/bin/forgeos-privacy-block /usr/bin/forgeos-privacy-gui /usr/bin/forgeos-scamshield /usr/libexec/forgeos-scamshield-update /usr/bin/forgeos-scamshield-gui /usr/bin/forgeos-askpc /usr/bin/forgeos-askpc-gui /usr/bin/forgeos-willitrun /usr/bin/forgeos-willitrun-gui /usr/libexec/forgeos-willitrun-update /usr/bin/forgeos-find /usr/bin/forgeos-find-gui /usr/bin/forgeos-ghost /usr/bin/forgeos-ghost-gui /usr/libexec/forgeos-ghost-meter /usr/bin/forgeos-family /usr/bin/forgeos-family-gui /usr/libexec/forgeos-family-call /usr/bin/forgeos-guard /usr/bin/forgeos-guard-gui /usr/libexec/forgeos-guard-hosts /usr/bin/forgeos-helper /usr/bin/forgeos-helper-gui /usr/libexec/forgeos-helper-krunner
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -47,3 +47,7 @@ systemctl --global enable forgeos-ghost-watch.timer
 # that checks every download and every new email, for every user.
 systemctl enable forgeos-clamd.service forgeos-guard-hosts.service forgeos-guard-hosts.path
 systemctl --global enable forgeos-guard.service
+
+# Forge Helper (Job 13c): for every user, quietly look for problems every 15 minutes (offers one fix,
+# at most 3 notes a day), load the quick AI brain after login, and test the AI models once a week.
+systemctl --global enable forgeos-helper-watch.timer forgeos-helper-warm.service forgeos-helper-models.timer

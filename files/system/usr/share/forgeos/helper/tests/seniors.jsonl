@@ -1,0 +1,15 @@
+{"q": "the computer dont make sound no more", "tool": "pc_question"}
+{"q": "my internets broke", "tool": "pc_question"}
+{"q": "the screen froze up on me", "tool": "pc_question"}
+{"q": "computer is runnin real slow", "tool": "pc_question"}
+{"q": "got a call from windows saying my computer is sending viruses", "tool": "scam_check"}
+{"q": "a man on the phone wants me to buy gift cards for my grandson", "tool": "scam_check"}
+{"q": "email says my norton subscription renewed for $399 call to cancel", "tool": "scam_check"}
+{"q": "cant find my pictures of the grandkids", "tool": "find"}
+{"q": "where did my letter to the church go, the document", "tool": "find"}
+{"q": "i cant read the words they are to small", "tool": "text_bigger", "arg": "big"}
+{"q": "make the writing bigger please", "tool": "text_bigger", "arg": "big"}
+{"q": "how do i print out my email", "tool": "help_answer"}
+{"q": "how do i get on the wifi", "tool": "help_answer"}
+{"q": "can you call my son so he can see the screen", "tool": "family_call"}
+{"q": "i deleted my sons pictures by accident get them back", "tool": "undo_open"}

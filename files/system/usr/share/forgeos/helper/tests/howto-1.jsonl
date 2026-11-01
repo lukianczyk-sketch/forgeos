@@ -1,0 +1,72 @@
+{"q": "how do I end a frozen program", "tool": "help_answer", "card": ["close-window", "task-manager"]}
+{"q": "how do I print", "tool": "help_answer", "card": "print"}
+{"q": "how can I print a letter", "tool": "help_answer", "card": "print"}
+{"q": "how to print a photo", "tool": "help_answer", "card": "print"}
+{"q": "how do I add a printer", "tool": "help_answer", "card": "add-printer"}
+{"q": "how do I install my new printer", "tool": "help_answer", "card": "add-printer"}
+{"q": "how do I scan a document", "tool": "help_answer", "card": "scan"}
+{"q": "how to use my scanner", "tool": "help_answer", "card": "scan"}
+{"q": "how do I take a screenshot", "tool": "help_answer", "card": "screenshot"}
+{"q": "how to take a picture of my screen", "tool": "help_answer", "card": "screenshot"}
+{"q": "how do I record my screen", "tool": "help_answer", "card": "record-screen"}
+{"q": "how do I connect to wifi", "tool": "help_answer", "card": "wifi"}
+{"q": "how to join a wireless network", "tool": "help_answer", "card": "wifi"}
+{"q": "how do I connect bluetooth headphones", "tool": "help_answer", "card": "bluetooth"}
+{"q": "how to pair my bluetooth speaker", "tool": "help_answer", "card": "bluetooth"}
+{"q": "how do I install an app", "tool": "help_answer", "card": "install-app"}
+{"q": "how do I get new programs", "tool": "help_answer", "card": "install-app"}
+{"q": "where do I download apps", "tool": "help_answer", "card": "install-app"}
+{"q": "how do I uninstall an app", "tool": "help_answer", "card": "uninstall-app"}
+{"q": "how to remove a program", "tool": "help_answer", "card": "uninstall-app"}
+{"q": "how do I restart the computer", "tool": "help_answer", "card": "restart"}
+{"q": "how do I shut down", "tool": "help_answer", "card": "restart"}
+{"q": "how to turn off the pc", "tool": "help_answer", "card": "restart"}
+{"q": "how do I lock the screen", "tool": "help_answer", "card": "lock-screen"}
+{"q": "how do I update the computer", "tool": "help_answer", "card": "updates"}
+{"q": "how do updates work", "tool": "help_answer", "card": "updates"}
+{"q": "how do I set up email", "tool": "help_answer", "card": "email"}
+{"q": "how to add my gmail", "tool": "help_answer", "card": "email"}
+{"q": "how do I open a word document", "tool": "help_answer", "card": "office"}
+{"q": "how do I open an excel file", "tool": "help_answer", "card": "office"}
+{"q": "how do I merge two pdfs", "tool": "help_answer", "card": "pdf"}
+{"q": "how to open a pdf", "tool": "help_answer", "card": "pdf"}
+{"q": "how do I crop a photo", "tool": "help_answer", "card": "edit-photo"}
+{"q": "how to resize a picture", "tool": "help_answer", "card": "edit-photo"}
+{"q": "how do I look at my photos", "tool": "help_answer", "card": "photos"}
+{"q": "how to make a slideshow", "tool": "help_answer", "card": "photos"}
+{"q": "how do I back up my files", "tool": "help_answer", "card": "backup"}
+{"q": "how to make a backup to usb drive", "tool": "help_answer", "card": "backup"}
+{"q": "how do I keep my passwords safe", "tool": "help_answer", "card": "passwords"}
+{"q": "what is a password manager", "tool": "help_answer", "card": "passwords"}
+{"q": "how do I open my usb stick", "tool": "help_answer", "card": "usb-stick"}
+{"q": "how to eject a flash drive", "tool": "help_answer", "card": "usb-stick"}
+{"q": "how do I copy and paste", "tool": "help_answer", "card": "copy-paste"}
+{"q": "how to paste text", "tool": "help_answer", "card": "copy-paste"}
+{"q": "how do I unzip a file", "tool": "help_answer", "card": "zip"}
+{"q": "how to extract a zip", "tool": "help_answer", "card": "zip"}
+{"q": "how do I make a zoom video call", "tool": "help_answer", "card": "video-call"}
+{"q": "how to do a video call with my family", "tool": "help_answer", "card": "video-call"}
+{"q": "how do I turn on dark mode", "tool": "help_answer", "card": "dark-mode"}
+{"q": "how do I change the wallpaper", "tool": "help_answer", "card": "wallpaper"}
+{"q": "how to change my desktop background", "tool": "help_answer", "card": "wallpaper"}
+{"q": "how do I turn on night light", "tool": "help_answer", "card": "night-light"}
+{"q": "how do I change my login password", "tool": "help_answer", "card": "user-password"}
+{"q": "how do I change the time zone", "tool": "help_answer", "card": "date-time"}
+{"q": "how to fix the clock", "tool": "help_answer", "card": "date-time"}
+{"q": "where is the calculator", "tool": "help_answer", "card": "calculator"}
+{"q": "how do I play steam games", "tool": "help_answer", "card": "steam-games"}
+{"q": "how do I run android apps", "tool": "help_answer", "card": "android-apps"}
+{"q": "how do I send a file to my phone", "tool": "help_answer", "card": "share-nearby"}
+{"q": "how do I dictate instead of typing", "tool": "help_answer", "card": "speech"}
+{"q": "where are my downloads", "tool": "help_answer", "card": "files"}
+{"q": "how do I open the file manager", "tool": "help_answer", "card": "files"}
+{"q": "how do I open a program", "tool": "help_answer", "card": "menu-search"}
+{"q": "how do I find an app", "tool": "help_answer", "card": "menu-search"}
+{"q": "how do I zoom in on the screen", "tool": "help_answer", "card": "magnifier"}
+{"q": "how to use the magnifier", "tool": "help_answer", "card": "magnifier"}
+{"q": "how do I make the mouse pointer bigger", "tool": "help_answer", "card": "mouse-pointer"}
+{"q": "how do I change the keyboard language", "tool": "help_answer", "card": "keyboard-language"}
+{"q": "how do I connect my android phone to the pc", "tool": "help_answer", "card": "phone-link"}
+{"q": "how do I make a bootable usb", "tool": "help_answer", "card": "usb-installer"}
+{"q": "what is forge helper", "tool": "help_answer", "card": "forge-helper"}
+{"q": "how do I open forge helper", "tool": "help_answer", "card": "forge-helper"}

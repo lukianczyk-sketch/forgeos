@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Forge Helper watch - 10 minutes after login, then every 15 minutes
+
+[Timer]
+OnStartupSec=10min
+OnUnitActiveSec=15min
+
+[Install]
+WantedBy=timers.target

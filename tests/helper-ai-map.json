@@ -1,0 +1,13 @@
+[
+ ["bitcoin|send money|wire money|crypto|invoice|social security|confirm my password|log in to keep|flash player|dating site|card has been frozen|number was suspended", "scam_check", "", "none"],
+ ["audio|crackle|warm|forever to open|won.t connect|locks up|low disk|no internet", "pc_question", "", "none"],
+ ["where did it go|passport photo|letter I wrote|scanned receipts|pdf about", "find", "", "none"],
+ ["excel 2010|print shop|roblox|tax program|\\.exe", "will_it_run", "", "none"],
+ ["camera in this|hotel room|unknown tracker|airtag in my", "ghost_sweep", "", "none"],
+ ["microphone on right now|turn on the webcam|webcam", "privacy_report", "", "none"],
+ ["messed up|go back|overwrote|bring back the folder", "undo_open", "", "none"],
+ ["virus|hacked", "cleansweep_scan", "", "none"],
+ ["enlarge|larger letters", "text_bigger", "", "none"],
+ ["daughter|son to look", "family_call", "", "none"],
+ ["attach a photo|watch a dvd|turn off the computer|send a picture|copy photos", "help_answer", "", "none"]
+]

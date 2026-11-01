@@ -1,0 +1,10 @@
+[Unit]
+Description=ForgeOS Forge Helper - weekly AI model check
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=2h
+
+[Install]
+WantedBy=timers.target

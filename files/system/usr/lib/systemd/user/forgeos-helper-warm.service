@@ -1,0 +1,13 @@
+[Unit]
+Description=ForgeOS Forge Helper - loads the quick AI brain after login so the first answer is fast
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 45
+ExecStart=/usr/bin/forgeos-helper warm
+Nice=19
+SuccessExitStatus=1
+
+[Install]
+WantedBy=default.target

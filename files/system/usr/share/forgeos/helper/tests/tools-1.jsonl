@@ -1,0 +1,87 @@
+{"q": "Is this a scam? Your Amazon account is locked, click here to verify: amaz0n-secure.top/login", "tool": "scam_check"}
+{"q": "I got a text saying I owe the IRS money and must pay with gift cards", "tool": "scam_check"}
+{"q": "is this email real? It says I won the lottery", "tool": "scam_check"}
+{"q": "Someone from Microsoft called and said my computer has a virus", "tool": "scam_check"}
+{"q": "An email from my bank wants my password", "tool": "scam_check"}
+{"q": "check this link www.free-iphone-winner.xyz", "tool": "scam_check"}
+{"q": "USPS: your package is on hold, pay $1.99 at usps-redelivery.info", "tool": "scam_check"}
+{"q": "a pop up says my computer is infected and to call this number", "tool": "scam_check"}
+{"q": "my grandson texted from a new number asking for gift cards", "tool": "scam_check"}
+{"q": "is this legit? congratulations you have been selected for a $1000 walmart gift card", "tool": "scam_check"}
+{"q": "PayPal says my account is limited and I need to log in at paypa1-help.com", "tool": "scam_check"}
+{"q": "got a weird message from netflix saying payment failed, is it fake", "tool": "scam_check"}
+{"q": "is this real: Apple support called me about my iCloud", "tool": "scam_check"}
+{"q": "they are asking for my social security number by email", "tool": "scam_check"}
+{"q": "suspicious text from a number I don't know", "tool": "scam_check"}
+{"q": "Your Medicare card is expiring, reply with your SSN", "tool": "scam_check"}
+{"q": "is it safe to click this? bit.ly/3xYz", "tool": "scam_check"}
+{"q": "my facebook friend sent a link http://video-you.site/watch", "tool": "scam_check"}
+{"q": "Amazon called and said someone bought an iphone on my account", "tool": "scam_check"}
+{"q": "email says from the police, I have a fine to pay", "tool": "scam_check"}
+{"q": "I have no sound", "tool": "pc_question"}
+{"q": "my computer wont make any noise", "tool": "pc_question"}
+{"q": "the internet is not working", "tool": "pc_question"}
+{"q": "wifi keeps dropping", "tool": "pc_question"}
+{"q": "my computer is so slow today", "tool": "pc_question"}
+{"q": "everything is frozen", "tool": "pc_question"}
+{"q": "the taskbar disappeared", "tool": "pc_question"}
+{"q": "the fan is really loud and the pc is hot", "tool": "pc_question"}
+{"q": "my disk is full", "tool": "pc_question"}
+{"q": "how much storage space do I have left", "tool": "pc_question"}
+{"q": "I can't hear anything from my speakers", "tool": "pc_question"}
+{"q": "can't get online", "tool": "pc_question"}
+{"q": "is my battery ok", "tool": "pc_question"}
+{"q": "the volume is muted and I cant fix it", "tool": "pc_question"}
+{"q": "my pc keeps hanging", "tool": "pc_question"}
+{"q": "do a health check", "tool": "pc_question"}
+{"q": "the network says no connection", "tool": "pc_question"}
+{"q": "computer sluggish after lunch", "tool": "pc_question"}
+{"q": "sound stopped working after an update", "tool": "pc_question"}
+{"q": "my wi-fi is not connecting", "tool": "pc_question"}
+{"q": "I can't find my tax papers from 2023", "tool": "find"}
+{"q": "where is the photo of my driver's license", "tool": "find"}
+{"q": "find my resume", "tool": "find"}
+{"q": "help me find the letter from the bank", "tool": "find"}
+{"q": "where are my vacation pictures", "tool": "find"}
+{"q": "I lost my recipe for green chili", "tool": "find"}
+{"q": "looking for my car insurance pdf", "tool": "find"}
+{"q": "where's the receipt for the fridge", "tool": "find"}
+{"q": "search for my mileage spreadsheet", "tool": "find"}
+{"q": "find the scan of my lease", "tool": "find"}
+{"q": "I misplaced a document about my pension", "tool": "find"}
+{"q": "where did I save the photo of the dog", "tool": "find"}
+{"q": "can't find my medicare statement", "tool": "find"}
+{"q": "where is my birth certificate scan", "tool": "find"}
+{"q": "find files about the garden", "tool": "find"}
+{"q": "will photoshop run on this pc", "tool": "will_it_run"}
+{"q": "can I install microsoft office", "tool": "will_it_run"}
+{"q": "will turbotax.exe work", "tool": "will_it_run"}
+{"q": "does quicken work on forgeos", "tool": "will_it_run"}
+{"q": "can I play fortnite", "tool": "will_it_run"}
+{"q": "will this windows program run: setup.exe", "tool": "will_it_run"}
+{"q": "can I run notepad++", "tool": "will_it_run"}
+{"q": "will my old windows game run", "tool": "will_it_run"}
+{"q": "does itunes work on linux", "tool": "will_it_run"}
+{"q": "can i use zoom installer.msi", "tool": "will_it_run"}
+{"q": "is there a hidden camera in this airbnb", "tool": "ghost_sweep"}
+{"q": "I think someone put an airtag on my car", "tool": "ghost_sweep"}
+{"q": "am I being tracked", "tool": "ghost_sweep"}
+{"q": "check for trackers", "tool": "ghost_sweep"}
+{"q": "is there a spy device in my house", "tool": "ghost_sweep"}
+{"q": "who is on my wifi", "tool": "ghost_sweep"}
+{"q": "strange device on my network", "tool": "ghost_sweep"}
+{"q": "is my room bugged", "tool": "ghost_sweep"}
+{"q": "someone is following me with a tracker", "tool": "ghost_sweep"}
+{"q": "look for hidden cameras", "tool": "ghost_sweep"}
+{"q": "did the guard block anything", "tool": "guard_status"}
+{"q": "why was my download blocked", "tool": "guard_status"}
+{"q": "what is in quarantine", "tool": "guard_status"}
+{"q": "a file got locked away", "tool": "guard_status"}
+{"q": "is the guard on", "tool": "guard_status"}
+{"q": "my download got stopped", "tool": "guard_status"}
+{"q": "what has the guard caught this week", "tool": "guard_status"}
+{"q": "it blocked a website", "tool": "guard_status"}
+{"q": "I deleted a file by mistake", "tool": "undo_open"}
+{"q": "how do I get my document back", "tool": "undo_open"}
+{"q": "I saved over my letter", "tool": "undo_open"}
+{"q": "restore an older version of my spreadsheet", "tool": "undo_open"}

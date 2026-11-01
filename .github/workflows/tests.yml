@@ -136,3 +136,15 @@ jobs:
           bash tests/test-guard-hosts.sh .
           bash tests/test-guard-gui.sh .
           bash tests/test-guard-files.sh .
+
+      - name: Run Forge Helper tests (fake tools, fake AI on 127.0.0.1, real D-Bus for KDE search, free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends python3-dbus python3-gi dbus dbus-x11 desktop-file-utils
+          bash tests/test-helper.sh .
+          bash tests/test-helper-ai.sh .
+          bash tests/test-helper-brains.sh .
+          bash tests/test-helper-do.sh .
+          bash tests/test-helper-watch.sh .
+          bash tests/test-helper-gui.sh .
+          FORGEOS_TEST_PY=/usr/bin/python3 bash tests/test-helper-krunner.sh .
+          bash tests/test-helper-files.sh .

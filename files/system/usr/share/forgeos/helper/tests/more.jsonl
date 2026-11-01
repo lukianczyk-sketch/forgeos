@@ -1,0 +1,50 @@
+{"q": "A lady called saying she's from Social Security and my number was suspended", "tool": "scam_check"}
+{"q": "text: Your Chase card has been frozen. Call 1-800-555-0199 now", "tool": "scam_check"}
+{"q": "is this from the real Facebook? it wants me to confirm my password", "tool": "scam_check"}
+{"q": "I got an invoice from Geek Squad for $499 I never ordered", "tool": "scam_check"}
+{"q": "they want me to pay with bitcoin to unlock my computer", "tool": "scam_check"}
+{"q": "a website says I need to update flash player", "tool": "scam_check"}
+{"q": "my email says my mailbox is full and to log in to keep it", "tool": "scam_check"}
+{"q": "someone on a dating site wants me to send money", "tool": "scam_check"}
+{"q": "youtube has no audio", "tool": "pc_question"}
+{"q": "the speakers crackle", "tool": "pc_question"}
+{"q": "my laptop gets really warm", "tool": "pc_question"}
+{"q": "programs take forever to open", "tool": "pc_question"}
+{"q": "the wireless won't connect", "tool": "pc_question"}
+{"q": "my computer locks up a lot", "tool": "pc_question"}
+{"q": "there is no internet in the bedroom", "tool": "pc_question"}
+{"q": "it says low disk space", "tool": "pc_question"}
+{"q": "where is that pdf about my pension", "tool": "find"}
+{"q": "I need my passport photo, where did it go", "tool": "find"}
+{"q": "find the spreadsheet with my bills", "tool": "find"}
+{"q": "look for the letter I wrote to the county", "tool": "find"}
+{"q": "where are my scanned receipts from last year", "tool": "find"}
+{"q": "can I install my old Print Shop disk", "tool": "will_it_run"}
+{"q": "will roblox work here", "tool": "will_it_run"}
+{"q": "is there a way to run excel 2010", "tool": "will_it_run"}
+{"q": "will my tax program from the store work", "tool": "will_it_run"}
+{"q": "can i run a .exe", "tool": "will_it_run"}
+{"q": "is there an AirTag in my purse", "tool": "ghost_sweep"}
+{"q": "could there be a camera in this hotel room", "tool": "ghost_sweep"}
+{"q": "I keep getting an alert about an unknown tracker", "tool": "ghost_sweep"}
+{"q": "is my microphone on right now", "tool": "privacy_report"}
+{"q": "did an app turn on the webcam", "tool": "privacy_report"}
+{"q": "my file got messed up, can I go back", "tool": "undo_open"}
+{"q": "I overwrote the photo by accident", "tool": "undo_open"}
+{"q": "bring back the folder I deleted yesterday", "tool": "undo_open"}
+{"q": "I clicked a bad link and now I'm worried I have a virus", "tool": "cleansweep_scan"}
+{"q": "strange programs started on their own, am I hacked", "tool": "cleansweep_scan"}
+{"q": "can you enlarge the text", "tool": "text_bigger", "arg": "big"}
+{"q": "I need larger letters", "tool": "text_bigger", "arg": "big"}
+{"q": "get my daughter to help me", "tool": "family_call"}
+{"q": "I want my son to look at this", "tool": "family_call"}
+{"q": "how do I attach a photo to an email", "tool": "help_answer"}
+{"q": "how can I watch a dvd", "tool": "help_answer"}
+{"q": "how do I turn off the computer at night", "tool": "help_answer"}
+{"q": "how do I send a picture to my daughter", "tool": "help_answer"}
+{"q": "how do I copy photos from my phone", "tool": "help_answer"}
+{"q": "what's a good recipe for meatloaf", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
+{"q": "how tall is mount everest", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
+{"q": "say something nice", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
+{"q": "who won the world series", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
+{"q": "can you hear me", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}

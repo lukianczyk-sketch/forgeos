@@ -1,0 +1,19 @@
+#!/usr/bin/python3
+"""ForgeOS Forge Helper (Job 13c): one private AI helper for the whole PC.
+
+Ask anything in plain English. It picks the right ForgeOS tool, answers in plain words and offers
+fixes as buttons. It never changes anything without a Yes. Nothing leaves this computer.
+Run with no arguments for the commands.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_HELPER_LIB") or "/usr/lib/forgeos-helper")
+from helperlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    try:
+        sys.exit(cli.main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(1)

@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# ForgeOS Forge Helper window (Job 13c). kdialog front end for forgeos-helper.
+# Type a question in your own words -> plain answer -> buttons for what it can do (each asks Yes first).
+# Usage: forgeos-helper-gui [--ask QUESTION | --clipboard]
+set -uo pipefail
+
+TITLE="Forge Helper"
+ENGINE="${FORGEOS_HELPER_ENGINE:-/usr/bin/forgeos-helper}"
+ASKED="${XDG_CONFIG_HOME:-$HOME/.config}/forgeos/helper/asked"
+NL=$'\n'
+TAB=$'\t'
+US=$'\037'  # splits the engine's TAB lines (TABs next to each other would merge when read)
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for the Forge Helper window. Use forgeos-helper in a terminal instead." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# busy_start <text> / busy_stop: a "please wait" bar while something slow runs.
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" 0 2>/dev/null)" || REF=""; }
+busy_stop() {
+  if [ -n "$REF" ]; then
+    dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1 || true
+  fi
+  REF=""
+}
+
+# offer_model <name> <text>: ask once (ever) to download a free AI model; the engine checks the name.
+offer_model() {
+  grep -qx "$1" "$ASKED" 2>/dev/null && return 0
+  mkdir -p "${ASKED%/*}" && echo "$1" >> "$ASKED"
+  kdialog --title "$TITLE" --yes-label "Get it" --no-label "Not now" --yesno "$2" || return 0
+  busy_start "Downloading... This can take a while. You can keep using the PC."
+  info "$("$ENGINE" run get_model "$1" --yes 2>&1)"
+  busy_stop
+}
+
+brains() {
+  local tag a b
+  while IFS="$TAB" read -r tag a b; do
+    case "$tag" in
+      QUICKGET) offer_model "$a" "Forge Helper can answer much faster with a small quick brain ($b download, free, stays on this PC).${NL}${NL}Download it now?" ;;
+      SUGGEST) offer_model "$a" "A better free AI brain is out: $a ($b download, free, stays on this PC).${NL}${NL}Forge Helper tests it first and only uses it if it answers better. Get it?" ;;
+    esac
+  done <<< "$("$ENGINE" brains 2>/dev/null)"
+}
+
+# do_action <action> <arg> <label>: opening a window just opens it; a change asks Yes first.
+do_action() {
+  local act="$1" arg="$2" label="$3" out
+  case "$act" in
+    open|open_file) "$ENGINE" run "$act" "$arg" --yes >/dev/null 2>&1; return ;;
+  esac
+  kdialog --title "$TITLE" --yes-label "Yes, do it" --no-label "No" --yesno "${label}?${NL}${NL}Forge Helper will do this only if you click Yes." || return 0
+  [ "$act" = get_model ] && busy_start "Downloading..."
+  out="$("$ENGINE" run "$act" "$arg" --yes 2>&1)"
+  busy_stop
+  info "${out:-Done.}"
+}
+
+more_menu() {
+  local pick
+  pick="$(kdialog --title "$TITLE" --menu "What would you like?" \
+    copied "Check what I copied for scams" memory "What you remember about me" \
+    forget "Forget everything about me" back "Back")" || return 0
+  case "$pick" in
+    copied)
+      busy_start "Checking what you copied..."
+      local out
+      out="$(forgeos-scamshield check-clipboard 2>&1)"
+      busy_stop
+      info "$out" ;;
+    memory) info "$("$ENGINE" memory 2>&1)" ;;
+    forget)
+      kdialog --title "$TITLE" --yes-label "Forget everything" --no-label "Keep it" --warningyesno \
+        "Forget everything you asked Forge Helper to remember, and your thumbs up and down?" \
+        && info "$("$ENGINE" forget --yes 2>&1)" ;;
+  esac
+}
+
+# answer <question>: ask the engine, show the answer with its buttons. Returns 1 to close the window.
+answer() {
+  local q="$1" out text tool="" pick tag a b c n=0
+  local -a items=() acts=()
+  busy_start "Thinking... The private AI can take up to a minute."
+  out="$("$ENGINE" ask "$q" 2>&1)"
+  busy_stop
+  text="$(grep -v "$TAB" <<< "$out")"
+  while IFS="$US" read -r tag a b c; do
+    case "$tag" in
+      TOOL) tool="$a" ;;
+      ACTION) n=$((n + 1)); acts+=("$a$US$b$US$c"); items+=("$n" "$c") ;;
+    esac
+  done <<< "$(grep "$TAB" <<< "$out" | tr '\t' '\037')"
+  while :; do
+    pick="$(kdialog --title "$TITLE" --menu "${text}${NL}" "${items[@]}" \
+      up "Thumbs up - that helped" down "Thumbs down - that was wrong" \
+      again "Ask something else" more "More...")" || return 1
+    case "$pick" in
+      up|down) "$ENGINE" feedback "$pick" "${tool:-none}" "$q" >/dev/null 2>&1
+               [ "$pick" = down ] && info "Thank you. Forge Helper will remember this question and keep testing itself on it."
+               return 0 ;;
+      again) return 0 ;;
+      more) more_menu ;;
+      *) if [[ "$pick" =~ ^[0-9]+$ ]] && [ "$pick" -ge 1 ] && [ "$pick" -le "$n" ]; then
+           IFS="$US" read -r a b c <<< "${acts[$((pick - 1))]}"
+           do_action "$a" "$b" "$c"
+         fi ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --clipboard) busy_start "Checking what you copied..."; out="$(forgeos-scamshield check-clipboard 2>&1)"; busy_stop; info "$out"; exit 0 ;;
+  --ask) [ -n "${2:-}" ] && { answer "$2" || exit 0; } ;;
+  "") ;;
+  *) echo "usage: forgeos-helper-gui [--ask QUESTION | --clipboard]" >&2; exit 3 ;;
+esac
+brains
+while :; do
+  q="$(kdialog --title "$TITLE" --inputbox "What can I help with? Type it in your own words.${NL}For example:  is this email a scam?   -   I have no sound   -   how do I print${NL}(Leave it empty and click OK for more choices.)" "")" || exit 0
+  if [ -z "${q//[[:space:]]/}" ]; then more_menu; continue; fi
+  answer "$q" || exit 0
+done

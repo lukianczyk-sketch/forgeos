@@ -1,0 +1,99 @@
+#!/usr/bin/python3
+"""ForgeOS Forge Helper in KDE search (Job 13c): press Meta, type "help ..." or a question ending in "?".
+
+A KRunner D-Bus runner (org.kde.krunner1). It only offers "Ask Forge Helper: ...";
+picking it opens the Forge Helper window with the question. Started by D-Bus when KRunner needs it,
+it quits by itself after 10 quiet minutes. Nothing leaves this computer.
+"""
+import os
+import subprocess
+import sys
+import time
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.environ.get("FORGEOS_HELPER_LIB") or "/usr/lib/forgeos-helper")
+import dbus  # noqa: E402  (python3-dbus)
+import dbus.service  # noqa: E402
+from dbus.mainloop.glib import DBusGMainLoop  # noqa: E402
+from gi.repository import GLib  # noqa: E402  (python3-gobject-base)
+from helperlib import rules  # noqa: E402
+
+BUS_NAME = "org.forgeos.helper"
+IFACE = "org.kde.krunner1"
+GUI = os.environ.get("FORGEOS_HELPER_GUI") or "/usr/bin/forgeos-helper-gui"
+QUIET = int(os.environ.get("FORGEOS_HELPER_KRUNNER_QUIET", "600"))
+SAY = {"scam_check": "check it for scams", "pc_question": "check this PC", "find": "search your files",
+       "will_it_run": "check if it will run", "ghost_sweep": "look for hidden cameras and trackers",
+       "guard_status": "show what Always-On Guard caught", "undo_open": "help get your file back",
+       "privacy_report": "show your Privacy Report", "cleansweep_scan": "help check for viruses",
+       "text_bigger": "make the text bigger (asks first)", "family_call": "call your helper (asks first)",
+       "panic": "offer the Panic Button (asks first)", "help_answer": "answer from ForgeOS help",
+       "remember": "remember this", "memory_show": "show what it remembers", "forget_all": "forget everything (asks first)"}
+
+
+def question_of(query):
+    """(question, typed "help ..."); the question is "" when this search is not for Forge Helper."""
+    q = " ".join(str(query).split())[:500]
+    low = q.lower()
+    for start in ("help ", "forge helper ", "helper "):
+        if low.startswith(start) and len(q) > len(start) + 2:
+            return q[len(start):].strip(), True
+    if q.endswith("?") and len(q) >= 8:
+        return q, False
+    return "", False
+
+
+class Runner(dbus.service.Object):
+    def __init__(self, bus):
+        super().__init__(bus, "/runner")
+        self.last = time.time()
+
+    @dbus.service.method(IFACE, in_signature="s", out_signature="a(sssida{sv})")
+    def Match(self, query):
+        self.last = time.time()
+        q, asked = question_of(query)
+        if not q:
+            return []
+        hit = rules.match(q)
+        sub = "Forge Helper will " + (SAY.get(hit[0], "answer it") if hit else "answer it")
+        props = {"subtext": dbus.String(sub), "urls": dbus.Array([], signature="s")}
+        return [(q, "Ask Forge Helper: " + q, "help-browser", 100 if asked else 50, 1.0 if asked else 0.6,
+                 dbus.Dictionary(props, signature="sv"))]
+
+    @dbus.service.method(IFACE, in_signature="", out_signature="a(sss)")
+    def Actions(self):
+        return dbus.Array([], signature="(sss)")
+
+    @dbus.service.method(IFACE, in_signature="ss", out_signature="")
+    def Run(self, data, _action):
+        self.last = time.time()
+        subprocess.Popen([GUI, "--ask", str(data)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+
+    @dbus.service.method(IFACE, in_signature="", out_signature="")
+    def Teardown(self):
+        self.last = time.time()
+
+
+def main():
+    DBusGMainLoop(set_as_default=True)
+    bus = dbus.SessionBus()
+    runner = Runner(bus)
+    runner.name = dbus.service.BusName(BUS_NAME, bus, do_not_queue=True)  # kept, so the name stays ours
+    loop = GLib.MainLoop()
+
+    def idle():
+        if time.time() - runner.last > QUIET:
+            loop.quit()
+            return False
+        return True
+    GLib.timeout_add_seconds(min(QUIET, 30), idle)
+    loop.run()
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except dbus.exceptions.NameExistsException:
+        sys.exit(0)

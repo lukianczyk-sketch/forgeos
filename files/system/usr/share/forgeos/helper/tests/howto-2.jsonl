@@ -1,0 +1,9 @@
+{"q": "what is family mode", "tool": "help_answer", "card": "family-mode"}
+{"q": "what is the undo button", "tool": "help_answer", "card": "undo-button"}
+{"q": "what is the panic button", "tool": "help_answer", "card": "panic-button"}
+{"q": "what is forgeos ai setup", "tool": "help_answer", "card": "ai-setup"}
+{"q": "how do I zoom a web page", "tool": "help_answer", "card": "bigger-text"}
+{"q": "how do I play a video file", "tool": "help_answer", "card": "video"}
+{"q": "how do I play music", "tool": "help_answer", "card": "video"}
+{"q": "how do I see what is using my disk space", "tool": "help_answer", "card": "disk-space"}
+{"q": "what do I do about a pop up saying call microsoft", "tool": "help_answer", "card": "tech-support-scam"}

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Forge Helper
+GenericName=Ask anything - your private helper
+Comment=Ask in your own words: scams, PC problems, lost files, how do I... (Meta+H). Nothing leaves this PC.
+Exec=/usr/bin/forgeos-helper-gui
+Icon=help-browser
+Terminal=false
+Categories=Utility;
+Keywords=help;helper;assistant;ai;ask;question;support;how;scam;problem;forge;
+X-KDE-Shortcuts=Meta+H
