@@ -1,0 +1,32 @@
+# Job 13d Driver & BIOS Autopilot — progress log
+
+- 2026-11-01: Design approved by Robert (device firmware installs by itself; BIOS one tap). Claude wrote and tested the prototype (tests A-Q pass).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): autopilotlib __init__.py, drivers.py, devices.py written. Waiting for Claude's review.
+- Step 1 review (Claude): all 3 files byte-identical to the prototype (Cline saved Windows line endings; changed to Linux LF). OK.
+- STATUS: STEP 1 DONE — next: Step 2 (Cline)
+- Step 2 (Cline): autopilotlib gpu.py, firmware.py, safety.py, afterboot.py, notes.py written. Waiting for Claude's review.
+- Step 2 review (Claude): all 5 files byte-identical to the prototype (firmware.py: Cline correctly left out an extra empty last line that the prototype had; Windows line endings changed to Linux LF). OK.
+- STATUS: STEP 2 DONE — next: Step 3 (Cline)
+- Step 3 (Cline): autopilotlib tick.py, notices.py, report.py written. Waiting for Claude's review.
+- Step 3 review (Claude): all 3 files byte-identical to the prototype (Windows line endings changed to Linux LF). OK.
+- STATUS: STEP 3 DONE — next: Step 4 (Cline)
+- Step 4a (Cline): autopilotlib commands.py, cli.py, bin/forgeos-autopilot written. Waiting for Claude's review.
+- Step 4 (Cline, first try) was cancelled by Claude: the 19k-char prompt made Cline lose its place (no files after 30 min). Split into 4a + 4b.
+- Step 4a review (Claude): all 3 files byte-identical to the prototype (Windows line endings changed to Linux LF). OK.
+- STATUS: STEP 4a DONE — next: Step 4b (Cline)
+- Step 4b (Cline): bin/forgeos-autopilot-gui, libexec/forgeos-autopilot-screens written. Waiting for Claude's review.
+- Step 4b review (Claude): both files byte-identical to the prototype (Windows line endings changed to Linux LF). OK.
+- STATUS: STEP 4b DONE — next: Step 5 (Cline)
+- Step 5 (Cline): makers.txt, known-devices.txt, forgeos-autopilot.service + .timer, forgeos-autopilot.desktop, help drivers-bios.md, forgeos-setup.sh, common-modules.yml (fwupd, fwupd-efi), Family Mode guards.py, Forge Helper tools/looks/actions/rulelist + tools-2.jsonl + test-helper-ai.sh written. Waiting for Claude's review.
+- Step 5 review (Claude): all 6 new files and all 9 edits byte-identical to the prototype (Windows line endings changed to Linux LF). OK.
+- STATUS: STEP 5 DONE — next: Step 6 (Cline)
+- Step 6 (Cline): tests/autopilot-fakes.sh, autopilot-tools.sh, test-autopilot.sh (A-B), test-autopilot-devices.sh (C-E) written. Waiting for Claude's review.
+- Step 6 review (Claude): all 4 files byte-identical to the prototype (Windows line endings changed to Linux LF). test-autopilot.sh A-B + test-autopilot-devices.sh C-E: ALL PASS on the PC VM. OK.
+- STATUS: STEP 6 DONE — next: Step 7 (Cline)
+- Step 7 (Cline): tests/test-autopilot-boot.sh (F-G), test-autopilot-fw.sh (H-I), test-autopilot-bios.sh (J) written. Waiting for Claude's review.
+- Step 7 review (Claude): all 3 files byte-identical to the prototype after adding the missing last newline Cline left off each file (and Windows line endings changed to Linux LF). test-autopilot-boot F-G, -fw H-I, -bios J: ALL PASS on the PC VM. OK.
+- STATUS: STEP 7 DONE — next: Step 8 (Cline)
+- Step 8 (Cline): tests/test-autopilot-notes.sh (K-N), test-autopilot-gui.sh (O-P), test-autopilot-files.sh (Q) + CI step written. Waiting for Claude's review.
+- Step 8 review (Claude): all 3 test files byte-identical after adding the last newline Cline left off (test-autopilot-files.sh: Cline wrote one backslash where the prototype had two in Q6's fake; same result, kept and prototype updated). tests.yml CI step identical. test-autopilot-notes K-N, -gui O-P, -files Q: ALL PASS on the PC VM; Forge Helper, Family Mode and recipe tests pass.
+- 2026-11-01: all 42 job files byte-identical to the prototype. Code commit 3b194b1. JOB 13d DONE.
