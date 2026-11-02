@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# ForgeOS Drivers & BIOS window (Job 13d). kdialog front end for forgeos-autopilot.
+# --devices = Device Check, --bios = BIOS help, --image = switch ForgeOS version, --problem = after-update problem.
+set -uo pipefail
+
+TITLE="Drivers & BIOS"
+ENGINE="${FORGEOS_AP_ENGINE:-/usr/bin/forgeos-autopilot}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-autopilot in a terminal." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+field() { grep "^$1${TAB}" "$TMP/status" | head -n 1 | cut -f "$2"; }
+show_text() { kdialog --title "$TITLE" --textbox "$1" 720 460 || true; }
+
+# shellcheck source=files/system/usr/libexec/forgeos-autopilot-screens
+. "${FORGEOS_AP_SCREENS:-/usr/libexec/forgeos-autopilot-screens}"
+
+main_menu() {
+  local head pick extra
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    head=""; extra=()
+    [ "$(field AFTERBOOT 2)" = problem ] && { head+="PROBLEM after the last update: $(field AFTERBOOT 3)${NL}${NL}"; extra+=(problem "Something stopped working - fix it"); }
+    if [ "$(field DRIVERS 2)" = waiting ]; then head+="Drivers: new ones are ready - restart to switch them on${NL}"
+    else head+="Drivers: up to date (they update by themselves)${NL}"; fi
+    [ "$(field UPDATES 2)" = ok ] || { head+="Automatic updates: NOT working${NL}"; extra+=(fixup "Switch automatic updates back on"); }
+    if [ "$(field FIRMWARE 3)" != - ]; then head+="BIOS: new version $(field FIRMWARE 3) is ready${NL}"
+    elif [ "$(field BIOS 6)" = lvfs ]; then head+="BIOS: up to date ($(field BIOS 4))${NL}"
+    else head+="BIOS: $(field BIOS 4) from $(field BIOS 5) - your maker doesn't send updates to ForgeOS${NL}"; fi
+    [ "$(field FIRMWARE 2)" = 0 ] && head+="Device firmware: up to date${NL}" || head+="Device firmware: $(field FIRMWARE 2) update(s) ready${NL}"
+    [ "$(field DEVICES 2)" = 0 ] && head+="Devices: every part has a driver" || head+="Devices: $(field DEVICES 2) part(s) with NO driver"
+    case "$(field IMAGE 2)" in to-nvidia|to-plain) extra+=(image "Switch to the better ForgeOS version for this PC") ;; esac
+    [ "$(field NVIDIA 2)" = secure-boot ] && extra+=(sbkey "Fix the NVIDIA driver blocked by Secure Boot")
+    pick="$(kdialog --title "$TITLE" --menu "$head" "${extra[@]}" check "Check everything now" install "Install waiting updates" changed "What changed in my drivers" devices "Device Check" bios "BIOS" settings "Settings")" || return 0
+    case "$pick" in
+      problem) problem ;;
+      fixup) "$ENGINE" fix-updates > "$TMP/out" 2>&1; info "$(cat "$TMP/out")" ;;
+      image) switch_image ;;
+      sbkey) info "A terminal opens. Type the password universalblue when it asks, then restart and pick 'Enroll MOK' on the blue screen."; "$ENGINE" enroll-key ;;
+      check) check_all ;;
+      install) install_updates ;;
+      changed) what_changed ;;
+      devices) device_check ;;
+      bios) bios_help ;;
+      settings) settings ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --devices) device_check ;;
+  --bios) bios_help ;;
+  --image) switch_image ;;
+  --problem) "$ENGINE" status > "$TMP/status" 2>/dev/null; problem ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-autopilot-gui [--devices | --bios | --image | --problem]" >&2; exit 3 ;;
+esac

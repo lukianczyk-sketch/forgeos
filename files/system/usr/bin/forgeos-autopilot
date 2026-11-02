@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+"""ForgeOS Driver & BIOS Autopilot (Job 13d): you never update a driver by hand again.
+
+Drivers update by themselves with ForgeOS; Autopilot tells you what changed, checks the PC still works
+after the restart (and offers the way back), keeps BIOS and device firmware current from the free LVFS,
+and finds parts with no driver. It never restarts the PC by itself.
+Exit: 0 all good / done, 1 something needs you / failed, 2 an update is waiting, 3 could not check / wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_AP_LIB") or "/usr/lib/forgeos-autopilot")
+from autopilotlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

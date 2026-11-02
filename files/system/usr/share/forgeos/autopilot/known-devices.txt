@@ -1,0 +1,4 @@
+# ForgeOS Driver & BIOS Autopilot (Job 13d): plain advice for parts that have no Linux driver.
+# Format: bus:vendor:device ~ advice (vendor and device are the 4-digit ids that Device Check shows).
+# Parts not listed get a general tip for their kind (Wi-Fi, Bluetooth, camera...).
+# Add a line only after checking it on a real PC running ForgeOS.

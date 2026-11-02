@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Drivers & BIOS
+GenericName=Driver, BIOS and firmware updates
+Comment=Keeps drivers, BIOS and device firmware up to date by itself and checks every part has a driver
+Exec=/usr/bin/forgeos-autopilot-gui
+Icon=preferences-system
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=driver;drivers;bios;uefi;firmware;update;device manager;graphics;nvidia;hardware;

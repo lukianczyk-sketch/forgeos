@@ -148,3 +148,15 @@ jobs:
           bash tests/test-helper-gui.sh .
           FORGEOS_TEST_PY=/usr/bin/python3 bash tests/test-helper-krunner.sh .
           bash tests/test-helper-files.sh .
+
+      - name: Run Driver & BIOS Autopilot tests (fake PC, fake fwupd and rpm-ostree, free, from Ubuntu repos)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-autopilot.sh .
+          bash tests/test-autopilot-devices.sh .
+          bash tests/test-autopilot-boot.sh .
+          bash tests/test-autopilot-fw.sh .
+          bash tests/test-autopilot-bios.sh .
+          bash tests/test-autopilot-notes.sh .
+          bash tests/test-autopilot-gui.sh .
+          bash tests/test-autopilot-files.sh .

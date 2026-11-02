@@ -47,3 +47,9 @@
 {"q": "forget everything", "tool": "forget_all"}
 {"q": "forget everything you know about me", "tool": "forget_all"}
 {"q": "please forget all", "tool": "forget_all"}
+{"q": "are my drivers up to date", "tool": "drivers"}
+{"q": "update my graphics driver", "tool": "drivers"}
+{"q": "is my BIOS up to date?", "tool": "drivers"}
+{"q": "how do I update the BIOS", "tool": "drivers"}
+{"q": "is there new firmware for my mouse", "tool": "drivers"}
+{"q": "something in device manager has no driver", "tool": "drivers"}

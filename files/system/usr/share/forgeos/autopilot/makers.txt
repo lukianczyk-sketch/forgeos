@@ -1,0 +1,13 @@
+# ForgeOS Driver & BIOS Autopilot (Job 13d): PC makers' own BIOS download pages, for BIOS Watch.
+# Used only when the maker does not send BIOS updates through the free LVFS.
+# Format: words in the maker name (lower case) ~ maker name ~ download page. Pages checked 2026-11-01.
+acer ~ Acer ~ https://www.acer.com/us-en/support/drivers-and-manuals
+asus ~ ASUS ~ https://www.asus.com/support/download-center/
+dell ~ Dell ~ https://www.dell.com/support/home/en-us
+hewlett ~ HP ~ https://support.hp.com/us-en/drivers
+hp ~ HP ~ https://support.hp.com/us-en/drivers
+lenovo ~ Lenovo ~ https://pcsupport.lenovo.com/us/en/
+micro-star ~ MSI ~ https://www.msi.com/support/download
+msi ~ MSI ~ https://www.msi.com/support/download
+gigabyte ~ Gigabyte ~ https://www.gigabyte.com/Support
+framework ~ Framework ~ https://knowledgebase.frame.work/

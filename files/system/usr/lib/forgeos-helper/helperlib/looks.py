@@ -37,6 +37,12 @@ def guard_status(_arg):
     return "\n".join(lines), win("guard", "Open Always-On Guard"), -1
 
 
+def drivers(_arg):
+    code, out = run(["forgeos-autopilot", "check"], 300)
+    text = plain(out) if code in (0, 1, 2) else "Drivers & BIOS could not be checked."
+    return text, win("autopilot", "Open Drivers & BIOS"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

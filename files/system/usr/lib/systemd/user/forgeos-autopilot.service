@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Drivers & BIOS - checks drivers, BIOS and device firmware, and that the PC still works after updates
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-autopilot tick
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=3h

@@ -16,6 +16,7 @@ TOOLS = {
     "will_it_run": "will a program, game or Windows .exe run on this PC (text = program name)",
     "ghost_sweep": "look for hidden cameras, trackers (AirTags) and strange devices nearby",
     "guard_status": "what Always-On Guard blocked or caught (downloads, websites, email)",
+    "drivers": "drivers, BIOS, firmware or a part with no driver: up to date? what changed after an update?",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

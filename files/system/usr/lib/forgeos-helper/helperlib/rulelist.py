@@ -18,6 +18,7 @@ RULES = [
     ("memory_show", r"what do you (remember|know) about me|what have i told you"),
     ("panic", r"^\W*panic\b|panic (now|button now)|cut (off )?(the |my )?(internet|camera|webcam)|kill (the |my )?(camera|webcam|mic)"),
     ("guard_status", r"\bguard\b|quarantin|locked away|blocked (a |my |the )?(download|file|site|website|email)|download (was|got) (blocked|stopped)|download.{0,20}blocked"),
+    ("drivers", r"\bdrivers?\b(?!'s|s'| licen[cs]e)|\bbios\b|\buefi\b|firmware|device manager"),
     ("scam_check", r"\bscam|phish|is (this|it) (real|legit|safe|a trick|fake)|gift ?cards?|\birs\b|won (a|the) (prize|lottery)|lottery|"
                    r"suspicious (email|text|message|call|link)|(tech|microsoft|apple|amazon) (support )?called|"
                    r"(call|called|phone call) from (windows|microsoft|apple|amazon|tech)|(a man|a woman|someone|somebody|caller|a guy) on the phone|"

@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Drivers & BIOS - 2 minutes after login, then every 6 hours
+
+[Timer]
+OnStartupSec=2min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target

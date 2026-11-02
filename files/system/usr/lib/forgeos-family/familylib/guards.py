@@ -7,7 +7,8 @@ from . import run
 
 MINE = [("forgeos-privacy-watch.service", "Privacy Report - tells you when an app uses your camera or microphone"),
         ("forgeos-ghost-watch.timer", "GhostFinder - warns you if a tracker is following you"),
-        ("forgeos-guard.service", "Always-On Guard - checks every download and every new email")]
+        ("forgeos-guard.service", "Always-On Guard - checks every download and every new email"),
+        ("forgeos-autopilot.timer", "Drivers & BIOS - keeps drivers and firmware up to date")]
 PC_WIDE = [("clamav-freshclam.service", "Virus checker (ClamAV) - new virus list every day"),
            ("forgeos-cleansweep.timer", "Clean Sweep - virus and hacker scan every week"),
            ("forgeos-scamshield-update.timer", "Scam Shield - new list of scam websites every day"),

@@ -1,0 +1,110 @@
+# shellcheck shell=bash
+# ForgeOS Drivers & BIOS window screens (Job 13d), sourced by /usr/bin/forgeos-autopilot-gui.
+# Uses TITLE ENGINE NL TAB TMP info field show_text from the window.
+
+check_all() {
+  "$ENGINE" check > "$TMP/check" 2>&1
+  show_text "$TMP/check"
+}
+
+what_changed() {
+  "$ENGINE" drivers > "$TMP/drv" 2>&1
+  { grep -v "^DRIVER${TAB}" "$TMP/drv"; echo; echo "Drivers in this version:"
+    grep "^DRIVER${TAB}" "$TMP/drv" | while IFS="$TAB" read -r _ name ver; do echo "- $name: $ver"; done; } > "$TMP/drv2"
+  show_text "$TMP/drv2"
+}
+
+restart_offer() {
+  kdialog --title "$TITLE" --yesno "New drivers are ready. They switch on when the PC restarts.${NL}${NL}Save your work, then restart now?" || return 0
+  "$ENGINE" restart >/dev/null 2>&1 || info "Please save your work and restart from the menu."
+}
+
+install_updates() {
+  "$ENGINE" firmware list > "$TMP/fw" 2>&1
+  local args=() id name now new kind pick
+  while IFS="$TAB" read -r tag id name now new kind _ _; do
+    [ "$tag" = UPDATE ] || continue
+    [ "$kind" = bios ] && args+=("$id" "BIOS: $name  $now to $new  (installs at the next restart)") || args+=("$id" "$name  $now to $new")
+  done < "$TMP/fw"
+  [ "$(field DRIVERS 2)" = waiting ] && args+=(restart "New drivers: restart the PC to switch them on")
+  if [ ${#args[@]} -eq 0 ]; then info "Everything is up to date."; return; fi
+  pick="$(kdialog --title "$TITLE" --menu "Updates waiting. Pick one:" "${args[@]}")" || return 0
+  if [ "$pick" = restart ]; then restart_offer; return; fi
+  if grep -q "^UPDATE${TAB}${pick}${TAB}.*${TAB}bios${TAB}" "$TMP/fw"; then
+    "$ENGINE" bios > "$TMP/bios" 2>&1
+    if grep -q "^BLOCKED${TAB}" "$TMP/bios"; then info "Not yet:${NL}$(grep "^BLOCKED${TAB}" "$TMP/bios" | cut -f 2)"; return; fi
+    local warn="The BIOS update installs the next time you restart and takes a few minutes.${NL}The screen may go black - don't turn the PC off and keep the charger in."
+    grep -q "^TPM${TAB}yes" "$TMP/bios" && warn+="${NL}${NL}After it, you may have to type your disk password once - keep it handy."
+    kdialog --title "$TITLE" --warningyesno "${warn}${NL}${NL}Get it ready now?" || return 0
+  fi
+  "$ENGINE" firmware install "$pick" > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+device_check() {
+  "$ENGINE" devices --all > "$TMP/dev" 2>&1
+  {
+    if grep -q "^MISSING${TAB}" "$TMP/dev"; then
+      echo "These parts have NO driver:"
+      grep "^MISSING${TAB}" "$TMP/dev" | while IFS="$TAB" read -r _ kind name id tip; do echo; echo "! $kind: $name ($id)"; echo "  $tip"; done
+      echo
+    else
+      echo "Every important part has a driver."; echo
+    fi
+    echo "Working parts:"
+    grep "^OK${TAB}" "$TMP/dev" | while IFS="$TAB" read -r _ kind name drv; do echo "- $kind: $name (driver: $drv)"; done
+  } > "$TMP/dev2"
+  show_text "$TMP/dev2"
+}
+
+bios_help() {
+  "$ENGINE" bios > "$TMP/bios" 2>&1
+  local b way maker page tool text
+  b="$(grep "^BIOS${TAB}" "$TMP/bios")"; way="$(grep "^WAY${TAB}" "$TMP/bios" | cut -f 2)"
+  maker="$(grep "^PAGE${TAB}" "$TMP/bios" | cut -f 2)"; page="$(grep "^PAGE${TAB}" "$TMP/bios" | cut -f 3)"
+  tool="$(grep "^USBTOOL${TAB}" "$TMP/bios" | cut -f 2)"
+  text="Your PC: $(cut -f 2 <<< "$b") $(cut -f 3 <<< "$b")${NL}BIOS version $(cut -f 4 <<< "$b"), dated $(cut -f 5 <<< "$b")."
+  if [ "$way" = lvfs ]; then
+    info "${text}${NL}${NL}Your PC maker sends BIOS updates to ForgeOS. Drivers & BIOS tells you when one is ready."
+    return
+  fi
+  text+="${NL}${NL}Your PC maker does not send BIOS updates to ForgeOS by itself. To update it:${NL}"
+  text+="1. On the maker's website, find your model and download the newest BIOS.${NL}"
+  [ "$tool" != - ] && text+="2. Many $(cut -f 2 <<< "$b") PCs can update from a USB stick with the BIOS's own ${tool} tool (see the maker's steps).${NL}" || \
+    text+="2. If the maker only offers a Windows program, ask a PC shop or a helper with Windows to run it.${NL}"
+  text+="3. Keep the charger in and never turn the PC off during a BIOS update.${NL}${NL}ForgeOS never runs a maker's BIOS program itself."
+  if [ "$page" != - ]; then
+    if kdialog --title "$TITLE" --yesno "${text}${NL}${NL}Open ${maker}'s download page now?"; then xdg-open "$page" >/dev/null 2>&1 & fi
+  else
+    info "$text"
+  fi
+}
+
+switch_image() {
+  "$ENGINE" image > "$TMP/img" 2>&1
+  local adv; adv="$(cut -f 2 "$TMP/img")"
+  case "$adv" in
+    to-nvidia) kdialog --title "$TITLE" --yesno "This PC has an NVIDIA graphics card. The NVIDIA version of ForgeOS uses it at full speed.${NL}${NL}Switch now? (your PC password is needed, then one restart; your files are not touched)" || return 0 ;;
+    to-plain) kdialog --title "$TITLE" --yesno "This PC does not need the NVIDIA version of ForgeOS. The AMD/Intel version fits it better.${NL}${NL}Switch now? (your PC password is needed, then one restart; your files are not touched)" || return 0 ;;
+    *) info "You are on the right version of ForgeOS for this PC's graphics."; return ;;
+  esac
+  "$ENGINE" switch-image --yes > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+problem() {
+  local p; p="$(field AFTERBOOT 3)"
+  [ -n "$p" ] || { info "Everything worked after the last update."; return; }
+  local pick
+  pick="$(kdialog --title "$TITLE" --menu "After the last update: ${p}${NL}${NL}ForgeOS can put back the version from before (your files are not touched)." back "Go back to the version before the update" keep "Keep this version")" || return 0
+  case "$pick" in
+    back) "$ENGINE" go-back --yes > "$TMP/out" 2>&1; info "$(cat "$TMP/out")" ;;
+    keep) "$ENGINE" keep-version >/dev/null 2>&1; info "OK - ForgeOS will keep this version." ;;
+  esac
+}
+
+settings() {
+  local now pick; now="$(field SETTING 3)"
+  pick="$(kdialog --title "$TITLE" --menu "Firmware for mice, keyboards, docks and drives (now: ${now}):" auto "Install it by itself and tell me (recommended)" ask "Ask me first")" || return 0
+  "$ENGINE" set devices "$pick" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")"
+}
