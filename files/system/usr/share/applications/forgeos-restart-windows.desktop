@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Restart into Windows
+Comment=Restart this PC into Windows 11 one time (ForgeOS starts again next time)
+Exec=/usr/bin/forgeos-switch-gui --windows
+Icon=system-reboot
+Terminal=false
+Categories=System;
+Keywords=windows;windows 11;dual boot;switch;restart;
+X-ForgeOS-Switch=true

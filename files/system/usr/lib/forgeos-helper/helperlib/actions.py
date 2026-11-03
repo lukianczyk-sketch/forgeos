@@ -14,7 +14,8 @@ FIX_IDS = ("restart-internet restart-sound unmute-sound restart-taskbar close-bu
 WINDOWS = {"cleansweep": "forgeos-cleansweep-gui", "undo": "forgeos-undo-gui", "privacy": "forgeos-privacy-gui",
            "scamshield": "forgeos-scamshield-gui", "find": "forgeos-find-gui", "willitrun": "forgeos-willitrun-gui",
            "ghost": "forgeos-ghost-gui", "guard": "forgeos-guard-gui", "family": "forgeos-family-gui",
-           "askpc": "forgeos-askpc-gui", "aisetup": "forgeos-ai-setup", "autopilot": "forgeos-autopilot-gui"}
+           "askpc": "forgeos-askpc-gui", "aisetup": "forgeos-ai-setup", "autopilot": "forgeos-autopilot-gui",
+           "switch": "forgeos-switch-gui"}
 SIZES = ("big", "bigger")
 # The ONLY actions 'do' runs. Each needs the user's Yes click first (the window asks).
 ACTIONS = ("pc_fix", "text_size", "family_on", "family_call", "panic", "open", "open_file", "forget_all", "get_model")

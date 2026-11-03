@@ -43,6 +43,14 @@ def drivers(_arg):
     return text, win("autopilot", "Open Drivers & BIOS"), -1
 
 
+def switch_windows(_arg):
+    code, out = run(["forgeos-switch", "status"], 30)
+    if code == 0 and "WINDOWS\tfound" in out:
+        return ("Windows 11 is on this PC too. \"Restart into Windows\" restarts into Windows one time; next time"
+                " the PC starts, ForgeOS starts again."), win("switch", "Open Windows & ForgeOS"), -1
+    return "Windows was not found on this PC, so there is nothing to switch to.", [], -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

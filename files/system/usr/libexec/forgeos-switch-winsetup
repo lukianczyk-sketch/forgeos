@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# ForgeOS Install & Switch - puts a "Restart into ForgeOS" button on the Windows desktop (Job 13e).
+# Runs as root through pkexec and asks for the PC password (polkit org.forgeos.switch.winsetup).
+# Accepts ONLY: find | install | remove. It writes 2 small files on the Windows drive and nothing else:
+#   Users\Public\Desktop\Restart into ForgeOS.cmd and Users\Public\Documents\ForgeOS\restart-into-forgeos.ps1
+# It never touches a BitLocker drive or a Windows that was not fully shut down (Fast Startup / hibernate).
+set -u
+
+SRC="${FORGEOS_SWITCH_SRC:-/usr/share/forgeos/switch}"
+MNT="${FORGEOS_SWITCH_MNT:-/run/forgeos-switch}"
+CMD_NAME="Restart into ForgeOS.cmd"
+
+if [ "$(id -u)" -ne 0 ] && [ -z "${FORGEOS_SWITCH_TEST:-}" ]; then
+  echo "forgeos-switch-winsetup: must run as root (use pkexec)" >&2
+  exit 2
+fi
+
+# Windows lives on an NTFS partition that has Windows\System32 and Users\Public.
+is_windows() { [ -d "$1/Windows/System32" ] && [ -d "$1/Users/Public" ]; }
+
+# Mount one NTFS partition read-write (or use it where it is already mounted read-write).
+# Prints the folder. Exit 4 = Windows not fully shut down, 1 = could not mount.
+open_part() {
+  local dev="$1" where="$2" dir
+  if [ -n "$where" ]; then
+    if touch "$where/.forgeos-write-test" 2>/dev/null; then
+      rm -f "$where/.forgeos-write-test"
+      printf '%s\n' "$where"
+      return 0
+    fi
+    return 4
+  fi
+  dir="$MNT/$(basename "$dev")"
+  mkdir -p "$dir"
+  if mount -t ntfs3 -o rw,noatime "$dev" "$dir" 2>/dev/null; then
+    printf '%s\n' "$dir"
+    return 0
+  fi
+  rmdir "$dir" 2>/dev/null
+  # ntfs3 refuses a Windows that was hibernated or not fully shut down: try read-only to tell them apart.
+  mkdir -p "$dir"
+  if mount -t ntfs3 -o ro "$dev" "$dir" 2>/dev/null; then
+    umount "$dir" 2>/dev/null
+    rmdir "$dir" 2>/dev/null
+    return 4
+  fi
+  rmdir "$dir" 2>/dev/null
+  return 1
+}
+
+close_part() {
+  case "$1" in
+    "$MNT"/*) sync; umount "$1" 2>/dev/null; rmdir "$1" 2>/dev/null ;;
+  esac
+}
+
+# each_windows ACTION: run ACTION on every Windows found. Exit 0 = done on at least one,
+# 1 = no Windows found, 4 = Windows not fully shut down, 5 = BitLocker.
+each_windows() {
+  local action="$1" dev fstype where dir rc found=1 locked=0 dirty=0
+  while read -r dev fstype where; do
+    case "$fstype" in
+      BitLocker) locked=1; continue ;;
+      ntfs) ;;
+      *) continue ;;
+    esac
+    if [ "$where" = "-" ]; then where=""; else where="$(printf '%b' "$where")"; fi
+    dir="$(open_part "$dev" "$where")"; rc=$?
+    if [ "$rc" -eq 4 ]; then dirty=1; continue; fi
+    [ "$rc" -eq 0 ] || continue
+    if is_windows "$dir"; then
+      "$action" "$dir" "$dev" && found=0
+    fi
+    [ -z "$where" ] && close_part "$dir"
+  done < <(lsblk -rnpo PATH,FSTYPE,MOUNTPOINT | awk '{print $1, ($2 == "" ? "-" : $2), ($3 == "" ? "-" : $3)}')
+  [ "$found" -eq 0 ] && return 0
+  [ "$dirty" -eq 1 ] && return 4
+  [ "$locked" -eq 1 ] && return 5
+  return 1
+}
+
+# Windows wants CRLF line endings in .cmd and .ps1 files.
+crlf() { sed 's/\r$//; s/$/\r/' "$1" > "$2"; }
+
+do_install() {
+  local dir="$1" desk="$1/Users/Public/Desktop" docs="$1/Users/Public/Documents/ForgeOS"
+  mkdir -p "$desk" "$docs" || return 1
+  crlf "$SRC/restart-into-forgeos.ps1" "$docs/restart-into-forgeos.ps1" || return 1
+  crlf "$SRC/$CMD_NAME" "$desk/$CMD_NAME" || return 1
+  printf 'INSTALLED\t%s\n' "$2"
+}
+
+do_remove() {
+  rm -f "$1/Users/Public/Desktop/$CMD_NAME" "$1/Users/Public/Documents/ForgeOS/restart-into-forgeos.ps1"
+  rmdir "$1/Users/Public/Documents/ForgeOS" 2>/dev/null
+  printf 'REMOVED\t%s\n' "$2"
+}
+
+do_find() {
+  local has=no
+  [ -f "$1/Users/Public/Desktop/$CMD_NAME" ] && has=yes
+  printf 'WINDOWS\t%s\t%s\n' "$2" "$has"
+}
+
+case "${1:-}" in
+  find) each_windows do_find ;;
+  install) each_windows do_install ;;
+  remove) each_windows do_remove ;;
+  *) echo "usage: forgeos-switch-winsetup find | install | remove" >&2; exit 3 ;;
+esac
+rc=$?
+case "$rc" in
+  1) echo "No Windows drive was found on this PC." >&2 ;;
+  4) echo "Windows was not fully shut down (Fast Startup or hibernate), so its drive is locked. Start Windows, turn off Fast Startup, shut down, then try again." >&2 ;;
+  5) echo "The Windows drive is locked with BitLocker. Turn BitLocker off in Windows first, then try again." >&2 ;;
+esac
+exit "$rc"

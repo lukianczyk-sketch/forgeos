@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Windows & ForgeOS
+GenericName=Switch between Windows and ForgeOS
+Comment=Restart into Windows 11 with one click, and set up the "Restart into ForgeOS" button in Windows
+Exec=/usr/bin/forgeos-switch-gui
+Icon=system-reboot
+Terminal=false
+Categories=System;
+Keywords=windows;windows 11;dual boot;switch;restart;boot;forgeos;

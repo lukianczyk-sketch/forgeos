@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# ForgeOS "Windows & ForgeOS" window (Job 13e). kdialog front end for forgeos-switch.
+# --windows = the "Restart into Windows" icon (asks, then restarts); --first-run = welcome after install.
+set -uo pipefail
+
+TITLE="Windows & ForgeOS"
+ENGINE="${FORGEOS_SWITCH_ENGINE:-/usr/bin/forgeos-switch}"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-switch in a terminal." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+field() { grep "^$1${TAB}" "$TMP/status" | head -n 1 | cut -f "$2"; }
+
+go_windows() {
+  kdialog --title "$TITLE" --warningyesno "Restart into Windows now?${NL}${NL}Save your work first - open programs will close.${NL}Next time you turn the PC on, ForgeOS starts again as usual." || return 0
+  "$ENGINE" windows --yes > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+windows_button() {
+  kdialog --title "$TITLE" --yesno "Put a \"Restart into ForgeOS\" button on the Windows desktop?${NL}${NL}ForgeOS writes 2 small files on the Windows drive and changes nothing else.${NL}Your PC password is needed." || return 0
+  "$ENGINE" windows-button > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+boot_menu() {
+  info "A terminal opens and asks for your PC password. After that, the start-up menu shows both ForgeOS and Windows."
+  "$ENGINE" boot-menu
+}
+
+how_to() {
+  info "Switching between Windows 11 and ForgeOS:${NL}${NL}- In ForgeOS: click \"Restart into Windows\" (desktop icon or this window).${NL}- In Windows: double-click \"Restart into ForgeOS\" on the desktop and say Yes when Windows asks.${NL}- Or, while the PC starts, pick the system in the start-up menu.${NL}${NL}After a switch, the next normal start-up is ForgeOS again.${NL}Your files stay where they are: Windows files on the Windows drive, ForgeOS files on the ForgeOS drive."
+}
+
+main_menu() {
+  local head pick btn
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    if [ "$(field EFI 2)" != yes ]; then
+      info "This PC does not start with UEFI, so ForgeOS can't switch to Windows for you. Use the start-up menu."; return 0
+    fi
+    if [ "$(field WINDOWS 2)" != found ]; then
+      info "Windows was not found on this PC.${NL}${NL}If Windows is on another drive, check that the drive is plugged in and shows in the PC's start-up menu."; return 0
+    fi
+    head="Windows 11 and ForgeOS are both on this PC."
+    if [ "$(field BUTTON 2)" = yes ]; then btn="Windows desktop button: set up"; else btn="Windows desktop button: not set up yet"; fi
+    head+="${NL}${btn}"
+    pick="$(kdialog --title "$TITLE" --menu "$head" windows "Restart into Windows now" button "Put \"Restart into ForgeOS\" on the Windows desktop" menu "Show both systems in the start-up menu" howto "How switching works")" || return 0
+    case "$pick" in
+      windows) go_windows ;;
+      button) windows_button ;;
+      menu) boot_menu ;;
+      howto) how_to ;;
+    esac
+  done
+}
+
+first_run() {
+  kdialog --title "$TITLE" --yesno "Welcome to ForgeOS!${NL}${NL}Windows 11 is on this PC too. You can switch any time:${NL}- \"Restart into Windows\" icon on this desktop${NL}- a \"Restart into ForgeOS\" button on the Windows desktop${NL}${NL}Set up the Windows button now? (your PC password is needed)" || return 0
+  "$ENGINE" windows-button > "$TMP/out" 2>&1
+  info "$(cat "$TMP/out")"
+}
+
+case "${1:-}" in
+  --windows) go_windows ;;
+  --first-run) first_run ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-switch-gui [--windows | --first-run]" >&2; exit 3 ;;
+esac

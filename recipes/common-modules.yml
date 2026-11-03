@@ -37,6 +37,7 @@ modules:
         - python3-gobject-base  # Forge Helper (Job 13c): the KDE search (KRunner) runner's D-Bus main loop
         - fwupd              # Driver & BIOS Autopilot (Job 13d): BIOS and device firmware from the free LVFS
         - fwupd-efi          # Driver & BIOS Autopilot (Job 13d): the signed EFI program that writes BIOS updates at restart
+        - efibootmgr         # Install & Switch (Job 13e): Restart into Windows sets the next start-up
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

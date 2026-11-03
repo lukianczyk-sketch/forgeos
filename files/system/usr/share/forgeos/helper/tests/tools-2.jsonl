@@ -53,3 +53,7 @@
 {"q": "how do I update the BIOS", "tool": "drivers"}
 {"q": "is there new firmware for my mouse", "tool": "drivers"}
 {"q": "something in device manager has no driver", "tool": "drivers"}
+{"q": "restart into windows", "tool": "switch_windows"}
+{"q": "how do I get back to Windows 11", "tool": "switch_windows"}
+{"q": "I want to boot into windows", "tool": "switch_windows"}
+{"q": "how does dual boot work", "tool": "switch_windows"}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Install & Switch (Job 13e). Reading the start-up list and choosing Windows for the NEXT
+     start-up (one time) needs no password for the person at the screen. Writing the button onto the
+     Windows drive needs the PC password. Remote/inactive: admin only. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.switch.boot">
+    <description>Restart into Windows one time</description>
+    <message>Restarting into Windows needs permission to set the next start-up</message>
+    <icon_name>system-reboot</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-switch-boot</annotate>
+  </action>
+  <action id="org.forgeos.switch.winsetup">
+    <description>Put the Restart into ForgeOS button on the Windows desktop</description>
+    <message>Writing the Restart into ForgeOS button onto the Windows drive needs your password</message>
+    <icon_name>system-reboot</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-switch-winsetup</annotate>
+  </action>
+</policyconfig>

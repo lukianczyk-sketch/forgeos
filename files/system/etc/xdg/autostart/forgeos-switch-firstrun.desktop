@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ForgeOS Windows switch setup
+Comment=Once after install: adds the Restart into Windows icon when Windows is on this PC
+Exec=/usr/bin/forgeos-switch first-run
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=2

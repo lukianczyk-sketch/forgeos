@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# ForgeOS Install & Switch - root helper for the start-up list (Job 13e).
+# Runs as root through pkexec, with no password for the person at the screen
+# (polkit action org.forgeos.switch.boot). Accepts ONLY: list | windows-next | clear-next.
+# It only ever sets "next start-up, one time" (BootNext); the normal start-up order is never changed.
+# pkexec wipes the environment, so FORGEOS_SWITCH_TEST can never be set by a normal user.
+set -u
+
+if [ "$(id -u)" -ne 0 ] && [ -z "${FORGEOS_SWITCH_TEST:-}" ]; then
+  echo "forgeos-switch-boot: must run as root (use pkexec)" >&2
+  exit 2
+fi
+if ! command -v efibootmgr >/dev/null 2>&1; then
+  echo "This PC does not start with UEFI (or efibootmgr is missing)." >&2
+  exit 3
+fi
+
+# Print "NUMBER<TAB>NAME" for every start-up entry, e.g. "0000<TAB>Windows Boot Manager".
+entries() {
+  efibootmgr 2>/dev/null | sed -n -E 's/^Boot([0-9A-Fa-f]{4})\*? ([^\t]*).*$/\1\t\2/p' | sed -E 's/[[:space:]]+(HD|PciRoot|VenHw|BBS)\(.*$//'
+}
+
+# The Windows entry: "Windows Boot Manager" by name, else any entry that starts bootmgfw.efi.
+windows_entry() {
+  local num
+  num="$(entries | awk -F '\t' '$2 ~ /^Windows Boot Manager/ {print $1; exit}')"
+  if [ -z "$num" ]; then
+    num="$(efibootmgr -v 2>/dev/null | grep -i 'bootmgfw\.efi' | sed -n -E 's/^Boot([0-9A-Fa-f]{4}).*/\1/p' | head -n 1)"
+  fi
+  printf '%s\n' "$num"
+}
+
+case "${1:-}" in
+  list)
+    entries
+    efibootmgr 2>/dev/null | sed -n -E 's/^BootNext: ([0-9A-Fa-f]{4}).*/NEXT\t\1/p; s/^BootCurrent: ([0-9A-Fa-f]{4}).*/CURRENT\t\1/p'
+    ;;
+  windows-next)
+    num="$(windows_entry)"
+    if [ -z "$num" ]; then
+      echo "Windows was not found in the start-up list." >&2
+      exit 1
+    fi
+    if efibootmgr -n "$num" >/dev/null 2>&1; then
+      printf 'NEXT\t%s\n' "$num"
+    else
+      echo "Could not set the next start-up to Windows." >&2
+      exit 1
+    fi
+    ;;
+  clear-next)
+    efibootmgr -N >/dev/null 2>&1 || true
+    echo "CLEARED"
+    ;;
+  *)
+    echo "usage: forgeos-switch-boot list | windows-next | clear-next" >&2
+    exit 3
+    ;;
+esac

@@ -160,3 +160,11 @@ jobs:
           bash tests/test-autopilot-notes.sh .
           bash tests/test-autopilot-gui.sh .
           bash tests/test-autopilot-files.sh .
+
+      - name: Run Install & Switch tests (fake start-up list and Windows drives; PowerShell runs the Windows script)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils python3-yaml
+          bash tests/test-switch.sh .
+          bash tests/test-switch-win.sh .
+          bash tests/test-switch-gui.sh .
+          bash tests/test-switch-files.sh .

@@ -18,7 +18,7 @@ SYS="$ROOT/files/system"; U="$SYS/usr/lib/systemd/user"; LIB="$FORGEOS_AP_LIB/au
 SETUP="$ROOT/files/scripts/forgeos-setup.sh"; M="$ROOT/recipes/common-modules.yml"; SH="$FORGEOS_AP_SHARE"
 HL="$SYS/usr/lib/forgeos-helper"
 
-check Q1 'grep -q "^chmod 0755 .* /usr/libexec/forgeos-helper-krunner /usr/bin/forgeos-autopilot /usr/bin/forgeos-autopilot-gui$" "$SETUP" && grep -qx "systemctl enable fwupd-refresh.timer" "$SETUP" && grep -qx "systemctl --global enable forgeos-autopilot.timer" "$SETUP"'
+check Q1 'grep -q "^chmod 0755 .* /usr/libexec/forgeos-helper-krunner /usr/bin/forgeos-autopilot /usr/bin/forgeos-autopilot-gui\( \|$\)" "$SETUP" && grep -qx "systemctl enable fwupd-refresh.timer" "$SETUP" && grep -qx "systemctl --global enable forgeos-autopilot.timer" "$SETUP"'
 check Q2 'grep -qx "ExecStart=/usr/bin/forgeos-autopilot tick" "$U/forgeos-autopilot.service" && grep -qx "Type=oneshot" "$U/forgeos-autopilot.service" && grep -qx "Nice=19" "$U/forgeos-autopilot.service" && grep -qx "TimeoutStartSec=3h" "$U/forgeos-autopilot.service" && grep -qx "OnStartupSec=2min" "$U/forgeos-autopilot.timer" && grep -qx "OnUnitActiveSec=6h" "$U/forgeos-autopilot.timer" && grep -qx "WantedBy=timers.target" "$U/forgeos-autopilot.timer"'
 check Q3 'grep -qx "Exec=/usr/bin/forgeos-autopilot-gui" "$A/forgeos-autopilot.desktop" && grep -qx "Name=Drivers & BIOS" "$A/forgeos-autopilot.desktop" && { ! command -v desktop-file-validate >/dev/null || desktop-file-validate "$A/forgeos-autopilot.desktop"; }'
 check Q4 'grep -q "^        - fwupd  *# Driver & BIOS Autopilot" "$M" && grep -q "^        - fwupd-efi  *# Driver & BIOS Autopilot" "$M" && grep -q "(\"forgeos-autopilot.timer\", \"Drivers & BIOS" "$SYS/usr/lib/forgeos-family/familylib/guards.py"'

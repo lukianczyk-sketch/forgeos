@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# ForgeOS Install & Switch (Job 13e): Windows 11 and ForgeOS on one PC, one click to switch.
+#   forgeos-switch status                 TAB lines for the window (EFI, WINDOWS, NEXT, BUTTON, ICON)
+#   forgeos-switch windows --yes          next start-up = Windows (one time), then restart the normal KDE way
+#   forgeos-switch windows-button [remove] put (or take off) "Restart into ForgeOS" on the Windows desktop
+#   forgeos-switch boot-menu              open a terminal that shows both systems in the start-up menu
+#   forgeos-switch first-run              once after install: desktop icon + the welcome window if Windows is here
+# Exit: 0 done, 1 failed, 2 no Windows on this PC, 3 wrong use.
+set -u
+
+PKEXEC="${FORGEOS_SWITCH_PKEXEC:-pkexec}"
+BOOT="${FORGEOS_SWITCH_BOOT:-/usr/libexec/forgeos-switch-boot}"
+WINSETUP="${FORGEOS_SWITCH_WINSETUP:-/usr/libexec/forgeos-switch-winsetup}"
+GUI="${FORGEOS_SWITCH_GUI:-/usr/bin/forgeos-switch-gui}"
+APPS="${FORGEOS_SWITCH_APPS:-/usr/share/applications}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/forgeos/switch"
+ICON_NAME="forgeos-restart-windows.desktop"
+
+usage() {
+  echo "usage: forgeos-switch status | windows --yes | windows-button [remove] | boot-menu | first-run" >&2
+  exit 3
+}
+
+efi() { [ -d "${FORGEOS_SWITCH_EFI:-/sys/firmware/efi}" ]; }
+
+desktop_dir() {
+  local d
+  d="$(xdg-user-dir DESKTOP 2>/dev/null)"
+  [ -n "$d" ] && [ "$d" != "$HOME" ] || d="$HOME/Desktop"
+  printf '%s\n' "$d"
+}
+
+remember() { mkdir -p "$STATE" && chmod 700 "$STATE" && printf '%s\n' "$2" > "$STATE/$1"; }
+recall() { cat "$STATE/$1" 2>/dev/null || echo "${2:-}"; }
+
+status() {
+  local list win next
+  if ! efi; then
+    printf 'EFI\tno\nWINDOWS\tmissing\t-\n'
+    return 0
+  fi
+  printf 'EFI\tyes\n'
+  list="$("$PKEXEC" "$BOOT" list 2>/dev/null)"
+  win="$(awk -F '\t' '$2 ~ /^Windows Boot Manager/ {print $1; exit}' <<< "$list")"
+  next="$(awk -F '\t' '$1 == "NEXT" {print $2}' <<< "$list")"
+  if [ -n "$win" ]; then printf 'WINDOWS\tfound\t%s\n' "$win"; else printf 'WINDOWS\tmissing\t-\n'; fi
+  printf 'NEXT\t%s\n' "${next:--}"
+  printf 'BUTTON\t%s\n' "$(recall button no)"
+  if [ -f "$(desktop_dir)/$ICON_NAME" ]; then printf 'ICON\tyes\n'; else printf 'ICON\tno\n'; fi
+}
+
+restart_kde() {
+  busctl --user call org.kde.Shutdown /Shutdown org.kde.Shutdown logoutAndReboot >/dev/null 2>&1
+}
+
+windows() {
+  [ "${1:-}" = "--yes" ] || usage
+  if ! efi; then echo "This PC does not start with UEFI, so ForgeOS can't pick Windows for you. Use the start-up menu."; return 2; fi
+  local out rc
+  out="$("$PKEXEC" "$BOOT" windows-next 2>&1)"; rc=$?
+  if [ "$rc" -ne 0 ]; then
+    if grep -q "not found" <<< "$out"; then echo "Windows was not found on this PC."; return 2; fi
+    echo "Could not set the next start-up to Windows. Nothing was changed."
+    return 1
+  fi
+  if restart_kde; then
+    echo "Restarting into Windows. Next time you turn the PC on, ForgeOS starts again as usual."
+  else
+    echo "Windows is set for the next start-up. Save your work and restart from the menu."
+  fi
+  return 0
+}
+
+windows_button() {
+  local action=install out rc
+  [ "${1:-}" = "remove" ] && action=remove
+  [ -z "${1:-}" ] || [ "$1" = "remove" ] || usage
+  out="$("$PKEXEC" "$WINSETUP" "$action" 2>&1)"; rc=$?
+  case "$rc" in
+    0)
+      if [ "$action" = install ]; then
+        remember button yes
+        echo "Done. Windows now has a \"Restart into ForgeOS\" button on its desktop."
+      else
+        remember button no
+        echo "The \"Restart into ForgeOS\" button was taken off the Windows desktop."
+      fi
+      return 0 ;;
+    1) echo "No Windows drive was found on this PC."; return 2 ;;
+    126|127) echo "Cancelled - nothing was changed."; return 1 ;;
+    *) printf '%s\n' "$out" | grep -v '^usage' | tail -n 1; return 1 ;;
+  esac
+}
+
+first_run() {
+  local stamp="$STATE/first-run-done" dir
+  [ -f "$stamp" ] && return 0
+  remember first-run-done yes
+  efi || return 0
+  grep -q "^WINDOWS$(printf '\t')found" <<< "$(status)" || return 0
+  dir="$(desktop_dir)"
+  mkdir -p "$dir"
+  cp "$APPS/$ICON_NAME" "$dir/$ICON_NAME" 2>/dev/null && chmod +x "$dir/$ICON_NAME"
+  "$GUI" --first-run >/dev/null 2>&1 &
+  return 0
+}
+
+case "${1:-}" in
+  status) [ $# -eq 1 ] || usage; status ;;
+  windows) shift; windows "$@" ;;
+  windows-button) shift; [ $# -le 1 ] || usage; windows_button "$@" ;;
+  boot-menu) [ $# -eq 1 ] || usage; konsole -e ujust regenerate-grub >/dev/null 2>&1 & ;;
+  first-run) [ $# -eq 1 ] || usage; first_run ;;
+  *) usage ;;
+esac

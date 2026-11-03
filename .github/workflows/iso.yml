@@ -1,0 +1,54 @@
+name: iso
+# ForgeOS installer USB files (Job 13e). Builds forgeos.iso (AMD / Intel graphics) and forgeos-nvidia.iso
+# (NVIDIA graphics) from our signed images on ghcr.io. Free (public repo). Run it from the Actions tab
+# ("Run workflow"), or it runs by itself for every version tag. Download the ISO from the run's
+# Artifacts, write it to a USB stick with Fedora Media Writer, and start the other PC from the stick.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+jobs:
+  iso:
+    name: Build installer ISO
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - forgeos          # AMD / Intel graphics
+          - forgeos-nvidia   # NVIDIA graphics (GTX 16xx / RTX 20xx and newer)
+    steps:
+      - name: Free up disk space (the ISO holds the whole system, several GB)
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          tool-cache: true
+
+      - name: Build ISO
+        id: build
+        uses: jasonn3/build-container-installer@v1.5.0
+        with:
+          arch: x86_64
+          image_repo: ghcr.io/lukianczyk-sketch
+          image_name: ${{ matrix.image }}
+          image_tag: latest
+          version: 44
+          variant: Kinoite
+          iso_name: ${{ matrix.image }}.iso
+          enable_flatpak_dependencies: "false"
+          # Universal Blue's Secure Boot key (the same key `ujust enroll-secure-boot-key` uses), password universalblue
+          secure_boot_key_url: https://github.com/ublue-os/akmods/raw/main/certs/public_key.der
+          enrollment_password: universalblue
+
+      - name: Upload the ISO (download it from this run's Artifacts)
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.image }}-iso
+          path: |
+            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}
+            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}-CHECKSUM
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
