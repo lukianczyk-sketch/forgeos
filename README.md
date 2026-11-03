@@ -39,7 +39,7 @@ Replace `OWNER` with the GitHub account that hosts this repo. NVIDIA PCs: use `f
 Best setup: ForgeOS on its own drive, Windows 11 on the other. Nothing on the Windows drive is touched.
 
 1. GitHub → Actions → **iso** → **Run workflow** (it also runs on every version tag). When it is done, download `forgeos` (AMD/Intel) or `forgeos-nvidia` (NVIDIA) from the run's **Artifacts** and unzip it.
-2. Write the `.iso` to a USB stick (8 GB or more) with **Fedora Media Writer** (free).
+2. Write the `.iso` to a USB stick (16 GB or more — the ISO is about 9 GB) with **Fedora Media Writer** (free).
 3. In Windows on the target PC: turn **BitLocker off** (or save the recovery key) and turn **Fast Startup off** (Control Panel → Power Options → "Choose what the power buttons do").
 4. Boot the PC from the USB stick (boot menu key at power-on, often F12, F8 or Esc). In the installer pick the **empty second drive** and turn on disk encryption.
 5. NVIDIA PCs with Secure Boot: after the first start run `ujust enroll-secure-boot-key` (password `universalblue`).
