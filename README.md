@@ -14,6 +14,7 @@ Secure, fast, Windows-friendly Linux with a built-in private AI helper.
 - **Always-On Guard — checks everything by itself:** every download is virus-checked the moment it lands (bad ones locked away, fake "invoice.pdf.exe" tricks flagged); every new email in Thunderbird is checked for scams and virus attachments; known scam and virus websites are blocked for the whole PC from free daily lists. Plain-English pop-ups with "Show why", one window to see and undo everything. Nothing leaves the PC.
 - **Forge Helper — one private AI helper everywhere:** ask anything in plain English from the menu or by pressing Meta+H; it answers from 67 built-in help pages, runs the right ForgeOS tool for you (only after you say Yes), and quietly warns you about a full drive, a failed update or an old backup. It never shares anything — the AI runs on your own PC.
 - **Drivers & BIOS — you never update a driver by hand again:** drivers update by themselves with ForgeOS and it tells you in plain words what changed; after every restart it checks your graphics, Wi-Fi, sound and Bluetooth still work and offers the way back if not; firmware for mice, docks and drives installs by itself, and a new BIOS is one tap (it finishes at your next restart, never forced). It also finds parts with no driver and picks the right ForgeOS for your graphics card.
+- **Windows & ForgeOS on one PC — one click to switch:** install ForgeOS from a USB stick onto its own drive next to Windows 11; then "Restart into Windows" in ForgeOS and "Restart into ForgeOS" on the Windows desktop take you straight to the other one, no boot menu needed. Next power-on goes back to ForgeOS.
 
 ## Which image?
 
@@ -31,7 +32,20 @@ rpm-ostree rebase ostree-image-signed:docker://ghcr.io/OWNER/forgeos:latest
 systemctl reboot
 ```
 
-Replace `OWNER` with the GitHub account that hosts this repo. NVIDIA PCs: use `forgeos-nvidia` instead of `forgeos`. A USB installer (ISO) comes later — see the BlueBuild ISO guide.
+Replace `OWNER` with the GitHub account that hosts this repo. NVIDIA PCs: use `forgeos-nvidia` instead of `forgeos`.
+
+## Install from a USB stick (next to Windows 11)
+
+Best setup: ForgeOS on its own drive, Windows 11 on the other. Nothing on the Windows drive is touched.
+
+1. GitHub → Actions → **iso** → **Run workflow** (it also runs on every version tag). When it is done, download `forgeos` (AMD/Intel) or `forgeos-nvidia` (NVIDIA) from the run's **Artifacts** and unzip it.
+2. Write the `.iso` to a USB stick (8 GB or more) with **Fedora Media Writer** (free).
+3. In Windows on the target PC: turn **BitLocker off** (or save the recovery key) and turn **Fast Startup off** (Control Panel → Power Options → "Choose what the power buttons do").
+4. Boot the PC from the USB stick (boot menu key at power-on, often F12, F8 or Esc). In the installer pick the **empty second drive** and turn on disk encryption.
+5. NVIDIA PCs with Secure Boot: after the first start run `ujust enroll-secure-boot-key` (password `universalblue`).
+6. At first login ForgeOS checks that Windows is found and offers **Set up the Windows button**, which puts "Restart into ForgeOS" on the Windows desktop.
+
+If the ISO build ever runs out of space on GitHub's free runner, install the free Bazzite ISO instead and use the rebase commands above.
 
 ## Verify an image
 
