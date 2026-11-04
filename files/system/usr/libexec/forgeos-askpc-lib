@@ -36,6 +36,15 @@ sound_state() { q wpctl get-volume @DEFAULT_AUDIO_SINK@; }
 # update_waiting: true when a downloaded system update needs a restart to finish.
 update_waiting() { q rpm-ostree status --json | jq -e '.deployments[0].booted == false' >/dev/null 2>&1; }
 
+# drive_health: "good|watch|danger NAME" from Drive Health's last daily check (Job 15), nothing if it never ran.
+drive_health() {
+  local out lvl
+  out="$(q forgeos-drivehealth status)"
+  lvl="$(awk -F '\t' '$1 == "CHECKED" {print $3}' <<< "$out")"
+  case "$lvl" in good) echo good; return 0 ;; watch|danger) ;; *) return 0 ;; esac
+  echo "$lvl $(awk -F '\t' -v l="$lvl" '$1 == "DRIVE" && $3 == l {print $4; exit}' <<< "$out")"
+}
+
 # indent: two spaces in front of each line, or "  none" when there are no lines.
 indent() { sed 's/^/  /' | grep . || echo "  none"; }
 
@@ -55,6 +64,8 @@ status_report() {
   echo "Sound: $(sound_state)"
   p="$(battery)"
   [ -n "$p" ] && echo "Battery: ${p%% *}% (${p#* })"
+  p="$(drive_health)"
+  echo "Drive health (Drive Health app): ${p:-not checked yet}"
   echo "Update waiting for a restart: $(update_waiting && echo yes || echo no)"
   echo "Busiest programs (name, processor %, memory %):"
   q ps -eo comm=,%cpu=,%mem= --sort=-%cpu | head -n 5 | indent
@@ -100,6 +111,12 @@ health_check() {
   fi
   n="$(failed_units | paste -sd ',' - | sed 's/,/, /g')"
   if [ -n "$n" ]; then hw "Some background services stopped working: $n"; else echo "OK Background services"; fi
+  n="$(drive_health)"
+  case "$n" in
+    danger*) hw "A drive may be failing (${n#danger }). Back up your files today - open Drive Health." ;;
+    watch*) hw "A drive shows early warning signs (${n#watch }). Open Drive Health." ;;
+    good*) echo "OK Drive health" ;;
+  esac
   if update_waiting; then hw "An update is ready. Restart the PC to finish it."; fi
   if [ "$HEALTH_WARN" -eq 0 ]; then echo "Everything looks good."; return 0; fi
   return 1

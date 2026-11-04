@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Drive Health (Job 15): "Check now" reads the drives' health reports (read-only).
+     The person sitting at the PC needs no password; anyone else (remote, other sessions) needs the admin password. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.drivehealth.check">
+    <description>Check the health of the drives</description>
+    <message>Drive Health wants to read your drives' health reports.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-drivehealth-check</annotate>
+  </action>
+</policyconfig>

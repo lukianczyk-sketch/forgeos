@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+"""ForgeOS Drive Death Warning (Job 15): warns in plain English BEFORE a drive dies, while there is still
+time to save your photos and papers, with one button to back up.
+Reads the drives' own health reports (SMART) and the file system's error counts. It only reads: it never
+writes to a drive. Exit: 0 good, 1 early signs (watch), 2 a drive may be failing (danger),
+3 could not check / wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_DH_LIB") or "/usr/lib/forgeos-drivehealth")
+from drivelib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

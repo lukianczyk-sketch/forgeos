@@ -1,0 +1,12 @@
+# ForgeOS - checks the drives 10 minutes after start-up and once a day (catches up after the PC was off).
+[Unit]
+Description=Check the ForgeOS drives every day
+
+[Timer]
+OnBootSec=10min
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

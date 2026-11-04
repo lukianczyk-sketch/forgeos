@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Drive Health - warns when a drive may be failing, until your files are backed up
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-drivehealth tick
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=2h

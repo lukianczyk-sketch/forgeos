@@ -38,6 +38,7 @@ modules:
         - fwupd              # Driver & BIOS Autopilot (Job 13d): BIOS and device firmware from the free LVFS
         - fwupd-efi          # Driver & BIOS Autopilot (Job 13d): the signed EFI program that writes BIOS updates at restart
         - efibootmgr         # Install & Switch (Job 13e): Restart into Windows sets the next start-up
+        - smartmontools      # Drive Death Warning (Job 15): smartctl reads each drive's own health report (already in the base image)
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

@@ -88,6 +88,18 @@ def check_hog():
     return None
 
 
+def check_drive():
+    code, out = run(["forgeos-drivehealth", "status"], 30)
+    if code != 1:
+        return None
+    rows = [x.split("\t") for x in out.splitlines()]
+    drive = next((r for r in rows if r[0] == "DRIVE" and len(r) > 3 and r[2] == "watch"), None)
+    why = next((r[2] for r in rows if drive and r[0] == "REASON" and len(r) > 2 and r[1] == drive[1]), "")
+    name = drive[3] if drive else "a drive"
+    return ("drive", "Drive Health noticed early warning signs on %s: %s Your files are fine for now;"
+            " a fresh backup keeps them safe." % (name, why), "open", "drivehealth", "Show me")
+
+
 def check_backup():
     folder = os.path.expanduser(PIKA)
     if not os.path.isfile(os.path.join(folder, "backup.json")):

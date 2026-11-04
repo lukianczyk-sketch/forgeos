@@ -1,0 +1,18 @@
+# ForgeOS - Drive Health (Job 15): reads every drive's own health report and the file system's error
+# counts, saves /var/lib/forgeos-drivehealth/report.json, and once a month starts the drive's 2-minute
+# self-test (only when idle and on wall power). Only reads the drives. Started by forgeos-drivehealth.timer.
+[Unit]
+Description=ForgeOS Drive Health: check the drives for early signs of failure
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-drivehealth system-check --timer
+StateDirectory=forgeos-drivehealth
+StateDirectoryMode=0755
+Nice=19
+IOSchedulingClass=idle
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+NoNewPrivileges=yes
+TimeoutStartSec=30min

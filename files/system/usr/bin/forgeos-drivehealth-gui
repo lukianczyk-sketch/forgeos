@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# ForgeOS Drive Health window (Job 15). kdialog front end for forgeos-drivehealth.
+# --backup = the "Back up now" steps (opens Pika Backup), --explain = what Good / Watch / Danger mean.
+set -uo pipefail
+
+TITLE="Drive Health"
+ENGINE="${FORGEOS_DH_ENGINE:-/usr/bin/forgeos-drivehealth}"
+PIKA="org.gnome.World.PikaBackup"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-drivehealth report in a terminal." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+open_pika() {
+  if command -v flatpak >/dev/null 2>&1 && flatpak info "$PIKA" >/dev/null 2>&1; then
+    flatpak run "$PIKA" >/dev/null 2>&1 &
+    return 0
+  fi
+  info "Pika Backup (the free backup app) is not installed. Open Discover, search for Pika Backup and install it, then try again."
+  return 1
+}
+
+backup_now() {
+  "$ENGINE" status > "$TMP/status" 2>/dev/null
+  if grep -q "^BACKUP${TAB}set" "$TMP/status"; then
+    open_pika && info "Pika Backup is opening.${NL}${NL}Plug in your backup drive, then press \"Back Up Now\" in Pika Backup.${NL}Keep the drive plugged in until it says the backup is done."
+    return 0
+  fi
+  local steps="Let's make your first backup. It copies your home folder (photos, papers, Desktop, everything) to a USB drive.${NL}${NL}"
+  steps+="1. Plug in a USB drive that is bigger than your files (a 1 or 2 TB USB drive is fine). Nothing on it is deleted.${NL}"
+  steps+="2. Press Continue. Pika Backup opens.${NL}"
+  steps+="3. Press \"Set Up Backup\", pick your USB drive, and choose a password for the backup (write it down) or no password.${NL}"
+  steps+="4. Press \"Back Up Now\". The first backup can take an hour or more - you can keep using the PC.${NL}${NL}"
+  steps+="Never back up to the drive that may be failing."
+  kdialog --title "$TITLE" --yesno "$steps" --yes-label "Continue" --no-label "Not now" || return 0
+  open_pika
+}
+
+explain() {
+  cat > "$TMP/explain" <<'TXT'
+What Drive Health tells you
+
+Good - the drive shows no warning signs.
+WATCH - early signs: a few bad spots, the drive is nearly worn out, it runs too hot, or a read error was
+  found. Your files are fine for now. Make sure your backup is fresh.
+DANGER - the drive itself says it is failing, failed its own self-test, or bad spots are growing fast.
+  Back up today, then replace the drive (a PC shop can do it, or copy everything with Instant Clone later).
+
+"Worn out" - SSDs can only be written so many times. 100% means the maker's promised life is used up.
+"Bad spots" - parts of the drive that could not be read. A few can be normal; more every week is not.
+"Getting worse" - the strongest warning sign there is. Drive Health compares every day's numbers.
+
+Drive Health checks 10 minutes after start-up and every day, and once a month asks each drive to test
+itself for 2 minutes (only when the PC is idle and on wall power). It only reads the drives.
+
+Honest limits: some drives die with no warning at all - that is why a fresh backup matters even when
+every drive says Good. Some USB boxes hide the drive's health; then it says "can't read".
+TXT
+  kdialog --title "$TITLE" --textbox "$TMP/explain" 760 520 || true
+}
+
+cards() {
+  local tag key level name kind size worn yrs temp usb why text="" k
+  if grep -q "^CHECKED${TAB}never" "$TMP/status"; then
+    text="Drive Health has not checked your drives yet. Press \"Check now\".${NL}"
+  fi
+  while IFS="$TAB" read -r tag key level name kind size worn yrs temp _ usb; do
+    [ "$tag" = DRIVE ] || continue
+    case "$level" in
+      good) text+="${NL}GOOD   $name" ;; watch) text+="${NL}WATCH  $name" ;;
+      danger) text+="${NL}DANGER $name - back up your files today" ;; *) text+="${NL}?      $name - can't read this drive's health" ;;
+    esac
+    text+="${NL}       ${kind}, ${size}$([ "$usb" = yes ] && echo ", USB")"
+    [ "$worn" != - ] && text+=", about ${worn}% worn out"
+    [ "$yrs" != - ] && text+=", ${yrs} years of use"
+    [ "$temp" != - ] && text+=", ${temp} degrees C"
+    while IFS="$TAB" read -r _ k why; do [ "$k" = "$key" ] && text+="${NL}       ! $why"; done < <(grep "^REASON${TAB}" "$TMP/status")
+    text+="${NL}"
+  done < "$TMP/status"
+  if grep -q "^BACKUP${TAB}none" "$TMP/status"; then text+="${NL}Backup: NOT set up yet - drives can die without warning."
+  else text+="${NL}Backup: last one $(grep "^BACKUP${TAB}" "$TMP/status" | cut -f 3 | sed 's/^-$/never/; s/^0$/today/; s/^\([0-9]*\)$/\1 day(s) ago/')."; fi
+  printf '%s' "$text"
+}
+
+main_menu() {
+  local pick
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    pick="$(kdialog --title "$TITLE" --menu "$(cards)" check "Check now" backup "Back up now" explain "What does this mean?")" || return 0
+    case "$pick" in
+      check) kdialog --title "$TITLE" --passivepopup "Checking your drives... (up to a minute)" 5 >/dev/null 2>&1 &
+             "$ENGINE" check > "$TMP/out" 2>&1; kdialog --title "$TITLE" --textbox "$TMP/out" 760 520 || true ;;
+      backup) backup_now ;;
+      explain) explain ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --backup) backup_now ;;
+  --explain) explain ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-drivehealth-gui [--backup | --explain]" >&2; exit 3 ;;
+esac

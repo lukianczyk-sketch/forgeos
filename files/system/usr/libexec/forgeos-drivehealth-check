@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+# ForgeOS Drive Health (Job 15): the root checker behind the window's "Check now". Started through pkexec
+# (polkit org.forgeos.drivehealth.check: no password for the person at the PC). It takes no arguments and
+# only READS the drives' health reports, then saves the report everyone can read.
+set -u
+if [ "$#" -ne 0 ]; then
+  echo "usage: forgeos-drivehealth-check" >&2
+  exit 3
+fi
+exec "${FORGEOS_DH_ENGINE:-/usr/bin/forgeos-drivehealth}" system-check

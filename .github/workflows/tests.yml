@@ -178,3 +178,13 @@ jobs:
           bash tests/test-movingday-win.sh .
           bash tests/test-movingday-gui.sh .
           bash tests/test-movingday-files.sh .
+
+      - name: Run Drive Death Warning tests (fake drives, smartctl and btrfs; real Ask Your PC + Forge Helper code)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-drivehealth.sh .
+          bash tests/test-drivehealth-danger.sh .
+          bash tests/test-drivehealth-more.sh .
+          bash tests/test-drivehealth-tick.sh .
+          bash tests/test-drivehealth-gui.sh .
+          bash tests/test-drivehealth-files.sh .

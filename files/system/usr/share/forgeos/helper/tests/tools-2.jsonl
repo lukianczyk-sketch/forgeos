@@ -61,3 +61,7 @@
 {"q": "how do I bring my photos over from my old PC to this one", "tool": "moving_day"}
 {"q": "copy everything from the windows drive", "tool": "moving_day"}
 {"q": "open moving day", "tool": "moving_day"}
+{"q": "is my hard drive dying", "tool": "drive_health"}
+{"q": "my computer makes a clicking noise from the drive", "tool": "drive_health"}
+{"q": "is my ssd healthy", "tool": "drive_health"}
+{"q": "check my drive health", "tool": "drive_health"}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Drive Health
+GenericName=Drive failure warning
+Comment=Warns before a drive dies, while there is still time to back up your photos and papers
+Exec=/usr/bin/forgeos-drivehealth-gui
+Icon=drive-harddisk
+Terminal=false
+Categories=System;Monitor;
+Keywords=drive;disk;hard drive;ssd;nvme;health;smart;failing;dying;backup;bad sectors;worn;

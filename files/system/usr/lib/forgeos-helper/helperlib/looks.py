@@ -56,6 +56,12 @@ def moving_day(_arg):
             " this PC, an old PC's drive, or a Moving Box USB stick. Nothing on Windows is changed."), win("movingday", "Open Moving Day"), -1
 
 
+def drive_health(_arg):
+    code, out = run(["forgeos-drivehealth", "report"], 60)
+    text = plain(out) if code in (0, 1, 2, 3) else "Drive Health could not run."
+    return text, win("drivehealth", "Open Drive Health"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

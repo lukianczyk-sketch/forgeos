@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Drive Health warnings - 12 minutes after login, then every 2 hours
+
+[Timer]
+OnStartupSec=12min
+OnUnitActiveSec=2h
+
+[Install]
+WantedBy=timers.target

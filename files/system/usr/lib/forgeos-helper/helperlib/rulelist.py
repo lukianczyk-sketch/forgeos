@@ -21,6 +21,8 @@ RULES = [
     ("drivers", r"\bdrivers?\b(?!'s|s'| licen[cs]e)|\bbios\b|\buefi\b|firmware|device manager"),
     ("moving_day", r"moving day|\b(move|bring|copy|transfer|get|put|take)\b.{0,40}\b(from|off) (my |the )?(old|other|previous|last|windows) (pc|computer|laptop|drive|machine)\b|"
                    r"\bfrom windows (to|onto|into|over to) (forgeos|this|linux)|\b(old|previous) (pc|computer|laptop).{0,30}\b(to|onto) (this|my new|the new|forgeos)"),
+    ("drive_health", r"drive health|\b(hard ?drive|drive|disk|ssd|nvme)s?\b.{0,30}\b(dying|dead|fail(ing)?|going bad|healthy?|ok(ay)?|worn|clicking|grinding)\b|"
+                     r"bad sectors?|smart (status|data)|(clicking|grinding).{0,30}\b(drive|disk)"),
     ("switch_windows", r"\b(restart|reboot|boot|switch|go|start|get)( back)? (in)?to windows\b|dual.?boot|restart into forgeos|switch (between )?(windows|forgeos) and"),
     ("scam_check", r"\bscam|phish|is (this|it) (real|legit|safe|a trick|fake)|gift ?cards?|\birs\b|won (a|the) (prize|lottery)|lottery|"
                    r"suspicious (email|text|message|call|link)|(tech|microsoft|apple|amazon) (support )?called|"
