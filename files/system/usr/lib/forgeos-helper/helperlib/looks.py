@@ -51,6 +51,11 @@ def switch_windows(_arg):
     return "Windows was not found on this PC, so there is nothing to switch to.", [], -1
 
 
+def moving_day(_arg):
+    return ("Moving Day brings your files, bookmarks and saved passwords over from Windows: the Windows drive on"
+            " this PC, an old PC's drive, or a Moving Box USB stick. Nothing on Windows is changed."), win("movingday", "Open Moving Day"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

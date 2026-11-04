@@ -57,3 +57,7 @@
 {"q": "how do I get back to Windows 11", "tool": "switch_windows"}
 {"q": "I want to boot into windows", "tool": "switch_windows"}
 {"q": "how does dual boot work", "tool": "switch_windows"}
+{"q": "move my files from my old computer", "tool": "moving_day"}
+{"q": "how do I bring my photos over from my old PC to this one", "tool": "moving_day"}
+{"q": "copy everything from the windows drive", "tool": "moving_day"}
+{"q": "open moving day", "tool": "moving_day"}

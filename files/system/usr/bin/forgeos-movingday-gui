@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# ForgeOS Moving Day window (Job 14). kdialog front end for forgeos-movingday.
+# --first-run = the one-time offer after the first login (only when a Windows drive or Moving Box is found).
+set -uo pipefail
+
+TITLE="Moving Day"
+ENGINE="${FORGEOS_MD_ENGINE:-/usr/bin/forgeos-movingday}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/forgeos/movingday"
+NL=$'\n'
+TAB=$'\t'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-movingday in a terminal." >&2
+  exit 3
+fi
+
+TMP="$(mktemp -d)"
+# The drive Moving Day opened is closed again when the window ends.
+trap '[ -s "$TMP/opened" ] && "$ENGINE" close "$(cat "$TMP/opened")" >/dev/null 2>&1; rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+sorry() { kdialog --title "$TITLE" --sorry "$1" || true; }
+show_text() { kdialog --title "$TITLE" --textbox "$1" 720 480 || true; }
+REF=""
+busy_start() { REF="$(kdialog --title "$TITLE" --progressbar "$1" "${2:-0}" 2>/dev/null)" || REF=""; }
+busy_set() {
+  [ -n "$REF" ] && dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.freedesktop.DBus.Properties.Set \
+    string:org.kde.kdialog.ProgressDialog string:value "variant:int32:$1" >/dev/null 2>&1
+  return 0
+}
+busy_stop() {
+  [ -n "$REF" ] && dbus-send --session --type=method_call --dest="${REF% *}" "${REF#* }" org.kde.kdialog.ProgressDialog.close >/dev/null 2>&1
+  REF=""
+}
+
+# shellcheck source=files/system/usr/libexec/forgeos-movingday-screens
+. "${FORGEOS_MD_SCREENS:-/usr/libexec/forgeos-movingday-screens}"
+
+how_it_works() {
+  info "Moving Day brings your things over from Windows:${NL}- your Documents, Pictures, Music, Videos, Desktop and Downloads${NL}- your bookmarks (into Brave)${NL}- your saved passwords (into Brave)${NL}- a list of the programs you used, with the free ForgeOS way to do the same job${NL}${NL}It finds the Windows drive on this PC, an old PC's drive plugged in by USB, or a Moving Box USB stick.${NL}${NL}Your old Windows is only read: nothing on it is ever changed or deleted. Nothing on ForgeOS is overwritten: a name that is taken gets \"(from Windows)\". You can stop any time and run it again - it goes on where it stopped."
+}
+
+# open_source <row>: opens the drive if needed; prints the folder. Returns 1 when it could not be opened.
+open_source() {
+  local dev state path key code
+  IFS="$TAB" read -r _ dev _ state path _ <<< "$1"
+  if [ "$state" = open ]; then printf '%s\n' "$path"; return 0; fi
+  while true; do
+    if [ "$state" = locked ]; then
+      key="$(kdialog --title "$TITLE" --password "This drive is locked with BitLocker.${NL}Type its 48-digit recovery key to open it (read-only).${NL}${NL}You can find the key at aka.ms/myrecoverykey (sign in with the Microsoft account used on that PC), or on a printout from when Windows was set up.")" || return 1
+      "$ENGINE" open "$dev" --key-stdin <<< "$key" > "$TMP/open" 2>&1; code=$?
+    else
+      "$ENGINE" open "$dev" > "$TMP/open" 2>&1; code=$?
+    fi
+    if [ "$code" -eq 0 ]; then
+      printf '%s\n' "$dev" > "$TMP/opened"
+      cut -f 3 "$TMP/open" | head -n 1
+      return 0
+    fi
+    if [ "$code" -eq 6 ]; then
+      kdialog --title "$TITLE" --warningyesno "$(cat "$TMP/open")${NL}${NL}Try again?" || return 1
+      continue
+    fi
+    sorry "$(cat "$TMP/open")"
+    return 1
+  done
+}
+
+main_menu() {
+  local args=() pick i=0 head row folder
+  [ -s "$STATE/passwords-staged" ] && kdialog --title "$TITLE" --yesno "The password file from last time is still here. Erase it now?" && "$ENGINE" passwords-done > /dev/null 2>&1
+  busy_start "Looking for your old Windows drive or Moving Box..."
+  "$ENGINE" find > "$TMP/found" 2>/dev/null
+  busy_stop
+  while IFS= read -r row; do
+    i=$((i + 1)); args+=("s$i" "$(cut -f 8 <<< "$row")")
+  done < <(grep "^SOURCE${TAB}" "$TMP/found")
+  if [ "$i" -eq 0 ]; then head="No Windows drive or Moving Box was found.${NL}Plug in your old drive (or the Moving Box stick), or make a Moving Box for an old PC."
+  else head="Where are your old things?"; fi
+  args+=(folder "Pick a folder myself" stick "Make a Moving Box USB stick for an old Windows PC" howto "How Moving Day works")
+  while true; do
+    pick="$(kdialog --title "$TITLE" --menu "$head" "${args[@]}")" || return 0
+    case "$pick" in
+      howto) how_it_works ;;
+      stick) make_stick ;;
+      folder) folder="$(kdialog --title "$TITLE" --getexistingdirectory "/run/media/${USER:-$(id -un)}")" && move_from "$folder"; return 0 ;;
+      s*)
+        row="$(grep "^SOURCE${TAB}" "$TMP/found" | sed -n "${pick#s}p")"
+        if [ "$(cut -f 3 <<< "$row")" = stick ]; then make_stick "$(cut -f 5 <<< "$row")"; continue; fi
+        folder="$(open_source "$row")" || continue
+        move_from "$folder"
+        return 0
+        ;;
+    esac
+  done
+}
+
+first_run() {
+  local done_file="$STATE/offered"
+  [ -e "$done_file" ] && return 0
+  mkdir -p "$STATE" && : > "$done_file"
+  "$ENGINE" find > "$TMP/found" 2>/dev/null
+  grep -q "^SOURCE${TAB}[^${TAB}]*${TAB}\(windows\|box\|drive\)${TAB}" "$TMP/found" || return 0
+  kdialog --title "$TITLE" --yesno "Welcome to ForgeOS!${NL}${NL}Bring your files, bookmarks and passwords over from Windows now?${NL}(You can do it later too: Moving Day is in the menu.)" || return 0
+  main_menu
+}
+
+case "${1:-}" in
+  --first-run) first_run ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-movingday-gui [--first-run]" >&2; exit 3 ;;
+esac

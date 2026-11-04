@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Moving Day (Job 14). Opening an old Windows drive READ-ONLY to copy your files needs the
+     PC password (it can show every Windows user's files). Remote/inactive: admin only. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.movingday.mount">
+    <description>Open an old Windows drive read-only for Moving Day</description>
+    <message>Opening the old Windows drive (read-only) needs your password</message>
+    <icon_name>drive-harddisk</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-movingday-mount</annotate>
+  </action>
+</policyconfig>

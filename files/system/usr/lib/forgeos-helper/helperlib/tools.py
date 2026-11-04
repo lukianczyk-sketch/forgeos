@@ -18,6 +18,7 @@ TOOLS = {
     "guard_status": "what Always-On Guard blocked or caught (downloads, websites, email)",
     "drivers": "drivers, BIOS, firmware or a part with no driver: up to date? what changed after an update?",
     "switch_windows": "restart into Windows 11 on a PC that has both Windows and ForgeOS, or how switching works",
+    "moving_day": "bring files, photos, bookmarks or saved passwords over from Windows or an old PC",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

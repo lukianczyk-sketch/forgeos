@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Moving Day
+GenericName=Bring your things over from Windows
+Comment=Copy your files, bookmarks and saved passwords from Windows or an old PC, and find the free ForgeOS way for each program
+Exec=/usr/bin/forgeos-movingday-gui
+Icon=folder-move
+Terminal=false
+Categories=System;Utility;
+Keywords=moving day;move;transfer;migrate;old pc;old computer;windows;copy files;bookmarks;passwords;

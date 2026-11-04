@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# ForgeOS Moving Day - opens an old Windows drive READ-ONLY so your files can be copied (Job 14).
+# Runs as root through pkexec and asks for the PC password (polkit org.forgeos.movingday.mount).
+# Accepts ONLY: open DEV [--key-stdin] | close DEV. Never writes to the drive: always mounted read-only,
+# BitLocker drives are unlocked read-only with the recovery key (read from stdin, never shown or kept).
+# pkexec wipes the environment, so FORGEOS_MD_TEST can never be set by a normal user.
+set -u
+
+MNT="${FORGEOS_MD_MNT:-/run/forgeos-movingday}"
+MAPPER="${FORGEOS_MD_MAPPER:-/dev/mapper}"
+EFI="c12a7328-f81f-11d2-ba4b-00a0c93ec93b"
+
+if [ "$(id -u)" -ne 0 ] && [ -z "${FORGEOS_MD_TEST:-}" ]; then
+  echo "forgeos-movingday-mount: must run as root (use pkexec)" >&2
+  exit 2
+fi
+usage() { echo "usage: forgeos-movingday-mount open DEV [--key-stdin] | close DEV" >&2; exit 3; }
+
+dev="${2:-}"
+case "$dev" in
+  /dev/[A-Za-z0-9]*) ;;
+  *) usage ;;
+esac
+case "$dev" in *..* | *[!A-Za-z0-9/_.-]*) usage ;; esac
+if [ -z "${FORGEOS_MD_TEST:-}" ] && [ ! -b "$dev" ]; then
+  echo "That drive is not plugged in." >&2
+  exit 1
+fi
+name="${dev##*/}"
+dir="$MNT/$name"
+map="forgeos-md-$name"
+owner="${PKEXEC_UID:-$(id -u)}"
+group="$(id -g "$owner" 2>/dev/null || echo "$owner")"
+
+fstype() { lsblk -no FSTYPE "$1" 2>/dev/null | head -n 1; }
+
+mount_ro() { # mount_ro DEVICE FSTYPE (NTFS: the kernel's ntfs3 first, then ntfs-3g)
+  local t types="$2"
+  [ "$2" = ntfs ] && types="ntfs3 ntfs-3g"
+  mkdir -p "$dir"
+  for t in $types; do
+    if mount -t "$t" -o "ro,nosuid,nodev,noexec,uid=$owner,gid=$group,umask=077" "$1" "$dir" 2>/dev/null; then
+      printf 'OPEN\t%s\t%s\n' "$dev" "$dir"
+      return 0
+    fi
+  done
+  rmdir "$dir" 2>/dev/null
+  echo "The drive could not be opened. It may be damaged, or not a Windows drive." >&2
+  return 1
+}
+
+do_open() {
+  local fs key
+  if [ -d "$dir" ] && mountpoint -q "$dir" 2>/dev/null; then
+    printf 'OPEN\t%s\t%s\n' "$dev" "$dir"
+    return 0
+  fi
+  if [ "$(lsblk -no PARTTYPE "$dev" 2>/dev/null | head -n 1)" = "$EFI" ]; then
+    echo "That is the start-up partition, not a drive with files." >&2
+    return 1
+  fi
+  fs="$(fstype "$dev")"
+  case "$fs" in
+    ntfs | exfat | vfat) mount_ro "$dev" "$fs" ;;
+    BitLocker)
+      if [ "${1:-}" != "--key-stdin" ]; then
+        echo "This drive is locked with BitLocker. Type its 48-digit recovery key to open it." >&2
+        return 5
+      fi
+      IFS= read -r key || true
+      key="$(printf '%s' "$key" | tr -cd '0-9-')"
+      if [ ! -e "$MAPPER/$map" ]; then
+        if ! printf '%s' "$key" | cryptsetup open --type bitlk --readonly --key-file=- "$dev" "$map" 2>/dev/null; then
+          echo "That recovery key did not open the drive. Check the 48 digits, or turn BitLocker off in Windows first." >&2
+          return 6
+        fi
+      fi
+      mount_ro "$MAPPER/$map" "$(fstype "$MAPPER/$map")" || { cryptsetup close "$map" 2>/dev/null; return 1; }
+      ;;
+    *)
+      echo "That drive does not hold Windows files." >&2
+      return 1
+      ;;
+  esac
+}
+
+do_close() {
+  if [ -d "$dir" ]; then
+    umount "$dir" 2>/dev/null
+    rmdir "$dir" 2>/dev/null
+  fi
+  [ -e "$MAPPER/$map" ] && cryptsetup close "$map" 2>/dev/null
+  printf 'CLOSED\t%s\n' "$dev"
+}
+
+case "${1:-}" in
+  open)
+    [ $# -le 3 ] || usage
+    [ $# -lt 3 ] || [ "$3" = "--key-stdin" ] || usage
+    do_open "${3:-}"
+    ;;
+  close)
+    [ $# -eq 2 ] || usage
+    do_close
+    ;;
+  *) usage ;;
+esac

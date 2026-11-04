@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+"""ForgeOS Moving Day (Job 14): bring your files, bookmarks, saved passwords and a list of your programs over
+from Windows - the Windows drive on this PC, an old PC's drive, or a Moving Box USB stick.
+The Windows side is only read: nothing on it is ever changed or deleted. Nothing here is ever overwritten.
+Exit: 0 done, 1 done but something was left / nothing found, 3 wrong use, 4 not enough room,
+5 needs the BitLocker key, 6 wrong BitLocker key.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_MD_LIB") or "/usr/lib/forgeos-movingday")
+from movelib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

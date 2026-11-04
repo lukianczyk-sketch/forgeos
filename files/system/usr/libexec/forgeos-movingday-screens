@@ -1,0 +1,100 @@
+# shellcheck shell=bash
+# ForgeOS Moving Day window screens (Job 14), sourced by /usr/bin/forgeos-movingday-gui.
+# Uses TITLE ENGINE STATE NL TAB TMP info sorry show_text busy_* from the window.
+BRAVE_DIR="${FORGEOS_MD_BRAVE:-$HOME/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser}"
+WIR="${FORGEOS_MD_WIR:-/usr/bin/forgeos-willitrun}"
+
+human() { awk -v b="$1" 'BEGIN { if (b >= 1073741824) printf "%.1f GB", b / 1073741824; else if (b >= 1048576) printf "%d MB", b / 1048576; else printf "%d KB", (b + 1023) / 1024 }'; }
+
+make_stick() {
+  local dir="${1:-}"
+  [ -n "$dir" ] || dir="$(kdialog --title "$TITLE" --getexistingdirectory "/run/media/${USER:-$(id -un)}")" || return 0
+  "$ENGINE" pack-stick "$dir" > "$TMP/pack" 2>&1
+  info "$(grep -v "${TAB}" "$TMP/pack")"
+}
+
+# pick_user <folder>: the Windows user to move (asks when there are several).
+pick_user() {
+  local users=() n
+  while IFS="$TAB" read -r _ n _; do users+=("$n" "$n" off); done < <(grep "^USER${TAB}" "$TMP/scan")
+  case "${#users[@]}" in
+    0) return 1 ;;
+    3) printf '%s\n' "${users[0]}" ;;
+    *) users[2]=on; kdialog --title "$TITLE" --radiolist "Which Windows user's things should come over?" "${users[@]}" ;;
+  esac
+}
+
+move_from() {
+  local folder="$1" user kind items=() key size n extra picks moves pw=0 progs=0 pid pct
+  busy_start "Looking at what is on the drive... (a big drive can take a minute)"
+  "$ENGINE" scan "$folder" > "$TMP/scan" 2>/dev/null
+  busy_stop
+  kind="$(grep "^ROOT${TAB}" "$TMP/scan" | cut -f 2)"
+  user="$(pick_user)" || { sorry "No Windows files were found there."; return 0; }
+  while IFS="$TAB" read -r _ _ key size n extra; do
+    case "$key" in
+      files:*) [ "$n" -gt 0 ] && items+=("${key#files:}" "${key#files:} ($(human "$size"), $n files)" on) ;;
+      bookmarks) items+=(bookmarks "Bookmarks ($extra)" on) ;;
+      passwords) items+=(passwords "Saved passwords ($extra)" on); pw=1 ;;
+      programs) items+=(programs "My programs: the free ForgeOS way for each one" on); progs=1 ;;
+    esac
+  done < <(grep "^ITEM${TAB}${user}${TAB}" "$TMP/scan")
+  [ "${#items[@]}" -gt 0 ] || { sorry "There is nothing to bring over from $user."; return 0; }
+  picks="$("$ENGINE" free | cut -f 2)"
+  picks="$(kdialog --title "$TITLE" --checklist "What should come over from $user?${NL}ForgeOS has $picks free. Nothing on Windows is changed." "${items[@]}")" || return 0
+  picks="$(tr -d '"' <<< "$picks" | tr ' ' ',')"
+  [ -n "$picks" ] || return 0
+  moves="$(tr ',' '\n' <<< "$picks" | grep -vx 'passwords\|programs' | paste -sd ,)"
+  : > "$TMP/moved"
+  if [ -n "$moves" ]; then
+    if [[ ",$moves," == *",bookmarks,"* ]]; then
+      while [ -e "$BRAVE_DIR/SingletonLock" ] || [ -L "$BRAVE_DIR/SingletonLock" ]; do
+        kdialog --title "$TITLE" --warningcontinuecancel "Please close Brave first, so your bookmarks can go in. Then click Continue." || break
+      done
+    fi
+    busy_start "Moving your things from $user... You can keep using the PC." 100
+    "$ENGINE" move "$folder" --user "$user" --pick "$moves" > "$TMP/moved" 2>&1 &
+    pid=$!
+    while kill -0 "$pid" 2>/dev/null; do
+      pct="$(awk -F '\t' '$2 > 0 { printf "%d", $1 * 100 / $2 }' "$STATE/progress" 2>/dev/null)"
+      busy_set "${pct:-0}"
+      sleep 1
+    done
+    wait "$pid"
+    busy_stop
+  fi
+  grep -v "${TAB}" "$TMP/moved" > "$TMP/report"
+  [[ ",$picks," == *",passwords,"* ]] && [ "$pw" -eq 1 ] && passwords_step "$folder" "$user" "$kind"
+  [[ ",$picks," == *",programs,"* ]] && [ "$progs" -eq 1 ] && programs_step "$folder" "$user"
+  show_text "$TMP/report"
+}
+
+passwords_step() {
+  local folder="$1" user="$2" kind="$3" extra=()
+  "$ENGINE" passwords "$folder" --user "$user" > "$TMP/pw" 2>&1 || return 0
+  setsid -f flatpak run com.brave.Browser >/dev/null 2>&1
+  if kdialog --title "$TITLE" --yes-label "Done - erase the file" --no-label "Later" --yesno "$(grep -v "${TAB}" "$TMP/pw")"; then
+    [ "$kind" = box ] && extra=(--erase-from "$folder" --user "$user")
+    "$ENGINE" passwords-done "${extra[@]}" > /dev/null 2>&1
+    echo "Your saved passwords are in Brave, and the password file was erased." >> "$TMP/report"
+  else
+    echo "The password file is in \"Moving Day passwords\". Moving Day erases it after 24 hours." >> "$TMP/report"
+  fi
+}
+
+programs_step() {
+  local items=() i=0 pick name way app answer
+  "$ENGINE" programs "$1" --user "$2" > "$TMP/progs" 2>/dev/null
+  while IFS="$TAB" read -r _ name _; do i=$((i + 1)); items+=("p$i" "$name"); done < <(grep "^PROGRAM${TAB}" "$TMP/progs")
+  { echo; echo "Programs you used on Windows that ForgeOS doesn't know yet (ask Will It Run? about them):"
+    grep "^UNKNOWN${TAB}" "$TMP/progs" | cut -f 2 | sed 's/^/- /'; } >> "$TMP/report"
+  [ "$i" -gt 0 ] || return 0
+  while pick="$(kdialog --title "$TITLE" --menu "You used these on Windows. Pick one to see the free ForgeOS way (Cancel when you are done)." "${items[@]}")"; do
+    IFS="$TAB" read -r _ name way app answer <<< "$(grep "^PROGRAM${TAB}" "$TMP/progs" | sed -n "${pick#p}p")"
+    case "$way" in
+      builtin) kdialog --title "$TITLE" --yes-label "Open it" --no-label "Back" --yesno "$name:${NL}${NL}$answer" && "$WIR" open open "$app" >/dev/null 2>&1 ;;
+      linux | swap) kdialog --title "$TITLE" --yes-label "Install it (free)" --no-label "Back" --yesno "$name:${NL}${NL}$answer" && "$WIR" open flatpak "$app" >/dev/null 2>&1 ;;
+      *) info "$name:${NL}${NL}$answer" ;;
+    esac
+  done
+}

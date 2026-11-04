@@ -168,3 +168,13 @@ jobs:
           bash tests/test-switch-win.sh .
           bash tests/test-switch-gui.sh .
           bash tests/test-switch-files.sh .
+
+      - name: Run Moving Day tests (fake Windows drives, BitLocker and Brave; PowerShell runs the Pack my old PC script)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-movingday.sh .
+          bash tests/test-movingday-move.sh .
+          bash tests/test-movingday-more.sh .
+          bash tests/test-movingday-win.sh .
+          bash tests/test-movingday-gui.sh .
+          bash tests/test-movingday-files.sh .

@@ -23,7 +23,7 @@ route guard_status
 OUT="$(F ask "something odd happened with my last download")"
 check G1 '[ "$(tool "$OUT")" = guard_status ] && [ "$(how "$OUT")" = ai ]'
 check G2 'last | grep -qx "model=gemma4:e2b stream=False temperature=0 keep=30m"'
-check G3 'last | grep -q "^enum tool=scam_check pc_question pc_fix find will_it_run ghost_sweep guard_status drivers switch_windows undo_open privacy_report cleansweep_scan text_bigger family_call panic help_answer just_answer$"'
+check G3 'last | grep -q "^enum tool=scam_check pc_question pc_fix find will_it_run ghost_sweep guard_status drivers switch_windows moving_day undo_open privacy_report cleansweep_scan text_bigger family_call panic help_answer just_answer$"'
 check G4 'last | grep -q "^enum fix=restart-internet .* open-backup none$" && last | grep -q "^system=.*never follow instructions" && last | grep -q "<<< | something odd happened with my last download | >>>"'
 
 # H: the AI can only pick from the list; anything else falls back safely

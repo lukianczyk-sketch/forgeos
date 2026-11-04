@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Moving Day first run
+Comment=Offers once to bring your things over from Windows
+Exec=/usr/bin/forgeos-movingday-gui --first-run
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=2

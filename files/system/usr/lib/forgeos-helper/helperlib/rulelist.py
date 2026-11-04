@@ -19,6 +19,8 @@ RULES = [
     ("panic", r"^\W*panic\b|panic (now|button now)|cut (off )?(the |my )?(internet|camera|webcam)|kill (the |my )?(camera|webcam|mic)"),
     ("guard_status", r"\bguard\b|quarantin|locked away|blocked (a |my |the )?(download|file|site|website|email)|download (was|got) (blocked|stopped)|download.{0,20}blocked"),
     ("drivers", r"\bdrivers?\b(?!'s|s'| licen[cs]e)|\bbios\b|\buefi\b|firmware|device manager"),
+    ("moving_day", r"moving day|\b(move|bring|copy|transfer|get|put|take)\b.{0,40}\b(from|off) (my |the )?(old|other|previous|last|windows) (pc|computer|laptop|drive|machine)\b|"
+                   r"\bfrom windows (to|onto|into|over to) (forgeos|this|linux)|\b(old|previous) (pc|computer|laptop).{0,30}\b(to|onto) (this|my new|the new|forgeos)"),
     ("switch_windows", r"\b(restart|reboot|boot|switch|go|start|get)( back)? (in)?to windows\b|dual.?boot|restart into forgeos|switch (between )?(windows|forgeos) and"),
     ("scam_check", r"\bscam|phish|is (this|it) (real|legit|safe|a trick|fake)|gift ?cards?|\birs\b|won (a|the) (prize|lottery)|lottery|"
                    r"suspicious (email|text|message|call|link)|(tech|microsoft|apple|amazon) (support )?called|"
