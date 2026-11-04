@@ -1,0 +1,22 @@
+# Job 14 Moving Day — progress log
+
+- 2026-11-03: Design approved TRIMMED by Robert (files, bookmarks, passwords, program swap list; no Wi-Fi keys, no Steam copy). Claude wrote and tested the prototype (tests A-L pass).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-movingday, movelib __init__.py, sources.py, files.py written. Waiting for Claude's review.
+- Step 1 REVIEWED by Claude: all 4 files byte-identical to the prototype. Next: Step 2 (Cline)
+- Step 2 (Cline): movelib scan.py, passwords.py, programs.py written. Waiting for Claude's review.
+- Step 2 REVIEWED by Claude: all 3 files byte-identical to the prototype. Next: Step 3 (Cline)
+- Step 3 (Cline): movelib bookmarks.py, brave.py, move.py written. Waiting for Claude's review.
+- Step 3 REVIEWED by Claude: all 3 files byte-identical to the prototype. Next: Step 4 (Cline)
+- Step 4 (Cline): movelib cli.py, stick.py, libexec/forgeos-movingday-mount written. Waiting for Claude's review.
+- Step 4 REVIEWED by Claude: all 3 files byte-identical to the prototype. Next: Step 5 (Cline)
+- Step 5 (Cline): bin/forgeos-movingday-gui, libexec/forgeos-movingday-screens written. Waiting for Claude's review.
+- Step 5 REVIEWED by Claude: screens byte-identical; gui had 1 wrong word (busy_stop used org.freedesktop.kdialog instead of org.kde.kdialog, so the progress box would never close) -> replaced with the prototype. Next: Step 6 (Cline)
+- Step 6 (Cline): share/forgeos/movingday (pack.ps1 + cmd), polkit, 2 desktop files, help moving-day.md, forgeos-setup.sh, Forge Helper tools/looks/actions/rulelist + tools-2.jsonl + test-helper-ai.sh written. Waiting for Claude's review.
+- Step 6 REVIEWED by Claude: all 13 files byte-identical to the prototype. Next: Step 7 (Cline)
+- Step 7 (Cline): tests/movingday-fakes.sh, movingday-tree.sh, test-movingday.sh (A-C) written. Waiting for Claude's review.
+- Step 7 REVIEWED by Claude: all 3 files byte-identical to the prototype; test-movingday.sh A-C all pass on the PC VM. Next: Step 8 (Cline)
+- Step 8 (Cline): tests/test-movingday-move.sh (D-F), test-movingday-more.sh (G-I) written. Waiting for Claude's review.
+- Step 8 REVIEWED by Claude: both files byte-identical to the prototype; tests A-I all pass on the PC VM. Next: Step 9 (Cline)
+- Step 9 (Cline): tests/test-movingday-win.sh (J), test-movingday-gui.sh (K), test-movingday-files.sh (L) + CI step written. Waiting for Claude's review.
+- Step 9 REVIEWED by Claude: all 3 test files + tests.yml byte-identical to the prototype; J-L pass on the PC VM (J3-J5 run in CI with PowerShell). All Cline steps done. Next: commit + push, CI, docs, tag v0.19.0 (Claude)
