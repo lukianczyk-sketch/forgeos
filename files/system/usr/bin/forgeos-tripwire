@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Ransomware Tripwire (Job 16): if any program starts scrambling (encrypting) your files, it is
+stopped within seconds, the internet is cut, and your files can come back from the Undo Button snapshots.
+Exit: 0 all fine, 1 something needs you (a frozen program or the internet is still cut),
+3 off / could not / wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_TW_LIB") or "/usr/lib/forgeos-tripwire")
+from tripwirelib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

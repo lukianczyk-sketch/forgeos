@@ -6,7 +6,11 @@ import re
 
 from .rulelist import LINK, PROGRAM_FILE, RULES
 
-COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in RULES]
+# Ransomware Tripwire (Job 16) goes right before Clean Sweep's "virus" words (rulelist.py is full).
+RANSOM = ("ransomware", r"ransom|scrambl|tripwire|decrypt|encrypted (my|all|every)|"
+                        r"(files|photos|pictures|documents|papers).{0,25}(locked|encrypted|scrambled|won.?t open)")
+AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
+COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in RULES[:AT] + [RANSOM] + RULES[AT:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
 EVEN_BIGGER = re.compile(r"even bigger|bigger still|much bigger|biggest|still too small|very big", re.I)
 

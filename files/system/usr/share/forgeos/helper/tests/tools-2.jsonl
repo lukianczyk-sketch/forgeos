@@ -65,3 +65,7 @@
 {"q": "my computer makes a clicking noise from the drive", "tool": "drive_health"}
 {"q": "is my ssd healthy", "tool": "drive_health"}
 {"q": "check my drive health", "tool": "drive_health"}
+{"q": "all my files are encrypted and there is a ransom note", "tool": "ransomware"}
+{"q": "my photos won't open and have a strange ending now", "tool": "ransomware"}
+{"q": "is my pc safe from ransomware", "tool": "ransomware"}
+{"q": "a window says pay bitcoin to decrypt my files", "tool": "ransomware"}

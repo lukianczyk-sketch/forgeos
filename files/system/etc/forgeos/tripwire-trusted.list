@@ -1,0 +1,14 @@
+# ForgeOS Ransomware Tripwire (Job 16): programs that may write many files fast without setting it off.
+# One program file per line (the full path). Only programs from the read-only system (/usr) or inside a
+# Flatpak (/app) belong here: a program in your home folder could pretend to be anything.
+# Programs you trust with "It's mine, let it go" are kept in /var/lib/forgeos-tripwire/allowed.json.
+/usr/bin/borg
+/usr/bin/restic
+/usr/bin/git
+/usr/bin/rpm-ostree
+/usr/bin/flatpak
+/usr/bin/snapper
+/usr/libexec/snapperd
+/app/bin/borg
+/app/bin/pika-backup
+/app/bin/pika-backup-monitor

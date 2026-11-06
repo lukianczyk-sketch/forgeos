@@ -62,6 +62,12 @@ def drive_health(_arg):
     return text, win("drivehealth", "Open Drive Health"), -1
 
 
+def ransomware(_arg):
+    code, out = run(["forgeos-tripwire", "report"], 60)
+    text = plain(out) if code in (0, 1, 3) else "Ransomware Tripwire could not be checked."
+    return text + "\nNever pay a ransom: \"Put my files back\" brings them back from the Undo Button.", win("tripwire", "Open Ransomware Tripwire"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ransomware Tripwire
+GenericName=Ransomware protection
+Comment=Stops any program that starts scrambling your files, cuts the internet and puts your files back
+Exec=/usr/bin/forgeos-tripwire-gui
+Icon=security-high
+Terminal=false
+Categories=System;Security;
+Keywords=ransomware;ransom;encrypt;encrypted;scrambled;locked files;decrypt;tripwire;protection;safe;

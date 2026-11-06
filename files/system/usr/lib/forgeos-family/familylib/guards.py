@@ -14,7 +14,8 @@ PC_WIDE = [("clamav-freshclam.service", "Virus checker (ClamAV) - new virus list
            ("forgeos-scamshield-update.timer", "Scam Shield - new list of scam websites every day"),
            ("forgeos-guard-hosts.path", "Website Guard - blocks scam and virus websites for the whole PC"),
            ("forgeos-willitrun-update.timer", "Will It Run? - new list of games with anti-cheat every day"),
-           ("snapper-timeline.timer", "Undo Button - a saved copy of your files every hour")]
+           ("snapper-timeline.timer", "Undo Button - a saved copy of your files every hour"),
+           ("forgeos-tripwire.service", "Ransomware Tripwire - stops a program that scrambles your files")]
 
 
 def enabled(unit, user):

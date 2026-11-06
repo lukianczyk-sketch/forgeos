@@ -188,3 +188,15 @@ jobs:
           bash tests/test-drivehealth-tick.sh .
           bash tests/test-drivehealth-gui.sh .
           bash tests/test-drivehealth-files.sh .
+
+      - name: Run Ransomware Tripwire tests (pretend programs, apps and snapshots; then the REAL kernel watcher with sudo)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-tripwire.sh .
+          bash tests/test-tripwire-more.sh .
+          bash tests/test-tripwire-bait.sh .
+          bash tests/test-tripwire-restore.sh .
+          bash tests/test-tripwire-actions.sh .
+          bash tests/test-tripwire-gui.sh .
+          bash tests/test-tripwire-kernel.sh .
+          bash tests/test-tripwire-files.sh .

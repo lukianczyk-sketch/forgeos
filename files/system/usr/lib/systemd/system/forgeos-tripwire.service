@@ -1,0 +1,25 @@
+# ForgeOS - Ransomware Tripwire (Job 16): watches which program writes which file in everyone's Documents,
+# Pictures, Desktop, Downloads, Music and Videos (and on USB drives). A program that scrambles files is
+# frozen, the internet is cut and a snapshot is taken. Needs root: only root may use fanotify and freeze apps.
+[Unit]
+Description=ForgeOS Ransomware Tripwire: stops a program that scrambles your files
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-tripwire watch
+Restart=always
+RestartSec=5
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+MemoryMax=400M
+StateDirectory=forgeos-tripwire
+StateDirectoryMode=0755
+RuntimeDirectory=forgeos-tripwire
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

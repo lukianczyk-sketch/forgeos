@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# ForgeOS Ransomware Tripwire window (Job 16), a kdialog front end.
+# --incident ID = the big window right after a program was stopped (the alert service opens it).
+set -uo pipefail
+
+TITLE="Ransomware Tripwire"
+ENGINE="${FORGEOS_TW_ENGINE:-/usr/bin/forgeos-tripwire}"
+TAB=$'\t'
+BR="<br>"
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-tripwire report in a terminal." >&2
+  exit 3
+fi
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+ask() { kdialog --title "$TITLE" --yesno "$1" --yes-label "$2" --no-label "$3"; }
+field() { awk -F "$TAB" -v id="$1" -v n="$2" '$1 == "INCIDENT" && $2 == id {print $n}' "$TMP/status" | sed 's/&/and/g'; }
+val() { awk -F "$TAB" -v k="$1" '$1 == k {print $2; exit}' "$TMP/out"; }
+
+internet() {
+  grep -q "^INTERNET${TAB}cut" <("$ENGINE" status 2>/dev/null) || return 0
+  if ask "The internet is still OFF to keep your files safe.${BR}Turn it back on once the program is removed." "Turn the internet back on" "Keep it off"; then
+    "$ENGINE" net-on > "$TMP/net" 2>&1; info "$(cat "$TMP/net")"
+  fi
+}
+
+put_back() {
+  kdialog --title "$TITLE" --passivepopup "Putting your files back..." 8 >/dev/null 2>&1 &
+  "$ENGINE" restore "$1" > "$TMP/out" 2>&1
+  if grep -q "^NO-SNAPSHOT" "$TMP/out"; then
+    info "There is no Undo Button copy from before the attack, so files can't come back. Nothing was changed. Don't pay anyone - call your helper."
+    return 0
+  fi
+  local msg
+  msg="Done. $(val BACK) file(s) came back from the copy of $(val SNAPSHOT).${BR}$(val LOCKED) scrambled copies were locked away in Always-On Guard."
+  [ "$(val LOST)" != 0 ] && msg+="${BR}${BR}$(val LOST) file(s) made after that copy could not come back:${BR}$(awk -F "$TAB" '$1 == "LOSTFILE" {print $2}' "$TMP/out" | head -n 8 | sed 's/&/and/g' | paste -sd '|' | sed "s/|/${BR}/g")"
+  [ "$(val USB)" != 0 ] && msg+="${BR}${BR}$(val USB) file(s) on a USB or Windows drive can't come back (no copies there)."
+  info "$msg"
+  ask "Remove the program now? (recommended)" "Remove it" "Not now" && remove "$1"
+}
+
+remove() { "$ENGINE" remove "$1" > "$TMP/rm" 2>&1; info "$(cat "$TMP/rm")"; }
+
+mine() {
+  ask "Only if YOU started it on purpose (an encryption or zip program).${BR}Never do this for someone on the phone." "Yes, it's mine" "No" || return 1
+  if "$ENGINE" release "$1" >/dev/null 2>&1; then info "It runs again and will not be stopped next time."; else info "It was not let go (wrong password or it was already handled)."; fi
+}
+
+incident() {
+  local id="$1" pick text
+  "$ENGINE" status > "$TMP/status" 2>/dev/null
+  [ "$(field "$id" 4)" = frozen ] || { info "This program was already handled ($(field "$id" 4))."; return 0; }
+  text="<h2><font color=\"#c00000\">STOP - a program was scrambling your files</font></h2>"
+  text+="ForgeOS froze it and cut the internet, so it can't do more harm or send your files away.${BR}${BR}"
+  text+="Program: <b>$(field "$id" 6)</b>${BR}What it did: $(field "$id" 9)${BR}Files it touched: $(field "$id" 7)${BR}${BR}"
+  text+="<b>Do not pay anyone and do not call a number on the screen.</b> Pick what to do:"
+  while true; do
+    pick="$(kdialog --title "$TITLE - program stopped" --menu "$text" restore "Put my files back (recommended)" \
+      remove "Remove the program" mine "It's mine, let it go (asks for the PC password)" later "Decide later (it stays frozen)")" || pick=later
+    case "$pick" in
+      restore) put_back "$id"; break ;;
+      remove) remove "$id"; break ;;
+      mine) mine "$id" && break ;;
+      later) info "It stays frozen and the internet stays off. Open Ransomware Tripwire any time."; return 0 ;;
+    esac
+  done
+  internet
+}
+
+explain() {
+  info "How it works${BR}${BR}Hidden safety files sit in your Documents, Pictures, Desktop, Downloads, Music and Videos. A program that touches one, or scrambles many files fast, is frozen within seconds, the internet is cut and a snapshot is taken. Then you choose what to do. Backups, updates and games never set it off.${BR}${BR}Honest limits: work since the last hourly Undo Button copy may not all come back; files on USB drives can't. Never give your PC password to a caller."
+}
+
+cards() {
+  local t=""
+  case "$(awk -F "$TAB" '$1 == "SERVICE" {print $2}' "$TMP/status")" in
+    on) t+="ON - watching your folders for scrambling${BR}" ;; *) t+="<b>OFF</b> - ask your helper to turn it back on${BR}" ;;
+  esac
+  t+="Safety files: $(awk -F "$TAB" '$1 == "BAIT" {print $2}' "$TMP/status")${BR}"
+  t+="Last Undo Button copy: $(awk -F "$TAB" '$1 == "SNAPSHOT" {print $2}' "$TMP/status")${BR}"
+  grep -q "^INTERNET${TAB}cut" "$TMP/status" && t+="<b>The internet is OFF since a program was stopped.</b>${BR}"
+  t+="${BR}History:${BR}$(awk -F "$TAB" '$1 == "INCIDENT" && $3 != "test" {print $5 " - " $6 " - " $4}' "$TMP/status" | head -n 5 | paste -sd '|' | sed "s/|/${BR}/g")"
+  printf '%s' "$t"
+}
+
+main_menu() {
+  local pick items
+  while true; do
+    "$ENGINE" status > "$TMP/status" 2>/dev/null
+    items=()
+    while IFS="$TAB" read -r _ id _ st when prog _; do
+      [ "$st" = frozen ] && items+=("i:$id" "Still frozen: $prog ($when) - decide now")
+    done < <(grep "^INCIDENT${TAB}" "$TMP/status")
+    grep -q "^INTERNET${TAB}cut" "$TMP/status" && items+=(net "Turn the internet back on")
+    items+=(test "Test the tripwire" explain "How does it work?")
+    pick="$(kdialog --title "$TITLE" --menu "$(cards)" "${items[@]}")" || return 0
+    case "$pick" in
+      i:*) incident "${pick#i:}" ;;
+      net) internet ;;
+      test) kdialog --title "$TITLE" --passivepopup "A pretend attacker is scrambling 30 test letters..." 6 >/dev/null 2>&1 &
+            "$ENGINE" test > "$TMP/out" 2>&1; info "$(cut -f 2 "$TMP/out")" ;;
+      explain) explain ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --incident) [ "$#" -eq 2 ] || exit 3; incident "$2" ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-tripwire-gui [--incident ID]" >&2; exit 3 ;;
+esac

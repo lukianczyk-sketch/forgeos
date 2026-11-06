@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+# ForgeOS Ransomware Tripwire (Job 16): the root half of "It's mine, let it go" - unfreezes the program and
+# trusts it from now on. Started through pkexec (polkit org.forgeos.tripwire.release: asks for the PC password,
+# because letting a program scramble files must be a grown-up decision). Accepts ONLY: release ID.
+set -u
+if [ "$#" -ne 2 ] || [ "$1" != release ] || ! [[ "$2" =~ ^[0-9]{8}-[0-9]{6}-[0-9]{1,9}$ ]]; then
+  echo "usage: forgeos-tripwire-release release ID" >&2
+  exit 3
+fi
+exec "${FORGEOS_TW_ENGINE:-/usr/bin/forgeos-tripwire}" root-do release "$2"

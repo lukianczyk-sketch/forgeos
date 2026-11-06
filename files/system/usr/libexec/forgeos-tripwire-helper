@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# ForgeOS Ransomware Tripwire (Job 16): the root half of "Remove the program" and "Turn the internet back on".
+# Started through pkexec (polkit org.forgeos.tripwire.fix: no password for the person at the PC).
+# Accepts ONLY: remove ID | net-on. Root acts only on the caller's own incidents (PKEXEC_UID).
+set -u
+case "$#:${1:-}" in
+  2:remove) [[ "$2" =~ ^[0-9]{8}-[0-9]{6}-[0-9]{1,9}$ ]] || { echo "bad incident id" >&2; exit 3; } ;;
+  1:net-on) ;;
+  *) echo "usage: forgeos-tripwire-helper remove ID | net-on" >&2; exit 3 ;;
+esac
+exec "${FORGEOS_TW_ENGINE:-/usr/bin/forgeos-tripwire}" root-do "$@"

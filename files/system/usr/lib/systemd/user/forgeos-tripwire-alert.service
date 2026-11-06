@@ -1,0 +1,15 @@
+# ForgeOS - Ransomware Tripwire (Job 16): shows the big window in your session within about a second
+# when the tripwire stopped a program that was scrambling your files.
+[Unit]
+Description=ForgeOS Ransomware Tripwire - shows the warning window when a program was stopped
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-tripwire alert-watch
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

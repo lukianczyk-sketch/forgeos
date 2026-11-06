@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Ransomware Tripwire (Job 16).
+     fix: "Remove the program" and "Turn the internet back on" - no password for the person sitting at the PC.
+     release: "It's mine, let it go" lets a stopped program scramble files again - always asks for the PC password. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.tripwire.fix">
+    <description>Remove a stopped program or turn the internet back on</description>
+    <message>Ransomware Tripwire wants to remove the stopped program or turn the internet back on.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-tripwire-helper</annotate>
+  </action>
+  <action id="org.forgeos.tripwire.release">
+    <description>Let a stopped program run again and trust it</description>
+    <message>A program was stopped because it was scrambling files. Type the PC password only if you are sure it is yours.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-tripwire-release</annotate>
+  </action>
+</policyconfig>
