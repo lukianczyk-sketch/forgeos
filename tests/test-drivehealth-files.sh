@@ -18,7 +18,7 @@ SYS="$ROOT/files/system"; A="$SYS/usr/share/applications"; P="$SYS/usr/share/pol
 SETUP="$ROOT/files/scripts/forgeos-setup.sh"; HL="$SYS/usr/lib/forgeos-helper"; LIB="$FORGEOS_DH_LIB/drivelib"
 SU="$SYS/usr/lib/systemd/system"; UU="$SYS/usr/lib/systemd/user"
 
-check K1 'grep -q "^chmod 0755 .* /usr/libexec/forgeos-movingday-mount /usr/bin/forgeos-drivehealth /usr/bin/forgeos-drivehealth-gui /usr/libexec/forgeos-drivehealth-check$" "$SETUP" && grep -qx "systemctl enable forgeos-drivehealth.timer" "$SETUP" && grep -qx "systemctl --global enable forgeos-drivehealth-notify.timer" "$SETUP"'
+check K1 'grep -q "^chmod 0755 .* /usr/libexec/forgeos-movingday-mount /usr/bin/forgeos-drivehealth /usr/bin/forgeos-drivehealth-gui /usr/libexec/forgeos-drivehealth-check\( .*\)\?$" "$SETUP" && grep -qx "systemctl enable forgeos-drivehealth.timer" "$SETUP" && grep -qx "systemctl --global enable forgeos-drivehealth-notify.timer" "$SETUP"'
 check K2 '[ -x "$ENGINE" ] && [ -x "$GUI" ] && [ -x "$FORGEOS_DH_CHECKER" ] && grep -q "^        - smartmontools " "$ROOT/recipes/common-modules.yml"'
 check K3 'grep -qx "ExecStart=/usr/bin/forgeos-drivehealth system-check --timer" "$SU/forgeos-drivehealth.service" && grep -qx "StateDirectory=forgeos-drivehealth" "$SU/forgeos-drivehealth.service" && grep -qx "ProtectHome=read-only" "$SU/forgeos-drivehealth.service" && grep -qx "OnBootSec=10min" "$SU/forgeos-drivehealth.timer" && grep -qx "Persistent=true" "$SU/forgeos-drivehealth.timer"'
 check K4 'grep -qx "ExecStart=/usr/bin/forgeos-drivehealth tick" "$UU/forgeos-drivehealth-notify.service" && grep -qx "OnStartupSec=12min" "$UU/forgeos-drivehealth-notify.timer" && grep -qx "OnUnitActiveSec=2h" "$UU/forgeos-drivehealth-notify.timer"'
