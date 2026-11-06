@@ -1,0 +1,24 @@
+# Job 16 Ransomware Tripwire — progress log
+
+- 2026-11-05: Design approved by Robert. Claude wrote and tested the prototype (tests A-N pass, incl. the real kernel watcher test M, plus Forge Helper and Family Mode tests).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-tripwire, tripwirelib __init__.py, kernel.py, scramble.py written. Waiting for Claude's review.
+- Step 1 REVIEWED by Claude: all 4 files identical to the prototype (Windows line endings changed back to Linux ones). Next: Step 2 (Cline)
+- Step 2 (Cline): tripwirelib bait.py, procs.py, detect.py written. Waiting for Claude's review.
+- Step 2 REVIEWED by Claude: all 3 files identical to the prototype (Windows line endings changed back to Linux ones). Next: Step 3 (Cline)
+- Step 3 (Cline): tripwirelib incident.py, restore.py written. Waiting for Claude's review.
+- Step 3 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back to Linux ones). Next: Step 4 (Cline)
+- Step 4 (Cline): tripwirelib watch.py, alert.py, cli.py written. Waiting for Claude's review.
+- Step 4 REVIEWED by Claude: all 3 files identical to the prototype (Windows line endings changed back to Linux ones). Next: Step 5 (Cline)
+- Step 5 (Cline): tripwirelib actions.py, libexec forgeos-tripwire-helper + forgeos-tripwire-release, polkit, tripwire-trusted.list, system + user unit written. Waiting for Claude's review.
+- Step 5 REVIEWED by Claude: 6 files identical to the prototype; tripwire-trusted.list lost the period at the end of comment line 3 -> replaced with the prototype (Windows line endings changed back everywhere). Next: Step 6 (Cline)
+- Step 6 (Cline): bin/forgeos-tripwire-gui, desktop, help ransomware-tripwire.md written; forgeos-setup.sh, Forge Helper tools/looks/actions/rules + tools-2.jsonl + test-helper-ai.sh, Family Mode guards.py edited. Waiting for Claude's review.
+- Step 6 REVIEWED by Claude: 10 of 12 files identical to the prototype; forgeos-tripwire-gui stopped after line 50 (64 lines missing, the window would not work) and rules.py had 4 extra spaces on line 11 -> both replaced with the prototype (Windows line endings changed back). Next: Step 7 (Cline)
+- Step 7 (Cline): tests/tripwire-fakes.sh, test-tripwire.sh (A-C) written. Waiting for Claude's review.
+- Step 7 REVIEWED by Claude: tripwire-fakes.sh identical; test-tripwire.sh A1 had an extra space inside a path (test would fail) -> replaced with the prototype. Tests A-C all pass on the PC VM. Next: Step 8 (Cline)
+- Step 8 (Cline): tests/test-tripwire-more.sh (D-E4), test-tripwire-bait.sh (E5-E8), test-tripwire-restore.sh (F-G) written. Waiting for Claude's review.
+- Step 8 REVIEWED by Claude: all 3 files identical to the prototype (Windows line endings changed back). Tests D-G all pass on the PC VM. Next: Step 9 (Cline)
+- Step 9 (Cline): tests/test-tripwire-actions.sh (H-J), test-tripwire-gui.sh (K-L) written. Waiting for Claude's review.
+- Step 9 REVIEWED by Claude: both files lost the last newline -> replaced with the prototype. Also found forgeos-tripwire-gui changed again after the Step 6 review (Cline wrote a second copy of its last 64 lines at the end, so the window opened twice) -> prototype put back. Full sweep: every Job 16 file so far identical to the prototype. Tests H-L all pass on the PC VM. Next: Step 10 (Cline)
+- Step 10 (Cline): tests/test-tripwire-kernel.sh (M), test-tripwire-files.sh (N) + CI step written. Waiting for Claude's review.
+- Step 10 REVIEWED by Claude: test-tripwire-kernel.sh + CI step identical; test-tripwire-files.sh N2 lost 4 quote marks ('"'"' -> '"') -> replaced with the prototype. Cline then re-ran the step and asked if a redo was needed: no. All 40 Job 16 files identical to the prototype. DONE - next: commit + tag v0.21.0.
