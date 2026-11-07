@@ -200,3 +200,13 @@ jobs:
           bash tests/test-tripwire-gui.sh .
           bash tests/test-tripwire-kernel.sh .
           bash tests/test-tripwire-files.sh .
+
+      - name: Run Fake Tech Support Guard tests (pretend remote apps, screen sharing and hosts file; a real pretend app)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-techguard.sh .
+          bash tests/test-techguard-more.sh .
+          bash tests/test-techguard-money.sh .
+          bash tests/test-techguard-kick.sh .
+          bash tests/test-techguard-gui.sh .
+          bash tests/test-techguard-files.sh .

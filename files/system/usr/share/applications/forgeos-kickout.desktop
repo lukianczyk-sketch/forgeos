@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Kick them out
+GenericName=Throw a stranger out of this PC now
+Comment=One key (Ctrl+Alt+K) ends every remote-control app and screen sharing, cuts the internet and closes a stuck fake virus page
+Exec=/usr/bin/forgeos-techguard-gui --kick
+Icon=process-stop
+Terminal=false
+Categories=System;Security;
+Keywords=kick out;remote;anydesk;teamviewer;scam;fake virus;pop-up;stuck;tech support;stranger;
+X-KDE-Shortcuts=Ctrl+Alt+K

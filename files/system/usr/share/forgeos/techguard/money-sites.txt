@@ -1,0 +1,84 @@
+# ForgeOS Fake Tech Support Guard (Job 17): money websites locked (for the whole PC) while anyone can see or
+# control this screen. One website per line. Each one is locked with its usual sign-in names too
+# (www., secure., online., login., my. ...). Add your own bank or credit union at the end.
+# Banks and credit cards
+chase.com
+bankofamerica.com
+wellsfargo.com
+citi.com
+citibank.com
+usbank.com
+pnc.com
+truist.com
+capitalone.com
+tdbank.com
+td.com
+ally.com
+discover.com
+americanexpress.com
+usaa.com
+navyfederal.org
+penfed.org
+regions.com
+key.com
+huntington.com
+53.com
+citizensbank.com
+mtb.com
+bmo.com
+santanderbank.com
+firstcitizens.com
+comerica.com
+zionsbank.com
+synchrony.com
+mysynchrony.com
+sofi.com
+chime.com
+varomoney.com
+marcus.com
+golden1.com
+schoolsfirstfcu.org
+becu.org
+alliantcreditunion.org
+mechanicsbank.com
+# Savings, investing and retirement
+schwab.com
+fidelity.com
+vanguard.com
+etrade.com
+morganstanley.com
+merrilledge.com
+edwardjones.com
+robinhood.com
+ameriprise.com
+tiaa.org
+principal.com
+# Sending money
+paypal.com
+venmo.com
+zellepay.com
+cash.app
+wise.com
+westernunion.com
+moneygram.com
+remitly.com
+xoom.com
+worldremit.com
+riamoneytransfer.com
+# Gift cards (fake tech support always asks for gift cards)
+giftcards.com
+giftcardmall.com
+mygiftcardsite.com
+cardcash.com
+raise.com
+# Crypto and bitcoin machines (another favorite of scammers)
+coinbase.com
+binance.com
+binance.us
+kraken.com
+crypto.com
+gemini.com
+blockchain.com
+bitpay.com
+coinme.com
+bitcoindepot.com

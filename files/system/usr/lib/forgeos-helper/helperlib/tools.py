@@ -21,6 +21,7 @@ TOOLS = {
     "moving_day": "bring files, photos, bookmarks or saved passwords over from Windows or an old PC",
     "drive_health": "is a drive (hard drive, SSD) healthy, failing, worn out, dying or making clicking noises",
     "ransomware": "files scrambled, encrypted or locked, a ransom note, or is the PC safe from ransomware",
+    "tech_support": "a stranger wants to get into or control the PC, a remote-control app (AnyDesk, TeamViewer), or kick them out",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

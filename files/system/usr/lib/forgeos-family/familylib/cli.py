@@ -6,7 +6,7 @@ from . import call, guards, helper, look, rustdesk
 
 # Desktop icons: (menu entry, name on the desktop)
 ICONS = [("forgeos-callhelp.desktop", "Call for help"), ("forgeos-scamshield.desktop", "Is this a scam?"),
-         ("forgeos-askpc.desktop", "Ask Your PC")]
+         ("forgeos-askpc.desktop", "Ask Your PC"), ("forgeos-kickout.desktop", "Kick them out")]
 MARK = "X-ForgeOS-Family=true"
 
 

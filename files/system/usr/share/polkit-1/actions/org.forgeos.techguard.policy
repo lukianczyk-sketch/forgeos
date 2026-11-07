@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Fake Tech Support Guard (Job 17).
+     money: lock / open the money websites while someone can see the screen - no password for the person at the PC.
+     trust: "I set this up myself" and "I'm sharing my screen on purpose" - always asks for the PC password. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.techguard.money">
+    <description>Lock or open the money websites while someone can see the screen</description>
+    <message>Fake Tech Support Guard wants to lock or open bank and payment websites.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-techguard-money</annotate>
+  </action>
+  <action id="org.forgeos.techguard.trust">
+    <description>Trust a remote-control app or open the money websites while sharing the screen</description>
+    <message>Type the PC password only if YOU set this up. Never type it for someone on the phone.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-techguard-trust</annotate>
+  </action>
+</policyconfig>

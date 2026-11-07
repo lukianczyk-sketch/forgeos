@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# ForgeOS Fake Tech Support Guard (Job 17): the root half of the money lock - locks (or opens again) bank,
+# payment, gift-card and crypto websites for the whole PC while someone can see the screen.
+# Started through pkexec (polkit org.forgeos.techguard.money: no password for the person at the PC).
+# Accepts ONLY: lock | unlock.
+set -u
+case "$#:${1:-}" in
+  1:lock|1:unlock) ;;
+  *) echo "usage: forgeos-techguard-money lock | unlock" >&2; exit 3 ;;
+esac
+exec "${FORGEOS_TG_ENGINE:-/usr/bin/forgeos-techguard}" root-money "$1"

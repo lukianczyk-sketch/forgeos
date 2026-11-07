@@ -69,3 +69,8 @@
 {"q": "my photos won't open and have a strange ending now", "tool": "ransomware"}
 {"q": "is my pc safe from ransomware", "tool": "ransomware"}
 {"q": "a window says pay bitcoin to decrypt my files", "tool": "ransomware"}
+{"q": "a man on the phone wants me to install anydesk", "tool": "tech_support"}
+{"q": "someone is controlling my mouse", "tool": "tech_support"}
+{"q": "how do I kick them out of my computer", "tool": "tech_support"}
+{"q": "microsoft support wants to get into my computer with teamviewer", "tool": "tech_support"}
+{"q": "my mouse is moving by its own", "tool": "tech_support"}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Fake Tech Support Guard
+GenericName=Stop strangers taking over this PC
+Comment=Pauses remote-control apps like AnyDesk and TeamViewer and asks you first; locks money websites while someone can see your screen
+Exec=/usr/bin/forgeos-techguard-gui
+Icon=security-high
+Terminal=false
+Categories=System;Security;
+Keywords=tech support;scam;anydesk;teamviewer;ultraviewer;remote;remote control;screen sharing;microsoft called;kick out;

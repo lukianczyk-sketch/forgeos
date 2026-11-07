@@ -68,6 +68,12 @@ def ransomware(_arg):
     return text + "\nNever pay a ransom: \"Put my files back\" brings them back from the Undo Button.", win("tripwire", "Open Ransomware Tripwire"), -1
 
 
+def tech_support(_arg):
+    code, out = run(["forgeos-techguard", "report"], 60)
+    text = plain(out) if code in (0, 1, 3) else "Fake Tech Support Guard could not be checked."
+    return text, win("techguard", "Open Fake Tech Support Guard"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

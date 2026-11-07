@@ -1,0 +1,30 @@
+# ForgeOS Fake Tech Support Guard (Job 17): remote-control apps that let someone see and control this PC.
+# Fake tech support callers ask people to install one of these. One app per line: id ~ name ~ pattern
+# The pattern (a regular expression, lower case) is matched against a program's name, its file, its
+# Flatpak id, a Windows program's name in Wine, and the names of downloaded files.
+anydesk ~ AnyDesk ~ anydesk
+teamviewer ~ TeamViewer ~ teamviewer|^tv_bin|^tv_w32|^tv_x64
+ultraviewer ~ UltraViewer ~ ultra_?viewer
+screenconnect ~ ScreenConnect (ConnectWise) ~ screenconnect|connectwise
+logmein ~ LogMeIn / GoTo ~ logmein|gotoassist|goto_?resolve|gotomypc|^lmi_rescue
+splashtop ~ Splashtop ~ splashtop|^srstreamer|^srserver
+supremo ~ Supremo ~ ^supremo
+aeroadmin ~ AeroAdmin ~ aeroadmin
+ammyy ~ Ammyy Admin ~ ammyy|^aa_v3
+zohoassist ~ Zoho Assist ~ zohoassist|zoho_assist|^zaservice
+remotepc ~ RemotePC ~ remotepc
+hoptodesk ~ HopToDesk ~ hoptodesk
+rustdesk ~ RustDesk ~ rustdesk
+chromeremote ~ Chrome Remote Desktop ~ ^remoting_host|chrome-remote-desktop|^remoting_start_host
+quickassist ~ Quick Assist ~ quickassist|quick_assist
+dwservice ~ DWService ~ ^dwagent|dwservice
+remoteutilities ~ Remote Utilities ~ ^rutserv|^rfusclient|remote_utilities
+getscreen ~ Getscreen.me ~ getscreen
+isllight ~ ISL Light ~ ^isl_?light|^islalwayson
+beyondtrust ~ BeyondTrust (Bomgar) ~ bomgar|beyondtrust
+anyviewer ~ AnyViewer ~ anyviewer
+fixmeit ~ FixMe.IT ~ ^fixme\.?it
+netsupport ~ NetSupport ~ netsupport|^client32\.exe
+atera ~ Atera ~ ^atera
+nomachine ~ NoMachine ~ nomachine|^nxserver|^nxnode
+vnc ~ VNC screen sharing ~ ^x11vnc|^wayvnc|^vncserver|^winvnc|tightvnc|ultravnc|realvnc|^krfb

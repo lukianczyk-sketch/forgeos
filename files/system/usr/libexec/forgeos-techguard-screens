@@ -1,0 +1,96 @@
+# shellcheck shell=bash
+# ForgeOS Fake Tech Support Guard (Job 17): the window's other screens - Kick them out, the checklist of
+# what a stranger may have left behind, the internet, and the main menu. Sourced by forgeos-techguard-gui.
+# shellcheck disable=SC2154  # TITLE, ENGINE, TMP, TAB and BR come from forgeos-techguard-gui
+
+kick_flow() {
+  local msg n
+  kdialog --title "$TITLE" --passivepopup "Kicking everyone out..." 5 >/dev/null 2>&1 &
+  "$ENGINE" kick > "$TMP/kick" 2>/dev/null
+  msg="<h2>Done - everyone is out.</h2>"
+  while IFS="$TAB" read -r k v; do
+    case "$k" in
+      KICKED) msg+="Closed: $v${BR}" ;;
+      SCREEN) msg+="Stopped showing your screen: $v${BR}" ;;
+    esac
+  done < "$TMP/kick"
+  if grep -q "^INTERNET${TAB}cut" "$TMP/kick"; then msg+="${BR}The internet is <b>OFF</b>, so nobody can get back in."
+  else msg+="${BR}<b>The internet could not be turned off.</b> Unplug the internet cable or turn off the Wi-Fi."; fi
+  n="$(awk -F "$TAB" '$1 == "BROWSERS" {print $2}' "$TMP/kick")"
+  [ "${n:-0}" != 0 ] && msg+="${BR}The web browser was closed too. A scary \"virus\" page is fake - your PC is fine. When you open the browser again and it asks to restore pages, click No."
+  info "$msg"
+  checklist
+  info "<b>Last steps</b>${BR}${BR}1. If they saw your bank or you paid anything: call your bank NOW, using the number on the back of your card.${BR}2. Never buy gift cards or send money for someone who called you.${BR}3. Change the passwords you typed while they were connected.${BR}4. Tell your family helper what happened. You did nothing wrong."
+  ask "Check this PC for viruses now with Clean Sweep? (recommended)" "Yes, check it" "Not now" && { forgeos-cleansweep-gui >/dev/null 2>&1 & }
+  internet
+}
+
+checklist() {
+  local pick i k v label items
+  while true; do
+    "$ENGINE" checklist > "$TMP/items" 2>/dev/null
+    [ -s "$TMP/items" ] || { info "Nothing new was left behind on this PC."; return 0; }
+    items=(); i=0
+    while IFS="$TAB" read -r _ k v label; do
+      i=$((i + 1)); items+=("$i" "Remove - $(sed 's/&/and/g' <<< "$label")")
+    done < "$TMP/items"
+    items+=(finished "Done - keep the rest")
+    pick="$(kdialog --title "$TITLE" --menu "They may have left these behind. Remove anything you did not put there yourself:" "${items[@]}")" || return 0
+    [ "$pick" = finished ] && return 0
+    IFS="$TAB" read -r _ k v label < <(sed -n "${pick}p" "$TMP/items")
+    "$ENGINE" remove "$k" "$v" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")"
+  done
+}
+
+internet() {
+  refresh
+  [ "$(val INTERNET)" = cut ] || return 0
+  if ask "The internet is OFF. Turn it back on only when the caller is gone and you hung up." "Turn the internet back on" "Keep it off"; then
+    "$ENGINE" net-on > "$TMP/net" 2>&1; info "$(cat "$TMP/net")"
+  fi
+}
+
+explain() {
+  info "How it works${BR}${BR}The scam: a scary pop-up or a caller says your PC has a virus, then asks you to install a remote-control app (AnyDesk, TeamViewer...) and takes over your PC and your bank.${BR}${BR}ForgeOS pauses any remote-control app the moment it starts and asks you first. While anyone can see your screen, bank, payment and gift-card websites and your saved passwords are locked. Ctrl+Alt+K (Kick them out) throws everyone out, cuts the internet and closes a stuck fake virus page.${BR}${BR}Honest limits: it can't hear the phone call. Never give your PC password to a caller."
+}
+
+cards() {
+  local t=""
+  [ "$(val SERVICE)" = on ] && t+="ON - watching for remote-control apps${BR}" || t+="<b>OFF</b> - press \"Turn the guard on\"${BR}"
+  [ "$(val SHARING)" != - ] && t+="<b>Someone can see this screen now: $(val SHARING)</b>${BR}"
+  t+="Money websites: $(val MONEY)${BR}"
+  [ "$(val INTERNET)" = cut ] && t+="<b>The internet is OFF since you kicked them out.</b>${BR}"
+  t+="${BR}History:${BR}$(awk -F "$TAB" '$1 == "ALARM" {print $4 " - " $5 " - " $3}' "$TMP/status" | head -n 5 | sed 's/&/and/g' | paste -sd '|' | sed "s/|/${BR}/g")"
+  printf '%s' "$t"
+}
+
+main_menu() {
+  local pick items
+  while true; do
+    refresh
+    items=()
+    while IFS="$TAB" read -r _ id st when app _; do
+      [ "$st" = paused ] && items+=("a:$id" "Still paused: $app ($when) - decide now")
+    done < <(grep "^ALARM${TAB}" "$TMP/status")
+    items+=(kick "Kick them out (Ctrl+Alt+K)")
+    if [ "$(val MONEY)" = locked ]; then
+      [ "$(val SHARING)" != - ] && items+=(share "I'm sharing my screen on purpose - open money websites (PC password)") \
+        || items+=(share "Open the money websites again (PC password)")
+    fi
+    [ "$(val INTERNET)" = cut ] && items+=(net "Turn the internet back on")
+    [ "$(val SERVICE)" = on ] || items+=(on "Turn the guard on")
+    items+=(check "What did they leave behind? (checklist)" test "Test the guard" explain "How does it work?")
+    pick="$(kdialog --title "$TITLE" --menu "$(cards)" "${items[@]}")" || return 0
+    case "$pick" in
+      a:*) alarm "${pick#a:}" ;;
+      kick) kick_flow ;;
+      share) "$ENGINE" share-ok > "$TMP/out" 2>&1; info "$(cat "$TMP/out")" ;;
+      net) internet ;;
+      on) systemctl --user enable --now forgeos-techguard.service >/dev/null 2>&1; info "The guard is on." ;;
+      check) checklist ;;
+      test) kdialog --title "$TITLE" --passivepopup "A pretend remote-control app is starting..." 5 >/dev/null 2>&1 &
+            "$ENGINE" test > "$TMP/out" 2>&1; info "$(cut -f 2 "$TMP/out")" ;;
+      explain) explain ;;
+    esac
+  done
+}

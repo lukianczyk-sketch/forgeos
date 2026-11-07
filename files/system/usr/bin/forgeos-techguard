@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+"""ForgeOS Fake Tech Support Guard (Job 17): pauses any remote-control app (AnyDesk, TeamViewer...) the
+moment it starts and asks you first, locks money websites while anyone can see the screen, and
+"Kick them out" (Ctrl+Alt+K) throws everyone out at once.
+Exit: 0 all fine, 1 something needs you (a paused app, screen sharing, or the internet is cut),
+3 off / could not / wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_TG_LIB") or "/usr/lib/forgeos-techguard")
+from techguardlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

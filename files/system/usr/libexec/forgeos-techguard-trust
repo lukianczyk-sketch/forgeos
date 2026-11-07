@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+# ForgeOS Fake Tech Support Guard (Job 17): the root half of "I set this up myself" (trust one paused
+# remote-control app of the caller from now on) and "I'm sharing my screen on purpose" (open the money
+# websites). Started through pkexec (polkit org.forgeos.techguard.trust: ALWAYS asks for the PC password,
+# because a fake tech support caller asks for exactly this). Accepts ONLY: add PID | share.
+set -u
+case "$#:${1:-}" in
+  2:add) [[ "$2" =~ ^[0-9]{1,9}$ ]] || { echo "bad program number" >&2; exit 3; } ;;
+  1:share) ;;
+  *) echo "usage: forgeos-techguard-trust add PID | share" >&2; exit 3 ;;
+esac
+exec "${FORGEOS_TG_ENGINE:-/usr/bin/forgeos-techguard}" root-trust "$@"

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# ForgeOS Fake Tech Support Guard window (Job 17), a kdialog front end.
+# --alarm ID = the big window when a remote-control app was paused (the watcher opens it)
+# --download PATH = a remote-control app was downloaded; --kick = Kick them out (Ctrl+Alt+K)
+set -uo pipefail
+
+TITLE="Fake Tech Support Guard"
+ENGINE="${FORGEOS_TG_ENGINE:-/usr/bin/forgeos-techguard}"
+SCREENS="${FORGEOS_TG_SCREENS:-/usr/libexec/forgeos-techguard-screens}"
+TAB=$'\t'
+BR="<br>"
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-techguard report in a terminal." >&2
+  exit 3
+fi
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+ask() { kdialog --title "$TITLE" --yesno "$1" --yes-label "$2" --no-label "$3"; }
+val() { awk -F "$TAB" -v k="$1" '$1 == k {print $2; exit}' "$TMP/status" | sed 's/&/and/g'; }
+field() { awk -F "$TAB" -v id="$1" -v n="$2" '$1 == "ALARM" && $2 == id {print $n}' "$TMP/status" | sed 's/&/and/g'; }
+refresh() { "$ENGINE" status > "$TMP/status" 2>/dev/null; }
+# shellcheck source=files/system/usr/libexec/forgeos-techguard-screens
+. "$SCREENS"
+
+alarm() {
+  local id="$1" app st pick text helper items
+  refresh
+  app="$(field "$id" 5)"; st="$(field "$id" 3)"
+  if [ "$st" = ended-family ]; then
+    info "<h2><font color=\"#c00000\">Family Mode closed $app</font></h2>$app lets someone control this computer. Only Call for help may connect to this PC.${BR}${BR}If someone on the phone told you to install it, <b>hang up - it is a scam</b>. Then call your helper."
+    return 0
+  fi
+  [ "$st" = paused ] || [ "$st" = running ] || { info "$app was already handled."; return 0; }
+  helper="$(val HELPERCALL)"
+  text="<h2><font color=\"#c00000\">STOP - is someone on the phone with you?</font></h2>"
+  text+="<b>$app</b> lets a person far away see and control this computer. ForgeOS paused it.${BR}${BR}"
+  text+="Microsoft, Apple, Amazon, your bank and the government <b>NEVER</b> call you to get into your computer. "
+  text+="If someone on the phone told you to do this, <b>hang up - it is a scam</b>.${BR}${BR}Pick what to do:"
+  items=(kick "Kick them out (recommended)")
+  [ "$helper" != - ] && [ -n "$helper" ] && items+=(helper "$helper asked me to - we are on the phone now")
+  [ "$(val FAMILY)" = on ] || items+=(mine "I set this up myself (asks for the PC password)")
+  items+=(later "Decide later (it stays paused)")
+  while true; do
+    pick="$(kdialog --title "$TITLE - STOP" --menu "$text" "${items[@]}")" || pick=later
+    case "$pick" in
+      kick) kick_flow; return 0 ;;
+      helper) "$ENGINE" helper "$id" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")"; return 0 ;;
+      mine) mine "$id" && return 0 ;;
+      later) info "It stays paused, so nobody can get in through it. Open Fake Tech Support Guard any time."; return 0 ;;
+    esac
+  done
+}
+
+mine() {
+  ask "Only if YOU set this up yourself, with nobody on the phone telling you to.${BR}Never type the PC password for a caller." "Yes, I set it up" "No" || return 1
+  if "$ENGINE" allow "$1" > "$TMP/out" 2>&1; then info "$(cat "$TMP/out")"; else info "$(cat "$TMP/out")"; return 1; fi
+}
+
+download() {
+  local name
+  name="$(basename -- "$1" | sed 's/&/and/g; s/</ /g; s/>/ /g')"
+  if ask "<h2><font color=\"#c00000\">STOP - is someone on the phone with you?</font></h2>You just downloaded <b>$name</b>, a remote-control app: it lets a person far away control this computer.${BR}${BR}Microsoft, Apple, Amazon and your bank <b>NEVER</b> ask you to install one. If a caller told you to, <b>hang up - it is a scam</b>." "Lock it away (recommended)" "Keep it"; then
+    "$ENGINE" lock-file "$1" > "$TMP/out" 2>&1; info "$(cat "$TMP/out")"
+  fi
+}
+
+case "${1:-}" in
+  --alarm) [ "$#" -eq 2 ] || exit 3; alarm "$2" ;;
+  --download) [ "$#" -eq 2 ] || exit 3; download "$2" ;;
+  --kick) [ "$#" -eq 1 ] || exit 3; kick_flow ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-techguard-gui [--alarm ID | --download PATH | --kick]" >&2; exit 3 ;;
+esac

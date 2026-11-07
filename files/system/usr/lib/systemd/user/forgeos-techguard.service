@@ -1,0 +1,16 @@
+# ForgeOS - Fake Tech Support Guard (Job 17): pauses any remote-control app the moment it starts and asks
+# you first, and locks money websites while anyone can see the screen.
+[Unit]
+Description=ForgeOS Fake Tech Support Guard - stops strangers from taking over this PC
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-techguard watch
+Nice=10
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

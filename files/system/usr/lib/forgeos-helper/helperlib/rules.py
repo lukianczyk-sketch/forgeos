@@ -9,8 +9,15 @@ from .rulelist import LINK, PROGRAM_FILE, RULES
 # Ransomware Tripwire (Job 16) goes right before Clean Sweep's "virus" words (rulelist.py is full).
 RANSOM = ("ransomware", r"ransom|scrambl|tripwire|decrypt|encrypted (my|all|every)|"
                         r"(files|photos|pictures|documents|papers).{0,25}(locked|encrypted|scrambled|won.?t open)")
+# Fake Tech Support Guard (Job 17) goes right before Scam Shield (a stranger in the PC is more than a scam check).
+TECH = ("tech_support", r"anydesk|teamviewer|ultra ?viewer|screen ?connect|logmein|remote (control|access|desktop)|"
+                        r"(get|got|getting|is|are|was|be) (in|into) my (computer|pc|laptop)|kick (them|him|her|someone|it) out|"
+                        r"control(ling|s)? my (computer|pc|laptop|mouse|screen)|fake tech support|tech support scam|"
+                        r"(mouse|cursor|pointer) (is )?moving (by|on) its own")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
-COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in RULES[:AT] + [RANSOM] + RULES[AT:]]
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:]
+AT2 = [tool for tool, _rx in RULES2].index("scam_check")
+COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
 EVEN_BIGGER = re.compile(r"even bigger|bigger still|much bigger|biggest|still too small|very big", re.I)
 
