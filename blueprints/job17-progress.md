@@ -1,0 +1,33 @@
+# Job 17 Fake Tech Support Guard — progress log
+
+- 2026-11-06: Design approved by Robert. Claude wrote and tested the prototype (tests A-M pass, plus every other ForgeOS test).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-techguard, techguardlib __init__.py, apps.py, remote-apps.txt written. Waiting for Claude's review.
+- Step 1 REVIEWED by Claude: all 4 files identical to the prototype (Windows line endings changed back to Linux ones). LM Studio fixed first (it had slowed to 0.35 words/s: context 65536 -> 32768, speculative decoding MTP -> Off; now about 25/s). Next: Step 2 (Cline)
+- Step 2 (Cline): techguardlib procs.py, screen.py, notes.py written. Waiting for Claude's review.
+- Step 2 REVIEWED by Claude: all 3 files identical to the prototype (Windows line endings changed back); Step 1 files swept again: still identical. Next: Step 3 (Cline)
+- Step 3 (Cline): techguardlib alarm.py, money.py, money-sites.txt written. Waiting for Claude's review.
+- Step 3 REVIEWED by Claude: all 3 files identical to the prototype (Windows line endings changed back); Steps 1-2 files swept again: still identical. Next: Step 4 (Cline)
+- Step 4 (Cline): techguardlib watch.py, kick.py written. Waiting for Claude's review.
+- Step 4 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back); Steps 1-3 files swept again: still identical. Next: Step 5 (Cline)
+- Step 5 (Cline): techguardlib actions.py, cli.py written. Waiting for Claude's review.
+- Step 5 REVIEWED by Claude: actions.py identical; cli.py lost one docstring line (report) and other text near the end -> replaced with the prototype (Windows line endings changed back). Steps 1-4 files swept again: still identical. Next: Step 6 (Cline)
+- Step 6 (Cline): libexec forgeos-techguard-money + forgeos-techguard-trust, polkit, user unit, 2 desktop files, help card written. Waiting for Claude's review.
+- Step 6 REVIEWED by Claude: all 8 files identical to the prototype (Windows line endings changed back); Steps 1-5 files swept again: still identical. Next: Step 7 (Cline)
+- Step 7 (Cline): bin/forgeos-techguard-gui, libexec forgeos-techguard-screens written. Waiting for Claude's review.
+- Step 7 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back); Steps 1-6 files swept again: still identical. Next: Step 8 (Cline)
+- Step 8 first try stopped by Claude: Cline got overloaded reading 12 files and started guessing hidden text (no files changed). Step 8 split into 8A + 8B. Next: Step 8A (Cline)
+- Step 8A (Cline): setup + Forge Helper tools/looks/actions/rules edits done. Waiting for Claude's review.
+- Step 8A REVIEWED by Claude: all 5 edited files identical to the prototype (Windows line endings changed back); Steps 1-7 files swept again: still identical. Next: Step 8B (Cline)
+- Step 8B (Cline): Forge Helper tests, Family Mode, Scam Shield edits done. Waiting for Claude's review.
+- Step 8B REVIEWED by Claude: all 5 edited files identical to the prototype (Windows line endings changed back); Steps 1-8A files swept again: still identical. Next: Step 9 (Cline)
+- Step 9 (Cline): tests/techguard-fakes.sh, test-techguard.sh (A-C) written. Waiting for Claude's review.
+- Step 9 REVIEWED by Claude: both test files identical to the prototype (Windows line endings changed back); Steps 1-8B files swept again: still identical. Next: Step 10 (Cline)
+- Step 10 (Cline): tests/test-techguard-more.sh (D-F), test-techguard-money.sh (G-H) written. Waiting for Claude's review.
+- Step 10 REVIEWED by Claude: test-techguard-more.sh had the E1/E2 block (5 lines) in the wrong place -> replaced with the prototype; test-techguard-money.sh was missing the final newline -> replaced with the prototype (Windows line endings changed back). Steps 1-9 files swept again: still identical. Next: Step 11 (Cline)
+- Step 11 PARTLY done (Robert rebooting, 2026-11-06 11:30 PM): Cline wrote tests/test-techguard-kick.sh -> REVIEWED by Claude, identical to the prototype. test-techguard-gui.sh not written yet (Cline hit its output limit). Next: Step 11B (Cline) = only test-techguard-gui.sh, then Step 12.
+- Step 11B (Cline): tests/test-techguard-gui.sh (K-L) written. Waiting for Claude's review.
+- Step 11B (Cline): tests/test-techguard-gui.sh written.
+- Step 11B REVIEWED by Claude (2026-11-07): test-techguard-gui.sh identical to the prototype (Windows line endings changed back); all 39 Job 17 files swept again: still identical. Only Step 12 left (test-techguard-files.sh + tests.yml). Next: Step 12 (Cline)
+- Step 12 (Cline): tests/test-techguard-files.sh (M) + CI step written. Waiting for Claude's review.
+- Step 12 REVIEWED by Claude (2026-11-07): test-techguard-files.sh + tests.yml identical to the prototype (Windows line endings changed back); all 41 Job 17 files swept: identical. ALL STEPS DONE. Next: run every test, commit, push, tag v0.22.0
