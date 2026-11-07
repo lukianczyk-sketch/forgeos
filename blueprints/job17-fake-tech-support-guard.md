@@ -34,7 +34,7 @@ phone gets you to install a remote-control app -> takes over the PC -> opens you
    what a stranger may have left (remote apps installed, remote app files, NEW autostart / background / program
    entries of the last day; remove one at a time), the last steps (call your bank with the number on your card,
    never gift cards) and Clean Sweep. The internet comes back only on "Turn the internet back on".
-3. **Test the guard**: a harmless pretend remote app (the sleep program named AnyDesk) is caught and ended.
+3. **Test the guard**: a harmless pretend remote app (Python named AnyDesk) is caught and ended.
 4. **Ties in**: Forge Helper tool `tech_support` (rule before Scam Shield) + help card; Family Mode guard list +
    "Kick them out" desktop icon; Scam Shield's remote-control warning points to Ctrl+Alt+K.
 

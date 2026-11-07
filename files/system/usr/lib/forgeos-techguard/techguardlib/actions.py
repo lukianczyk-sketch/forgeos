@@ -4,6 +4,7 @@ I'm sharing my screen on purpose (PC password), lock a downloaded remote app awa
 import os
 import shutil
 import subprocess
+import sys
 import time
 
 from . import (ENV, HOME, TEST_DIR, TRUST_HELPER, Locked, is_root, now, run)
@@ -111,15 +112,15 @@ def _service_on():
 
 
 def test(wait=15):
-    """Test the guard: a harmless pretend remote app ('AnyDesk', really the sleep program) starts."""
+    """Test the guard: a harmless pretend remote app ('AnyDesk', really Python sleeping) starts."""
     folder = os.path.join(ENV("XDG_RUNTIME_DIR") or "/tmp", TEST_DIR)
     shutil.rmtree(folder, ignore_errors=True)
     os.makedirs(folder, mode=0o700)
     fake = os.path.join(folder, "AnyDesk")
-    os.symlink(shutil.which("sleep") or "/usr/bin/sleep", fake)
+    os.symlink(os.path.realpath(sys.executable), fake)  # Python runs under any name (sleep may not)
     began = now()
-    child = subprocess.Popen([fake, "60"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL)
+    child = subprocess.Popen([fake, "-I", "-S", "-c", "import time; time.sleep(60)"], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     found = None
     for _ in range(wait * 4):
         with Locked() as st:

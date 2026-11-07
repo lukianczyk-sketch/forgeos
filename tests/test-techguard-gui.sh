@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tests for Fake Tech Support Guard (Job 17), cases K-L: the window - the big STOP window (kick them out with
 # the checklist and last steps, I set this up myself, the helper, Family Mode), the download warning, the main
-# menu, and "Test the guard" with a real pretend remote app (the sleep program named AnyDesk).
+# menu, and "Test the guard" with a real pretend remote app (Python named AnyDesk).
 # shellcheck disable=SC2016,SC2034  # the checks are single-quoted on purpose: check() runs them with eval
 # Usage: bash tests/test-techguard-gui.sh <repo-root>
 set -u
