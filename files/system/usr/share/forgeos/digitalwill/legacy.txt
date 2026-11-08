@@ -1,0 +1,7 @@
+# ForgeOS Digital Will (Job 18): the companies' own "after I'm gone" settings. One per line:
+# id ~ company ~ web page ~ what to do there (checked 2026-11-07)
+google ~ Google ~ https://myaccount.google.com/inactive ~ Inactive Account Manager: pick up to 10 people who get your Google data (Gmail, Photos, Drive) if your account is unused for months.
+apple ~ Apple ~ https://support.apple.com/102631 ~ Legacy Contact: on your iPhone open Settings, tap your name, Sign-In and Security, Legacy Contact. They get an access key to give with a death certificate.
+facebook ~ Facebook and Instagram ~ https://www.facebook.com/help/1568013990080948 ~ Legacy contact: in Accounts Center open Memorialization and pick who looks after your memorial page (or have the account deleted).
+microsoft ~ Microsoft ~ https://support.microsoft.com/office/ebbd2860-917e-4b39-9913-212362da6b2f ~ Microsoft has no legacy contact. This page tells your family what they can do; the passwords in your envelope are the way in.
+bank ~ Your bank ~ - ~ Ask your bank to add a "payable on death" person to your accounts. It is free and the money goes to them without waiting for court.

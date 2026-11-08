@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Digital Will reminders - 20 minutes after login, then once a day
+
+[Timer]
+OnStartupSec=20min
+OnUnitActiveSec=1d
+
+[Install]
+WantedBy=timers.target

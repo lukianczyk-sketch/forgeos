@@ -1,0 +1,91 @@
+# shellcheck shell=bash
+# ForgeOS Digital Will (Job 18): the Step 1 screens - trusted people, password safe, folders, letters
+# and the note (accounts are in forgeos-digitalwill-accounts). Nothing asked here is a password. Sourced by forgeos-digitalwill-gui.
+# shellcheck disable=SC2154  # TITLE, ENGINE, TMP, TAB and BR come from forgeos-digitalwill-gui
+
+step1_menu() {
+  local pick
+  while true; do
+    refresh
+    pick="$(kdialog --title "$TITLE" --menu "Step 1 - your answers. Do them in any order; you can stop and come back." \
+      people "Trusted people ($(val PEOPLE) of 3)" \
+      accounts "My accounts and what should happen to each ($(grep -c "^ACCOUNT${TAB}" "$TMP/status"))" \
+      safe "My password safe ($( [ "$(val SAFE)" = - ] && echo "none" || basename -- "$(val SAFE)"))" \
+      folders "Folders to keep for my family ($(grep -c "^FOLDER${TAB}" "$TMP/status"))" \
+      letters "Letters to my people ($(grep -c "^LETTER${TAB}" "$TMP/status"))" \
+      note "A note for my family (funeral wishes, where my papers are...)" \
+      back "Back")" || return 0
+    case "$pick" in
+      people) people_screen ;;
+      accounts) accounts_screen ;;
+      safe) safe_screen ;;
+      folders) folders_screen ;;
+      letters) letters_screen ;;
+      note) note_screen ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+people_screen() {
+  local pick items name phone
+  while true; do
+    refresh; items=()
+    while IFS="$TAB" read -r _ name phone; do items+=("r:$name" "Remove $name ($phone)"); done < <(grep "^PERSON${TAB}" "$TMP/status")
+    [ "$(val PEOPLE)" -lt 3 ] && items+=(add "Add a trusted person")
+    items+=(back "Back")
+    pick="$(kdialog --title "$TITLE" --menu "Your trusted people get your Emergency Envelope or a code card. Nothing is sent to them." "${items[@]}")" || return 0
+    case "$pick" in
+      add)
+        name="$(kdialog --title "$TITLE" --inputbox "Their name (for example: Brianna, my daughter):")" || continue
+        phone="$(kdialog --title "$TITLE" --inputbox "Their phone number (you can leave it empty):")" || phone=""
+        "$ENGINE" person add "$name" "$phone" > "$TMP/out" 2>&1 || said ;;
+      r:*) ask "Remove ${pick#r:} from your trusted people? (Their letter is removed too.)" "Remove" "Keep" && { "$ENGINE" person remove "${pick#r:}" > "$TMP/out" 2>&1 || said; } ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+safe_screen() {
+  local pick file
+  pick="$(kdialog --title "$TITLE" --menu "A password safe keeps all your passwords in one locked file (ForgeOS has KeePassXC). A copy goes into your envelope; you type its master password when you make the envelope." \
+    pick "Pick my password safe file (.kdbx)" none "I don't use a password safe" back "Back")" || return 0
+  case "$pick" in
+    pick) file="$(kdialog --title "$TITLE" --getopenfilename "$HOME" "*.kdbx")" || return 0
+          "$ENGINE" safe "$file" > "$TMP/out" 2>&1 || said ;;
+    none) "$ENGINE" safe none > /dev/null 2>&1 ;;
+  esac
+}
+
+folders_screen() {
+  local pick items f cur=()
+  while true; do
+    refresh; items=(); cur=()
+    while IFS="$TAB" read -r _ f; do cur+=("$f"); items+=("r:$f" "Remove $(amp <<< "$f")"); done < <(grep "^FOLDER${TAB}" "$TMP/status")
+    items+=(add "Add a folder (like Pictures)" back "Back")
+    pick="$(kdialog --title "$TITLE" --menu "Folders copied into the locked envelope for your family (photos, important papers). Big folders need a big USB stick." "${items[@]}")" || return 0
+    case "$pick" in
+      add) f="$(kdialog --title "$TITLE" --getexistingdirectory "$HOME")" || continue
+           "$ENGINE" folders "${cur[@]}" "$f" > "$TMP/out" 2>&1 || said ;;
+      r:*) items=(); for f in "${cur[@]}"; do [ "$f" = "${pick#r:}" ] || items+=("$f"); done
+           [ "${#items[@]}" -gt 0 ] || items=(none)
+           "$ENGINE" folders "${items[@]}" > "$TMP/out" 2>&1 || said ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+letters_screen() {
+  local name text
+  name="$(pick_person "Write a letter to:")" || return 0
+  "$ENGINE" letter-show "$name" > "$TMP/letter" 2>/dev/null
+  text="$(kdialog --title "$TITLE" --textinputbox "Your letter to <b>$(amp <<< "$name")</b>. It goes inside the locked envelope:" "$(cat "$TMP/letter")")" || return 0
+  printf '%s' "$text" | "$ENGINE" letter "$name" > "$TMP/out" 2>&1 || said
+}
+
+note_screen() {
+  local text
+  "$ENGINE" note-show > "$TMP/note" 2>/dev/null
+  text="$(kdialog --title "$TITLE" --textinputbox "A note for your family: funeral wishes, where your papers and keys are, who to call. Never a password - those come in Step 2." "$(cat "$TMP/note")")" || return 0
+  printf '%s' "$text" | "$ENGINE" note > "$TMP/out" 2>&1 || said
+}

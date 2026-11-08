@@ -1,0 +1,70 @@
+# shellcheck shell=bash
+# ForgeOS Digital Will (Job 18): Step 2 - make the Emergency Envelope (two-key lock, PC unlock for
+# family, the passwords, the USB stick). Passwords go straight to forgeos-digitalwill on stdin. Sourced by forgeos-digitalwill-gui.
+# shellcheck disable=SC2154  # TITLE, ENGINE, TMP, TAB and BR come from forgeos-digitalwill-gui
+
+b64() { printf '%s %s\n' "$1" "$(printf '%s' "$2" | base64 -w0)"; }
+
+usb_pick() {
+  local pick items f name mb text
+  while true; do
+    "$ENGINE" usb > "$TMP/usb" 2>/dev/null; items=()
+    while IFS="$TAB" read -r f name mb; do items+=("$f" "USB stick: $(amp <<< "$name") ($mb MB free)"); done < "$TMP/usb"
+    items+=(look "Look again (put the USB stick in first)" none "No USB stick now - only in Documents")
+    text="Where should the envelope go? It always goes into Documents too."
+    [ "$(grep -c "^WHERE${TAB}" "$TMP/status")" -gt 1 ] && text+="${BR}<b>Your USB stick has your old envelope: put it in, so the old one is replaced.</b>"
+    pick="$(kdialog --title "$TITLE" --menu "$text" "${items[@]}")" || return 1
+    case "$pick" in
+      look) ;;
+      none) usb=(); return 0 ;;
+      *) usb=(--usb "$pick"); return 0 ;;
+    esac
+  done
+}
+
+make_flow() {
+  local two=() holders=() usb=() unl=() a b disk="" login="" safe="" safe2 extra rc
+  refresh
+  [ "$(val READY)" = yes ] || { info "$(col READY 3)"; return 0; }
+  if [ "$(val PEOPLE)" -ge 2 ] && ask "<h3>The two-key lock (recommended)</h3>The opening code is split in two halves, so it takes two people together to open your envelope. One person alone can't.${BR}${BR}Use the two-key lock?" "Yes, two keys" "No, one code card"; then
+    a="$(pick_person "Who gets <b>Half A</b> of the opening code?")" || return 0
+    b="$(kdialog --title "$TITLE" --inputbox "Who keeps <b>Half B</b>? Another trusted person, or a place like \"my lawyer\" or \"with my will papers\":" "$(people | grep -vxF -- "$a" | head -n 1)")" || return 0
+    [ -n "$b" ] || return 0
+    two=(--two); holders=(--holder "$a" --holder "$b")
+  else
+    a="$(pick_person "Who gets the code card with the opening code?")" || return 0
+    holders=(--holder "$a")
+  fi
+  case "$(val UNLOCK)" in
+    not-added)
+      if ask "<h3>PC unlock for family (recommended)</h3>This PC's drive is locked. Without a PC unlock code your family can <b>never</b> open it again.${BR}${BR}Add one? You type the disk password (the one you type when the PC starts), then the PC password." "Yes, add it" "No"; then
+        disk="$(kdialog --title "$TITLE" --password "The disk password - the one you type when the PC starts:")" || return 0
+        unl=(--unlock)
+      fi ;;
+    added) unl=(--unlock) ;;
+  esac
+  while true; do
+    login="$(kdialog --title "$TITLE" --password "Your PC sign-in password, so your family can sign in (leave it empty to leave it out):")" || return 0
+    [ -z "$login" ] && break
+    printf '%s' "$login" | "$ENGINE" check-login > /dev/null 2>&1
+    [ "$?" = 1 ] || break
+    info "That is not your sign-in password. Please type it again."
+  done
+  if [ "$(val SAFE)" != - ]; then
+    while true; do
+      safe="$(kdialog --title "$TITLE" --password "The master password of your password safe ($(basename -- "$(val SAFE)")):")" || return 0
+      safe2="$(kdialog --title "$TITLE" --password "Type the master password once more:")" || return 0
+      [ "$safe" = "$safe2" ] && break
+      info "The two did not match. Please try again."
+    done
+  fi
+  extra="$(kdialog --title "$TITLE" --textinputbox "Other passwords or PINs your family will need (phone passcode, email...). Leave it empty if they are all in your password safe." "")" || extra=""
+  usb_pick || return 0
+  kdialog --title "$TITLE" --passivepopup "Making your Emergency Envelope... with photos this can take a while." 15 >/dev/null 2>&1 &
+  { b64 login "$login"; b64 safe "$safe"; b64 extra "$extra"; b64 disk "$disk"; } \
+    | "$ENGINE" make "${two[@]}" "${holders[@]}" "${usb[@]}" "${unl[@]}" > "$TMP/made" 2>&1
+  rc=$?
+  login=""; safe=""; safe2=""; extra=""; disk=""
+  [ "$rc" = 0 ] || { info "$(grep -v "$TAB" "$TMP/made" | amp)"; return 0; }
+  show_codes
+}

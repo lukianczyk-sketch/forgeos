@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Digital Will
+GenericName=Emergency Envelope for your family
+Comment=If something happens to you, the people you picked can get into this PC, your accounts and your photos
+Exec=/usr/bin/forgeos-digitalwill-gui
+Icon=document-encrypt
+Terminal=false
+Categories=System;Security;
+Keywords=digital will;will;emergency envelope;if i die;legacy;passwords for family;estate;inheritance;

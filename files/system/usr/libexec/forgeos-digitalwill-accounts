@@ -1,0 +1,40 @@
+# shellcheck shell=bash
+# ForgeOS Digital Will (Job 18): the accounts screen - tick the accounts you have and say what should
+# happen to each one. Never a password. Sourced by forgeos-digitalwill-gui.
+# shellcheck disable=SC2154  # TITLE, ENGINE, TMP, TAB and BR come from forgeos-digitalwill-gui
+
+plan_one() {
+  local id="$1" name="$2" plan who="" note
+  plan="$(kdialog --title "$TITLE" --menu "What should happen to <b>$name</b>?" keep "Keep it going" close "Close it" \
+    give "Give it to one of my trusted people" memorial "Make it a memorial page")" || return 0
+  if [ "$plan" = give ]; then who="$(pick_person "Who gets <b>$name</b>?")" || return 0; fi
+  note="$(kdialog --title "$TITLE" --inputbox "Anything they should know about <b>$name</b>? (where the papers are, the last 4 digits of the account) - NEVER a password. You can leave it empty.")" || note=""
+  if [ "$id" = other ]; then "$ENGINE" account other "$name" "$plan" "$who" "$note" > "$TMP/out" 2>&1 || said
+  else "$ENGINE" account set "$id" "$plan" "$who" "$note" > "$TMP/out" 2>&1 || said; fi
+}
+
+accounts_screen() {
+  local pick items id name on plan who picked
+  while true; do
+    "$ENGINE" catalog > "$TMP/cat" 2>/dev/null; items=(tick "Tick the accounts I have (a list of $(grep -vc "${TAB}Other${TAB}" "$TMP/cat"))")
+    while IFS="$TAB" read -r id name _ on plan who; do
+      [ "$on" = on ] && items+=("c:$id" "Change: $(amp <<< "$name") - $plan$( [ "$who" != - ] && echo " to $who")")
+    done < "$TMP/cat"
+    items+=(other "Add an account that is not on the list" back "Back")
+    pick="$(kdialog --title "$TITLE" --menu "Your accounts. Passwords never go here - only into the locked envelope." "${items[@]}")" || return 0
+    case "$pick" in
+      tick)
+        items=()
+        while IFS="$TAB" read -r id name _ on _ _; do [[ "$id" == other-* ]] || items+=("$id" "$name" "$on"); done < "$TMP/cat"
+        picked="$(kdialog --title "$TITLE" --separate-output --checklist "Tick every account you have:" "${items[@]}")" || continue
+        while IFS="$TAB" read -r -u 3 id name _ on _ _; do
+          [[ "$id" == other-* ]] && continue
+          if grep -qxF -- "$id" <<< "$picked"; then [ "$on" = on ] || plan_one "$id" "$(amp <<< "$name")"
+          elif [ "$on" = on ]; then "$ENGINE" account remove "$id" > /dev/null 2>&1; fi
+        done 3< "$TMP/cat" ;;
+      c:*) id="${pick#c:}"; plan_one "$id" "$(awk -F "$TAB" -v id="$id" '$1 == id {print $2}' "$TMP/cat" | amp)" ;;
+      other) name="$(kdialog --title "$TITLE" --inputbox "The name of the account (for example: Church donations website):")" && [ -n "$name" ] && plan_one other "$name" ;;
+      *) return 0 ;;
+    esac
+  done
+}

@@ -14,10 +14,14 @@ TECH = ("tech_support", r"anydesk|teamviewer|ultra ?viewer|screen ?connect|logme
                         r"(get|got|getting|is|are|was|be) (in|into) my (computer|pc|laptop)|kick (them|him|her|someone|it) out|"
                         r"control(ling|s)? my (computer|pc|laptop|mouse|screen)|fake tech support|tech support scam|"
                         r"(mouse|cursor|pointer) (is )?moving (by|on) its own")
+# Digital Will (Job 18) goes first ("if I die, how does my family get into my computer" is not a stranger).
+WILL = ("digital_will", r"digital will|emergency envelope|legacy contact|inactive account manager|after my death|"
+                        r"(if|when|after|in case|once) (i die|i pass( away)?|i.?m gone|i.?m dead|something happens to me)|"
+                        r"when i.?m no longer (here|around)")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
-COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in RULES2[:AT2] + [TECH] + RULES2[AT2:]]
+COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
 EVEN_BIGGER = re.compile(r"even bigger|bigger still|much bigger|biggest|still too small|very big", re.I)
 

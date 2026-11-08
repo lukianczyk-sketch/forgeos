@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+# ForgeOS Digital Will (Job 18): the root half of "PC unlock for family" - puts the 8-word PC unlock code
+# from the envelope on the drive's lock (LUKS) and takes the old one off. Your own disk password stays.
+# Started through pkexec (polkit org.forgeos.digitalwill.unlock: always asks for the PC password).
+# Accepts ONLY: add DEVICE (the new code and, the first time, the disk password come on stdin).
+set -u
+case "$#:${1:-}:${2:-}" in
+  2:add:/*) ;;
+  *) echo "usage: forgeos-digitalwill-unlock add /dev/DEVICE" >&2; exit 3 ;;
+esac
+exec "${FORGEOS_WILL_ENGINE:-/usr/bin/forgeos-digitalwill}" root-unlock add "$2"

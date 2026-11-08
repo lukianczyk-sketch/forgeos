@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# ForgeOS Digital Will window (Job 18), a kdialog front end.
+# Step 1: answer the questions. Step 2: make the Emergency Envelope. Step 3: the company checklist.
+# --make = straight to Step 2, --test = Test my envelope. Passwords go straight to forgeos-digitalwill (never saved).
+set -uo pipefail
+
+TITLE="Digital Will"
+ENGINE="${FORGEOS_WILL_ENGINE:-/usr/bin/forgeos-digitalwill}"
+SCREENS="${FORGEOS_WILL_SCREENS:-/usr/libexec}"
+TAB=$'\t'
+BR="<br>"
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-digitalwill report in a terminal." >&2
+  exit 3
+fi
+TMP="$(mktemp -d)"
+chmod 700 "$TMP"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+ask() { kdialog --title "$TITLE" --yesno "$1" --yes-label "$2" --no-label "$3"; }
+amp() { sed 's/&/and/g; s/</ /g; s/>/ /g'; }
+refresh() { "$ENGINE" status > "$TMP/status" 2>/dev/null; }
+val() { awk -F "$TAB" -v k="$1" '$1 == k {print $2; exit}' "$TMP/status" | amp; }
+col() { awk -F "$TAB" -v k="$1" -v n="$2" '$1 == k {print $n; exit}' "$TMP/status" | amp; }
+people() { awk -F "$TAB" '$1 == "PERSON" {print $2}' "$TMP/status"; }
+said() { info "$(amp < "$TMP/out")"; }
+pick_person() {
+  local items=() p
+  while IFS= read -r p; do items+=("$p" "$p"); done < <(people)
+  [ "${#items[@]}" -gt 0 ] || { info "Add a trusted person first (Step 1)."; return 1; }
+  kdialog --title "$TITLE" --menu "$1" "${items[@]}"
+}
+# shellcheck source=files/system/usr/libexec/forgeos-digitalwill-answers
+. "$SCREENS/forgeos-digitalwill-answers"
+# shellcheck source=files/system/usr/libexec/forgeos-digitalwill-accounts
+. "$SCREENS/forgeos-digitalwill-accounts"
+# shellcheck source=files/system/usr/libexec/forgeos-digitalwill-envelope
+. "$SCREENS/forgeos-digitalwill-envelope"
+# shellcheck source=files/system/usr/libexec/forgeos-digitalwill-finish
+. "$SCREENS/forgeos-digitalwill-finish"
+
+summary() {
+  local t="If something happens to you, the people you picked can get into this PC, your accounts and your photos.${BR}${BR}"
+  if [ "$(val PEOPLE)" = 0 ]; then t+="Trusted people: <b>none yet - start with Step 1</b>${BR}"
+  else t+="Trusted people: $(col PEOPLE 3)${BR}"; fi
+  if [ "$(val ENVELOPE)" = - ]; then t+="Emergency Envelope: <b>not made yet</b>${BR}"
+  else t+="Emergency Envelope: made $(val ENVELOPE) ($(col ENVELOPE 3) days ago)${BR}"; fi
+  case "$(val UNLOCK)" in
+    added) t+="PC unlock for family: added${BR}" ;;
+    not-added) t+="PC unlock for family: <b>not added yet</b>${BR}" ;;
+  esac
+  t+="Company checklist: $(grep -c "^LEGACY${TAB}.*${TAB}done${TAB}" "$TMP/status") of $(grep -c "^LEGACY${TAB}" "$TMP/status") done"
+  printf '%s' "$t"
+}
+
+how() {
+  info "How it works${BR}${BR}<b>Step 1</b>: pick up to 3 trusted people, tick your accounts and say what should happen to each, pick your password safe and the folders to keep, and write a letter to each person. Nothing here is a password.${BR}${BR}<b>Step 2</b>: ForgeOS makes one locked file (7-Zip, AES-256) on a USB stick and in Documents, plus a \"Letter to my family\" to print. The opening code is printed on a code card - with the two-key lock it is split in two, so it takes two people together. ForgeOS does not keep the code. \"PC unlock for family\" adds a code your family types when the PC starts.${BR}${BR}<b>Step 3</b>: Google, Apple and Facebook have their own \"after I'm gone\" settings - the checklist opens each one.${BR}${BR}Nothing is sent anywhere. It is not a legal will. If both the USB stick and the code card are lost, nobody can open the envelope - that is what keeps it safe."
+}
+
+main_menu() {
+  local pick items
+  while true; do
+    refresh
+    items=(step1 "Step 1: Answer the questions (people, accounts, letters...)")
+    if [ "$(val ENVELOPE)" = - ]; then items+=(step2 "Step 2: Make my Emergency Envelope")
+    else items+=(step2 "Step 2: Make a new Emergency Envelope (replaces the old one)" test "Test my envelope"); fi
+    items+=(step3 "Step 3: Company checklist (Google, Apple, Facebook...)" how "How it works" close "Close")
+    pick="$(kdialog --title "$TITLE" --menu "$(summary)" "${items[@]}")" || return 0
+    case "$pick" in
+      step1) step1_menu ;;
+      step2) make_flow ;;
+      test) test_flow ;;
+      step3) legacy_screen ;;
+      how) how ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  "") main_menu ;;
+  --make) [ "$#" -eq 1 ] || exit 3; make_flow ;;
+  --test) [ "$#" -eq 1 ] || exit 3; test_flow ;;
+  *) echo "usage: forgeos-digitalwill-gui [--make | --test]" >&2; exit 3 ;;
+esac

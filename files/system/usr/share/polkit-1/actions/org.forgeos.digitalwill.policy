@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Digital Will (Job 18).
+     unlock: put the family's PC unlock code on the drive's lock - always asks for the PC password. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.digitalwill.unlock">
+    <description>Add the family's PC unlock code to this PC's locked drive</description>
+    <message>Digital Will wants to add a PC unlock code for your family to this PC's locked drive.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-digitalwill-unlock</annotate>
+  </action>
+</policyconfig>

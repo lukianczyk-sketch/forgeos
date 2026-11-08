@@ -16,7 +16,8 @@ WINDOWS = {"cleansweep": "forgeos-cleansweep-gui", "undo": "forgeos-undo-gui", "
            "ghost": "forgeos-ghost-gui", "guard": "forgeos-guard-gui", "family": "forgeos-family-gui",
            "askpc": "forgeos-askpc-gui", "aisetup": "forgeos-ai-setup", "autopilot": "forgeos-autopilot-gui",
            "switch": "forgeos-switch-gui", "movingday": "forgeos-movingday-gui", "drivehealth": "forgeos-drivehealth-gui",
-           "tripwire": "forgeos-tripwire-gui", "techguard": "forgeos-techguard-gui"}
+           "tripwire": "forgeos-tripwire-gui", "techguard": "forgeos-techguard-gui",
+           "digitalwill": "forgeos-digitalwill-gui"}
 SIZES = ("big", "bigger")
 # The ONLY actions 'do' runs. Each needs the user's Yes click first (the window asks).
 ACTIONS = ("pc_fix", "text_size", "family_on", "family_call", "panic", "open", "open_file", "forget_all", "get_model")

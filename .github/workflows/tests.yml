@@ -210,3 +210,14 @@ jobs:
           bash tests/test-techguard-kick.sh .
           bash tests/test-techguard-gui.sh .
           bash tests/test-techguard-files.sh .
+
+      - name: Run Digital Will tests (real 7-Zip locks and opens the envelope; a real locked test drive with sudo cryptsetup)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils 7zip cryptsetup-bin
+          bash tests/test-digitalwill.sh .
+          bash tests/test-digitalwill-make.sh .
+          bash tests/test-digitalwill-more.sh .
+          bash tests/test-digitalwill-unlock.sh .
+          bash tests/test-digitalwill-remind.sh .
+          bash tests/test-digitalwill-gui.sh .
+          bash tests/test-digitalwill-files.sh .

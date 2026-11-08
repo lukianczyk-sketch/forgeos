@@ -1,0 +1,25 @@
+# ForgeOS Digital Will (Job 18): the account pick-list. One account per line: id ~ name ~ group
+# Your family sees the name and what you want to happen to it. Never put a password in this list.
+email ~ Email (Gmail, Outlook, Yahoo...) ~ Everyday
+phone ~ Mobile phone company ~ Everyday
+internet ~ Internet and TV company ~ Everyday
+power ~ Electric, gas and water ~ Everyday
+bank ~ Bank or credit union ~ Money
+cards ~ Credit cards ~ Money
+retirement ~ Pension, 401(k) or IRA ~ Money
+socialsecurity ~ Social Security (my Social Security) ~ Money
+insurance ~ Life, home and car insurance ~ Money
+investments ~ Investments and brokerage ~ Money
+paypal ~ PayPal, Venmo or Zelle ~ Money
+crypto ~ Crypto (Coinbase, a wallet...) ~ Money
+medicare ~ Medicare or health insurance ~ Health
+pharmacy ~ Pharmacy and doctor's patient website ~ Health
+google ~ Google account (Gmail, Photos, YouTube) ~ Online
+apple ~ Apple account (iCloud, iPhone) ~ Online
+microsoft ~ Microsoft account (Outlook, OneDrive) ~ Online
+facebook ~ Facebook or Instagram ~ Online
+amazon ~ Amazon ~ Online
+streaming ~ Netflix, Prime Video, Spotify and other subscriptions ~ Online
+photos ~ Photo websites (Google Photos, iCloud, Shutterfly) ~ Online
+games ~ Steam and other game accounts ~ Online
+domain ~ Websites and web addresses I own ~ Online

@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Digital Will (Job 18): if something happens to you, the people you picked can get into this
+PC, your accounts and your photos. Makes one locked Emergency Envelope (USB stick + Documents) and a
+printed letter that says how to open it. Nothing goes to the cloud.
+Exit: 0 fine, 1 something needs you / could not, 2 wrong password, 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_WILL_LIB") or "/usr/lib/forgeos-digitalwill")
+from willlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

@@ -74,6 +74,12 @@ def tech_support(_arg):
     return text, win("techguard", "Open Fake Tech Support Guard"), -1
 
 
+def digital_will(_arg):
+    code, out = run(["forgeos-digitalwill", "report"], 60)
+    text = plain(out) if code in (0, 1) else "Digital Will could not be checked."
+    return text, win("digitalwill", "Open Digital Will"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

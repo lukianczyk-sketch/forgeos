@@ -1,0 +1,8 @@
+[Unit]
+Description=ForgeOS Digital Will - a gentle reminder when your Emergency Envelope is old or not made yet
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-digitalwill tick
+Nice=19
+TimeoutStartSec=2h

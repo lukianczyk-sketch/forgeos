@@ -1,0 +1,64 @@
+# shellcheck shell=bash
+# ForgeOS Digital Will (Job 18): after the envelope is made - show the codes, print the code cards and
+# the letter; Test my envelope; and Step 3, the company checklist. Sourced by forgeos-digitalwill-gui.
+# shellcheck disable=SC2154  # TITLE, ENGINE, TMP, TAB and BR come from forgeos-digitalwill-gui
+
+show_codes() {
+  local msg f where=""
+  refresh
+  msg="<h2>Your Emergency Envelope is made and tested.</h2>"
+  if grep -q "^HALF${TAB}" "$TMP/made"; then
+    msg+="Half A (for $(col HOLDER 3)): <b><big>$(awk -F "$TAB" '$1 == "HALF" && $2 == "A" {print $3}' "$TMP/made")</big></b>${BR}"
+    msg+="Half B ($(awk -F "$TAB" '$1 == "HOLDER" && $2 == "Half B" {print $3}' "$TMP/status" | amp)): <b><big>$(awk -F "$TAB" '$1 == "HALF" && $2 == "B" {print $3}' "$TMP/made")</big></b>"
+  else
+    msg+="The opening code: <b><big>$(awk -F "$TAB" '$1 == "CODE" {print $2}' "$TMP/made")</big></b>"
+  fi
+  msg+="${BR}${BR}<b>ForgeOS does not keep this code.</b> Next, the code card page opens in your browser: print it and give the card(s) away."
+  info "$msg"
+  f="$(awk -F "$TAB" '$1 == "CARDS" {print $2}' "$TMP/made")"
+  xdg-open "$f" >/dev/null 2>&1 &
+  info "Print the code card page that opened in the browser, then click OK. The page is deleted from this PC after."
+  "$ENGINE" forget-cards >/dev/null 2>&1
+  f="$(awk -F "$TAB" '$1 == "LETTER" {print $2; exit}' "$TMP/made")"
+  xdg-open "$f" >/dev/null 2>&1 &
+  [ "$(grep -c "^ENVELOPE${TAB}" "$TMP/made")" -gt 1 ] && where=", and on your USB stick"
+  info "Now print the <b>Letter to my family</b> (it opened too) and keep it with your important papers.${BR}${BR}Your envelope is in Documents, folder \"ForgeOS Emergency Envelope\"$where."
+  ask "Test your envelope now with the code card? (recommended)" "Test it" "Later" && test_flow
+}
+
+test_flow() {
+  local code b
+  refresh
+  [ "$(val ENVELOPE)" != - ] || { info "Make your Emergency Envelope first (Step 2)."; return 0; }
+  if grep -q "^HOLDER${TAB}Half B${TAB}" "$TMP/status"; then
+    code="$(kdialog --title "$TITLE" --inputbox "Type <b>Half A</b> of the opening code (from the code card):")" || return 0
+    b="$(kdialog --title "$TITLE" --inputbox "Now type <b>Half B</b>:")" || return 0
+    code="$code $b"
+  else
+    code="$(kdialog --title "$TITLE" --inputbox "Type the opening code from the code card:")" || return 0
+  fi
+  printf '%s' "$code" | "$ENGINE" test > "$TMP/out" 2>&1
+  said
+}
+
+legacy_screen() {
+  local pick items id company url st what
+  while true; do
+    "$ENGINE" legacy > "$TMP/leg" 2>/dev/null; items=()
+    while IFS="$TAB" read -r id company _ st _; do
+      if [ "$st" = "done" ]; then items+=("$id" "Done: $company"); else items+=("$id" "To do: $company"); fi
+    done < "$TMP/leg"
+    items+=(back "Back")
+    pick="$(kdialog --title "$TITLE" --menu "Step 3 - the companies' own \"after I'm gone\" settings. Pick one:" "${items[@]}")" || return 0
+    [ "$pick" = back ] && return 0
+    IFS="$TAB" read -r id company url st what < <(awk -F "$TAB" -v id="$pick" '$1 == id' "$TMP/leg")
+    if [ "$url" != - ]; then
+      ask "<b>$(amp <<< "$company")</b>${BR}${BR}$(amp <<< "$what")" "Open the page" "Back" || continue
+      "$ENGINE" legacy-open "$id" >/dev/null 2>&1
+    else
+      info "<b>$(amp <<< "$company")</b>${BR}${BR}$(amp <<< "$what")"
+    fi
+    if ask "Did you finish $(amp <<< "$company")?" "Yes, done" "Not yet"; then "$ENGINE" legacy-done "$id" >/dev/null 2>&1
+    else "$ENGINE" legacy-undo "$id" >/dev/null 2>&1; fi
+  done
+}
