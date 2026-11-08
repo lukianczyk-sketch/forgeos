@@ -1,0 +1,33 @@
+# Job 18 Digital Will — progress log
+
+- 2026-11-07: Design approved by Robert. Claude wrote and tested the prototype (tests A-L pass, plus every other ForgeOS test).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-digitalwill, willlib __init__.py, words.py, words-1.txt written. Waiting for Claude's review.
+- Step 1 REVIEWED by Claude: all 4 files identical to the prototype (Windows line endings changed back to Linux ones). Next: Step 2 (Cline)
+- Step 2 (Cline): words-2.txt, accounts.txt, legacy.txt, willlib draft.py written. Waiting for Claude's review.
+- Step 2 REVIEWED by Claude: words-2.txt, accounts.txt, legacy.txt identical (Windows line endings changed back); draft.py had one extra empty line at the end -> replaced with the prototype. Step 1 files swept again: still identical. Next: Step 3 (Cline)
+- Step 3 (Cline): willlib pages.py, cards.py, pack.py written. Waiting for Claude's review.
+- Step 3 REVIEWED by Claude: cards.py, pack.py identical (Windows line endings changed back); pages.py was missing one empty line between two parts -> replaced with the prototype. Steps 1-2 files swept again: still identical. Next: Step 4 (Cline)
+- Step 4 (Cline): willlib unlock.py, remind.py, report.py written. Waiting for Claude's review.
+- Step 4 REVIEWED by Claude: remind.py, report.py identical (Windows line endings changed back); unlock.py lost a backslash in one comment line (\\n -> \n) -> replaced with the prototype. Steps 1-3 files swept again: still identical. Next: Step 5 (Cline)
+- Step 5 (Cline): willlib actions.py, cli.py written. Waiting for Claude's review.
+- Step 5 REVIEWED by Claude: actions.py, cli.py identical to the prototype (Windows line endings changed back). Steps 1-4 files swept again: still identical. Next: Step 6 (Cline)
+- Step 6 (Cline): libexec forgeos-digitalwill-unlock, polkit, 2 user units, desktop file, help card, bin/forgeos-digitalwill-gui written. Waiting for Claude's review.
+- Step 6 REVIEWED by Claude: all 7 files identical to the prototype (Windows line endings changed back). Steps 1-5 files swept again: still identical. Next: Step 7 (Cline)
+- Step 7 (Cline): libexec forgeos-digitalwill-answers, forgeos-digitalwill-accounts written. Waiting for Claude's review.
+- Step 7 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back). Steps 1-6 files swept again: still identical. Next: Step 8 (Cline)
+- Step 8 (Cline): libexec forgeos-digitalwill-envelope, forgeos-digitalwill-finish written. Waiting for Claude's review.
+- Step 8 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back). Steps 1-7 files swept again: still identical. Next: Step 9 (Cline)
+- Step 9 (Cline): forgeos-setup.sh, common-modules.yml, tools-2.jsonl, test-helper-ai.sh edited. Waiting for Claude's review.
+- Step 9 REVIEWED by Claude: all 4 edited files identical to the prototype. Steps 1-8 files swept again: still identical. Next: Step 10 (Cline)
+- Step 10 (Cline): Forge Helper rules.py, tools.py, actions.py, looks.py edited. Waiting for Claude's review.
+- Step 10 REVIEWED by Claude: all 4 Forge Helper files identical to the prototype. Steps 1-9 files swept again: still identical. Next: Step 11 (Cline)
+- Step 11 (Cline): tests/digitalwill-fakes.sh, test-digitalwill.sh (A-C) written. Waiting for Claude's review.
+- Step 11 REVIEWED by Claude: both files right but left off the last newline -> replaced with the prototype (Windows line endings changed back too). Steps 1-10 files swept again: still identical. Next: Step 12 (Cline)
+- Step 12 (Cline): tests/test-digitalwill-make.sh (D-E), test-digitalwill-more.sh (E5-F) written. Waiting for Claude's review.
+- Step 12 REVIEWED by Claude: both files identical to the prototype (Windows line endings changed back). Steps 1-11 files swept again: still identical. Next: Step 13 (Cline)
+- Step 13 (Cline): tests/test-digitalwill-unlock.sh (G-H), test-digitalwill-remind.sh (I) written (first try looped on search_codebase; Robert told it to stop searching). Waiting for Claude's review.
+- Step 13 REVIEWED by Claude: test-digitalwill-remind.sh identical; test-digitalwill-unlock.sh had doubled backslashes in one sed line -> replaced with the prototype; its PROGRESS line was in the wrong format -> fixed. Steps 1-12 files swept again: still identical. Next: Step 14 (Cline)
+- Step 14 (Cline): tests/test-digitalwill-gui.sh (J-K), test-digitalwill-files.sh (L) + CI step written. Waiting for Claude's review.
+- Step 14 REVIEWED by Claude: test-digitalwill-gui.sh and the CI step identical (Windows line endings changed back); test-digitalwill-files.sh had one quote moved in check L8 -> replaced with the prototype. ALL 35 new + 9 edited files now byte-identical to the prototype. Next: every test, then commit (Claude)
+- 2026-11-07: Every test passed (except the 3 sandbox-only ones). Code committed (7b1784c), docs next; tag v0.23.0. Robert pushes.
