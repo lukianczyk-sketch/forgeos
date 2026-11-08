@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# ForgeOS Find My PC window (Job 19), a kdialog front end: set up (a QR code for your phone), show the phone
+# link again, test it with your phone, webcam photo on/off, turn off. Every change asks for the PC password
+# (forgeos-locate-root through pkexec), so a thief who is signed in can never see the link or turn it off.
+set -uo pipefail
+
+TITLE="Find My PC"
+ENGINE="${FORGEOS_LOC_ENGINE:-/usr/bin/forgeos-locate}"
+HELPER="${FORGEOS_LOC_HELPER:-/usr/libexec/forgeos-locate-root}"
+SCREENS="${FORGEOS_LOC_SCREENS:-/usr/libexec}"
+TAB=$'\t'
+BR="<br>"
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-locate report in a terminal." >&2
+  exit 3
+fi
+TMP="$(mktemp -d)"
+chmod 700 "$TMP"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+ask() { kdialog --title "$TITLE" --yesno "$1" --yes-label "$2" --no-label "$3"; }
+refresh() { "$ENGINE" status > "$TMP/status" 2>/dev/null; }
+val() { awk -F "$TAB" -v k="$1" -v n="${2:-2}" '$1 == k {print $n; exit}' "$TMP/status"; }
+out() { awk -F "$TAB" -v k="$1" '$1 == k {print $2; exit}' "$TMP/out"; }
+root() { pkexec "$HELPER" "$@" > "$TMP/out" 2>/dev/null; }
+
+# shellcheck source=files/system/usr/libexec/forgeos-locate-setup
+. "$SCREENS/forgeos-locate-setup"
+
+summary() {
+  local t="If this PC is lost or stolen, your phone can see where it is, ring it and lock it.${BR}${BR}"
+  if [ "$(val SETUP)" != yes ]; then
+    t+="Find My PC: <b>not set up yet</b>"
+  elif [ "$(val LOST)" = yes ]; then
+    t+="<b>This PC is marked LOST</b> (since $(val LOST 3)). Reports sent: $(val REPORTS).${BR}Tap \"Found it\" on your phone to end lost mode."
+  else
+    t+="Find My PC: <b>on</b> (set up $(val MADE))${BR}Last reached the relay: $(val CHECKED)${BR}Webcam photo while lost: $(val PHOTO)"
+  fi
+  [ "$(val SERVICE)" = running ] || t+="${BR}<b>The Find My PC service is not running - restart the PC.</b>"
+  printf '%s' "$t"
+}
+
+how() {
+  info "How it works${BR}${BR}Normal days this PC only looks for a message from your phone every 10 minutes. It sends nothing and keeps no history.${BR}${BR}If it is lost, open the Find My PC page on your phone and tap <b>Mark as lost</b>. Then the PC reports where it is every 10 minutes (from the Wi-Fi around it), locks money websites and your password safe. You can ring it, show a message with your phone number, lock it, or lock it and shut it down.${BR}${BR}Everything is locked (AES-256) with a key only your phone has. The free relay in the middle (ntfy.sh) only sees scrambled text, deleted after 12 hours.${BR}${BR}Honest limits: a PC that is turned off, or has no internet, cannot report until someone wakes it with internet. Laptops have no GPS: in the country the place is rougher. Someone who wipes the drive removes it. There is no remote wipe on purpose - \"Lock and shut down\" and your disk lock keep your files safe."
+}
+
+main_menu() {
+  local pick items
+  while true; do
+    refresh
+    if [ "$(val SETUP)" != yes ]; then
+      items=(setup "Set up Find My PC (2 minutes, needs your phone)")
+    else
+      items=(link "Show my phone link again" test "Test it with my phone")
+      if [ "$(val PHOTO)" = on ]; then items+=(photo "Webcam photo while lost: ON (turn off)")
+      else items+=(photo "Webcam photo while lost: OFF (turn on)"); fi
+      items+=(again "Set up again (a new link - the old one stops working)" off "Turn Find My PC off")
+    fi
+    items+=(how "How it works" close "Close")
+    pick="$(kdialog --title "$TITLE" --menu "$(summary)" "${items[@]}")" || return 0
+    case "$pick" in
+      setup) setup_flow ;;
+      link) root link && show_link ;;
+      test) test_flow ;;
+      photo)
+        if [ "$(val PHOTO)" = on ]; then root photo off; else root photo on; fi
+        info "$(cat "$TMP/out")" ;;
+      again) ask "Make a new phone link? The old link on your phone stops working." "New link" "Cancel" && setup_flow ;;
+      off) ask "Turn Find My PC off? Your phone can no longer find this PC." "Turn it off" "Keep it on" && root off && info "$(cat "$TMP/out")" ;;
+      how) how ;;
+      *) return 0 ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  "") main_menu ;;
+  --setup) [ "$#" -eq 1 ] || exit 3; setup_flow ;;
+  --test) [ "$#" -eq 1 ] || exit 3; test_flow ;;
+  *) echo "usage: forgeos-locate-gui [--setup | --test]" >&2; exit 3 ;;
+esac

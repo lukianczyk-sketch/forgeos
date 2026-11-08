@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Find My PC
+GenericName=Find, ring and lock this PC from your phone
+Comment=If this PC is lost or stolen, your phone can see where it is, ring it and lock it - no company account
+Exec=/usr/bin/forgeos-locate-gui
+Icon=find-location
+Terminal=false
+Categories=System;Security;
+Keywords=find my pc;find my laptop;find my computer;lost;stolen;track;locate;where is my laptop;anti-theft;

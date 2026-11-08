@@ -80,6 +80,12 @@ def digital_will(_arg):
     return text, win("digitalwill", "Open Digital Will"), -1
 
 
+def find_my_pc(_arg):
+    code, out = run(["forgeos-locate", "report"], 30)
+    text = plain(out) if code in (0, 1) else "Find My PC could not be checked."
+    return text, win("locate", "Open Find My PC"), -1
+
+
 def undo_open(_arg):
     code, _out = run(["forgeos-undo", "status"], 30)
     if code == 0:

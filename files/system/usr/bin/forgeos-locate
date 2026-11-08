@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Find My PC (Job 19): if your PC is lost or stolen, your phone can see where it is, ring it, show a
+"please return" message and lock it - no company account. Normal days it sends nothing. Everything between
+the PC and your phone is locked (AES-256-GCM) with a key only they know.
+Exit: 0 fine, 1 not set up / could not, 3 wrong use or not allowed.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_LOC_LIB") or "/usr/lib/forgeos-locate")
+from locatelib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

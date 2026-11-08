@@ -77,3 +77,6 @@
 {"q": "if i die how will my family get into my computer", "tool": "digital_will"}
 {"q": "i want to leave my passwords to my kids when i pass away", "tool": "digital_will"}
 {"q": "how do i make an emergency envelope for my family", "tool": "digital_will"}
+{"q": "my laptop was stolen what do i do", "tool": "find_my_pc"}
+{"q": "how can i find my pc if i lose it", "tool": "find_my_pc"}
+{"q": "i left my laptop on the bus", "tool": "find_my_pc"}

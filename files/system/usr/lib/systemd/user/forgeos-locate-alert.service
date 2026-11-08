@@ -1,0 +1,15 @@
+# ForgeOS - Find My PC (Job 19): in your session, within 2 seconds of your phone asking - rings, shows the
+# "please return" message, and locks your password safe when the PC is marked lost.
+[Unit]
+Description=ForgeOS Find My PC - rings, shows the message and locks the password safe when your phone asks
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-locate alert-watch
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

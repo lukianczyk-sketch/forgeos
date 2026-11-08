@@ -18,10 +18,15 @@ TECH = ("tech_support", r"anydesk|teamviewer|ultra ?viewer|screen ?connect|logme
 WILL = ("digital_will", r"digital will|emergency envelope|legacy contact|inactive account manager|after my death|"
                         r"(if|when|after|in case|once) (i die|i pass( away)?|i.?m gone|i.?m dead|something happens to me)|"
                         r"when i.?m no longer (here|around)")
+# Find My PC (Job 19) goes first too ("my laptop was stolen" is not a scam check or a search for files).
+LOC = ("find_my_pc", r"find my (pc|computer|laptop|notebook)|anti.?theft|someone stole my (pc|computer|laptop)|"
+                     r"(lost|stolen|misplaced) my (pc|computer|laptop)|where is my (laptop|notebook)|"
+                     r"(pc|computer|laptop) (was|got|is|has been|been) (lost|stolen|missing|taken)(?!\s+(a|an|the|some|my|its)\b)|"
+                     r"track (my|a) (lost |stolen )?(pc|computer|laptop)|(lost|stolen) (pc|computer|laptop)")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
-COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
+COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
 EVEN_BIGGER = re.compile(r"even bigger|bigger still|much bigger|biggest|still too small|very big", re.I)
 

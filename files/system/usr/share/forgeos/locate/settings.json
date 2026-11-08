@@ -1,0 +1,6 @@
+{
+ "relay": "https://ntfy.sh",
+ "page": "https://lukianczyk-sketch.github.io/forgeos/find/",
+ "geo": "https://api.beacondb.net/v1/geolocate",
+ "ip": "https://ipinfo.io/json"
+}

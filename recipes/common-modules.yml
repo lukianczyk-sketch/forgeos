@@ -40,6 +40,8 @@ modules:
         - efibootmgr         # Install & Switch (Job 13e): Restart into Windows sets the next start-up
         - smartmontools      # Drive Death Warning (Job 15): smartctl reads each drive's own health report (already in the base image)
         - 7zip               # Digital Will (Job 18): 7z locks the Emergency Envelope (AES-256) and tests it
+        - qrencode           # Find My PC (Job 19): the QR code your phone scans to set up
+        - python3-cryptography  # Find My PC (Job 19): AES-256-GCM, the lock between this PC and your phone
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.

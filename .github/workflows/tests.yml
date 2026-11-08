@@ -221,3 +221,14 @@ jobs:
           bash tests/test-digitalwill-remind.sh .
           bash tests/test-digitalwill-gui.sh .
           bash tests/test-digitalwill-files.sh .
+
+      - name: Run Find My PC tests (a pretend relay on this runner; the real AES-256-GCM lock in Python and in Node.js)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils python3-cryptography
+          bash tests/test-locate.sh .
+          bash tests/test-locate-watch.sh .
+          bash tests/test-locate-commands.sh .
+          bash tests/test-locate-alert.sh .
+          bash tests/test-locate-gui.sh .
+          bash tests/test-locate-page.sh .
+          bash tests/test-locate-files.sh .

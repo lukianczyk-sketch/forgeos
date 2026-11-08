@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+# ForgeOS Find My PC (Job 19): the root half of the window's buttons - a new secret key + the phone link,
+# the phone link again, webcam photo on/off, or Find My PC off.
+# Started through pkexec (polkit org.forgeos.locate.root: ALWAYS asks for the PC password, so a thief who
+# is signed in can never see the phone link or turn Find My PC off).
+# Accepts ONLY: setup | setup --photo | link | photo on | photo off | off
+set -u
+case "$#:${1:-}:${2:-}" in
+  1:setup:|2:setup:--photo|1:link:|2:photo:on|2:photo:off|1:off:) ;;
+  *) echo "usage: forgeos-locate-root setup [--photo] | link | photo on|off | off" >&2; exit 3 ;;
+esac
+exec "${FORGEOS_LOC_ENGINE:-/usr/bin/forgeos-locate}" root "$@"

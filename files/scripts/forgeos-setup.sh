@@ -5,6 +5,7 @@ set -oue pipefail
 chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/forgeos-ai-setup /usr/bin/forgeos-ai-setup-once /usr/libexec/forgeos-cleansweep-weekly /usr/libexec/forgeos-password-reminder /usr/libexec/forgeos-undo-setup /usr/bin/forgeos-undo /usr/bin/forgeos-undo-gui /usr/bin/forgeos-panic /usr/libexec/forgeos-panic-helper /usr/bin/forgeos-privacy /usr/bin/forgeos-privacy-block /usr/bin/forgeos-privacy-gui /usr/bin/forgeos-scamshield /usr/libexec/forgeos-scamshield-update /usr/bin/forgeos-scamshield-gui /usr/bin/forgeos-askpc /usr/bin/forgeos-askpc-gui /usr/bin/forgeos-willitrun /usr/bin/forgeos-willitrun-gui /usr/libexec/forgeos-willitrun-update /usr/bin/forgeos-find /usr/bin/forgeos-find-gui /usr/bin/forgeos-ghost /usr/bin/forgeos-ghost-gui /usr/libexec/forgeos-ghost-meter /usr/bin/forgeos-family /usr/bin/forgeos-family-gui /usr/libexec/forgeos-family-call /usr/bin/forgeos-guard /usr/bin/forgeos-guard-gui /usr/libexec/forgeos-guard-hosts /usr/bin/forgeos-helper /usr/bin/forgeos-helper-gui /usr/libexec/forgeos-helper-krunner /usr/bin/forgeos-autopilot /usr/bin/forgeos-autopilot-gui /usr/bin/forgeos-switch /usr/bin/forgeos-switch-gui /usr/libexec/forgeos-switch-boot /usr/libexec/forgeos-switch-winsetup /usr/bin/forgeos-movingday /usr/bin/forgeos-movingday-gui /usr/libexec/forgeos-movingday-mount /usr/bin/forgeos-drivehealth /usr/bin/forgeos-drivehealth-gui /usr/libexec/forgeos-drivehealth-check /usr/bin/forgeos-tripwire /usr/bin/forgeos-tripwire-gui /usr/libexec/forgeos-tripwire-helper /usr/libexec/forgeos-tripwire-release
 chmod 0755 /usr/bin/forgeos-techguard /usr/bin/forgeos-techguard-gui /usr/libexec/forgeos-techguard-money /usr/libexec/forgeos-techguard-trust
 chmod 0755 /usr/bin/forgeos-digitalwill /usr/bin/forgeos-digitalwill-gui /usr/libexec/forgeos-digitalwill-unlock
+chmod 0755 /usr/bin/forgeos-locate /usr/bin/forgeos-locate-gui /usr/libexec/forgeos-locate-root
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -76,3 +77,8 @@ systemctl --global enable forgeos-techguard.service
 # Digital Will (Job 18): for every user, a gentle reminder when the Emergency Envelope is 6 months old,
 # the password safe changed after it was made, or it was started but never made.
 systemctl --global enable forgeos-digitalwill-remind.timer
+
+# Find My PC (Job 19): the root watcher looks for a message from your phone (it sends nothing on normal days)
+# and reports where the PC is only after your phone marked it lost; every user's session rings and shows the message.
+systemctl enable forgeos-locate.service
+systemctl --global enable forgeos-locate-alert.service

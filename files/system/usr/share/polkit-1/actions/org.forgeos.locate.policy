@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- ForgeOS Find My PC (Job 19).
+     root: set up, show the phone link, photo on/off, turn off - always asks for the PC password. -->
+<policyconfig>
+  <vendor>RL Forge Works</vendor>
+  <action id="org.forgeos.locate.root">
+    <description>Set up or change Find My PC</description>
+    <message>Find My PC needs your PC password to show your phone link or change its settings.</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/forgeos-locate-root</annotate>
+  </action>
+</policyconfig>

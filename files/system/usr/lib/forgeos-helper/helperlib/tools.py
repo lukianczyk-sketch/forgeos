@@ -23,6 +23,7 @@ TOOLS = {
     "ransomware": "files scrambled, encrypted or locked, a ransom note, or is the PC safe from ransomware",
     "tech_support": "a stranger wants to get into or control the PC, a remote-control app (AnyDesk, TeamViewer), or kick them out",
     "digital_will": "if I die or something happens to me: my family getting into my PC, accounts and passwords (Digital Will)",
+    "find_my_pc": "this PC or laptop is lost or stolen: find, ring or lock it from my phone (Find My PC)",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f1720">
+<title>Find My PC</title>
+<link rel="stylesheet" href="find.css">
+</head>
+<body>
+<header>
+  <h1>Find My PC</h1>
+  <span id="pill" class="pill">...</span>
+</header>
+<main>
+  <section id="nokey" class="card" hidden>
+    <h2>Open your own link</h2>
+    <p>This page only works with the link from your PC: open <b>Find My PC</b> on your ForgeOS PC, click
+      <b>Show my phone link again</b> and scan the code with this phone.</p>
+  </section>
+  <div id="app" hidden>
+    <section class="card">
+      <h2 id="headline">Checking...</h2>
+      <p id="details" class="muted"></p>
+      <div id="mapbox" hidden>
+        <iframe id="map" title="Where your PC is" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <a id="maplink" class="small" target="_blank" rel="noopener noreferrer">Open the map bigger</a>
+      </div>
+      <img id="photo" alt="Webcam photo from your PC" hidden>
+    </section>
+    <section class="buttons">
+      <button id="b-lost" class="danger">Mark as lost</button>
+      <button id="b-found" class="good" hidden>Found it</button>
+      <button id="b-ring">Ring it</button>
+      <button id="b-message">Show a message</button>
+      <button id="b-lock">Lock now</button>
+      <button id="b-shutdown">Lock + shut down</button>
+      <button id="b-ping" class="quiet">Test</button>
+    </section>
+    <p id="said" class="said" role="status"></p>
+    <section class="card">
+      <h2>What happened</h2>
+      <ol id="log" class="log"></ol>
+      <button id="b-clear" class="link">Clear the history on this phone</button>
+    </section>
+    <p class="muted small">Only this phone can read where your PC is: everything is locked (AES-256) with the
+      key in this page's link, which is never sent to any website. Keep the link secret. Tap Share then
+      <b>Add to Home Screen</b> to keep it.</p>
+  </div>
+</main>
+<script src="fmp-crypto.js"></script>
+<script src="find-show.js"></script>
+<script src="find.js"></script>
+</body>
+</html>

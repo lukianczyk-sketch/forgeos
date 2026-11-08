@@ -1,0 +1,53 @@
+# shellcheck shell=bash
+# ForgeOS Find My PC (Job 19): the set-up screens - the QR code for your phone, set up, and the test with
+# your phone. Sourced by forgeos-locate-gui.
+# shellcheck disable=SC2154  # TITLE, TMP, TAB and BR come from forgeos-locate-gui
+
+show_link() {
+  local link serial bell msg qr=no
+  link="$(out LINK)"; serial="$(out SERIAL)"; bell="$(out BELL)"
+  [ -n "$link" ] || { info "The phone link could not be shown."; return 1; }
+  # The link is secret: it goes through files and stdin only, never on a command line others could see.
+  printf '%s\n' "$link" > "$TMP/link.txt"
+  msg="<h2>Scan this with your phone's camera</h2>"
+  if command -v qrencode >/dev/null 2>&1 && qrencode -t PNG -s 6 -m 2 -o "$TMP/qr.png" < "$TMP/link.txt" 2>/dev/null; then
+    msg+="<img src=\"$TMP/qr.png\">${BR}"; qr=yes
+  else
+    msg+="Type the link (shown next) into your phone's browser.${BR}"
+  fi
+  msg+="${BR}1. The Find My PC page opens on your phone.${BR}2. Tap <b>Add to Home Screen</b> (Share button on iPhone, menu on Android).${BR}"
+  msg+="3. Keep it secret: anyone with this link can find this PC.${BR}${BR}"
+  [ "$serial" != - ] && msg+="This PC's serial number (for the police if it is stolen): <b>$serial</b> - write it down.${BR}${BR}"
+  msg+="Optional: in the free ntfy phone app, subscribe to <b>$bell</b> to get a buzz when a lost PC checks in."
+  info "$msg"
+  [ "$qr" = yes ] || kdialog --title "$TITLE" --textbox "$TMP/link.txt" 700 160 || true
+}
+
+setup_flow() {
+  local photo=()
+  info "<h2>Set up Find My PC</h2>If this PC is lost or stolen, your phone can see where it is, ring it, show a message and lock it.${BR}${BR}You need your phone (it takes 2 minutes). Nothing is sent on normal days, and only your phone can read where the PC is. Next, ForgeOS asks for your PC password."
+  ask "While the PC is marked lost, take a small webcam photo of whoever is using it (every 3 hours)?${BR}${BR}Only your phone can see the photos." "Yes, take photos" "No photos" && photo=(--photo)
+  if ! root setup "${photo[@]}"; then info "Find My PC was not set up (the PC password was not given)."; return 0; fi
+  show_link
+  ask "Test it now with your phone? (recommended)" "Test it" "Later" && test_flow
+}
+
+test_flow() {
+  local before i
+  refresh
+  [ "$(val SETUP)" = yes ] || { info "Set up Find My PC first."; return 0; }
+  before="$(val HEARDAT)"
+  touch "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/forgeos-locate-poke" 2>/dev/null
+  info "On your phone, open the Find My PC page and tap <b>Test</b>.${BR}${BR}Then click OK here and wait up to a minute (this PC checks right away)."
+  kdialog --title "$TITLE" --passivepopup "Waiting for your phone..." 60 >/dev/null 2>&1 &
+  for i in $(seq 1 "${FORGEOS_LOC_WAIT:-12}"); do
+    refresh
+    [ "$(val HEARDAT)" != "$before" ] && break
+    [ "$i" -lt "${FORGEOS_LOC_WAIT:-12}" ] && sleep "${FORGEOS_LOC_SLEEP:-5}"
+  done
+  if [ "$(val HEARDAT)" != "$before" ]; then
+    info "<h2>It works!</h2>Your PC heard your phone at $(val HEARD). Your phone shows \"Your PC heard you\"."
+  else
+    info "Your PC did not hear your phone yet.${BR}${BR}Check that this PC and your phone have internet, and that you opened the newest link. Try again in a minute."
+  fi
+}

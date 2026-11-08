@@ -1,0 +1,22 @@
+# ForgeOS - Find My PC (Job 19): looks for a message from your phone (every 10 minutes on normal days,
+# sends nothing). When your phone marks the PC lost: reports where it is, locked so only your phone can read
+# it. Runs at the sign-in screen too. Root: it scans Wi-Fi, locks the screen and can shut the PC down.
+[Unit]
+Description=ForgeOS Find My PC: lets your phone find, ring and lock this PC if it is lost
+After=network.target NetworkManager.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-locate watch
+Restart=always
+RestartSec=30
+Nice=10
+MemoryMax=200M
+StateDirectory=forgeos-locate
+StateDirectoryMode=0755
+RuntimeDirectory=forgeos-locate
+RuntimeDirectoryMode=0755
+RuntimeDirectoryPreserve=yes
+
+[Install]
+WantedBy=multi-user.target
