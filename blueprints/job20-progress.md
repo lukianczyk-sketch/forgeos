@@ -1,0 +1,22 @@
+# Job 20 Why Is It Slow? — progress log
+
+- 2026-11-08: Design approved by Robert. Claude wrote and tested the prototype (tests A-N pass, plus every other ForgeOS test); an independent review found 13 bugs, all fixed and tested (test-slow-safe.sh N).
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-slow, slowlib __init__.py, rules.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 2 (Cline): slowlib procs.py, checks.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 3 (Cline): slowlib hot.py, net.py, more.py written. Claude reviewed: net.py had a changed ping pattern ([0-9]+ instead of [0-9.]+, would miss every ping time) and more.py lost a blank line - both put back from the prototype.
+- Step 4 (Cline): slowlib startup.py, space.py, judge.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 5 (Cline): slowlib history.py, fixes.py, cli.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 6 (Cline): bin/forgeos-slow-gui, libexec/forgeos-slow-screens, 2 units, desktop file, help card written. Claude reviewed: exact (Windows line endings stripped).
+- Step 7 (Cline): forgeos-setup.sh, forgeos-helper-krunner, tools-1/tools-2/seniors.jsonl, test-helper-ai.sh edited. Claude reviewed: all 6 edits exact.
+- Step 8 (Cline): Forge Helper looks2.py written; rules.py, tools.py, looks.py, actions.py, checks.py, watch.py edited. Claude reviewed: exact (Windows line endings stripped in looks2.py).
+- Step 9 (Cline): tests/slow-fakes.sh, slow-make.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 10a (Cline): tests/test-slow.sh (A-E) written. Claude reviewed: exact (Windows line endings stripped). Step 10 was too big for Cline - split into 10a/10b.
+- Step 10b (Cline): tests/test-slow-more.sh (F-I) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 11a (Cline): tests/test-slow-fix.sh (J1-J10) written. Claude reviewed: exact (Windows line endings stripped). Step 11 stuck too - split into 11a/11b.
+- Step 11b (Cline): tests/test-slow-space.sh (J11-J17) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 12a (Cline): tests/test-slow-history.sh (K) written. Claude reviewed: exact (Windows line endings stripped). Step 12 split into 12a/12b (13 into 13a/13b) before Cline got stuck.
+- Step 12b (Cline): tests/test-slow-gui.sh (L) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 13a (Cline): tests/test-slow-safe.sh (N) written. Claude reviewed: missing last newline - put back from the prototype.
+- Step 13b (Cline): tests/test-slow-files.sh (M) + CI step written. Claude reviewed: test-slow-files.sh M3/M8 quoting broken and M10 lost a $ - put back from the prototype; CI step exact.
+- 2026-11-09: Claude ran every test in tests.yml (Job 20 A-N all pass; sandbox-only failures same as v0.24.0: 7z for Digital Will, sudo/guard tests, krunner dbus). Code commit 752f421. DONE — tag v0.25.0.
