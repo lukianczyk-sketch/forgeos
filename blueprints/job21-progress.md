@@ -1,0 +1,21 @@
+# Job 21 PC Report Card — progress log
+
+- 2026-11-09: Design approved by Robert. Claude wrote and tested the prototype (tests A-M pass, plus every other ForgeOS test); an independent review found 12 issues, all fixed and tested.
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-reportcard, cardlib __init__.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 2 (Cline): cardlib safety.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 3 (Cline): cardlib drives.py, ready.py written. Claude reviewed: drives.py exact; ready.py had a missing ) in the green sweep line (a syntax error) - put back from the prototype.
+- Step 4 (Cline): cardlib more.py, 2 units, desktop file, help card written. Claude reviewed: exact (Windows line endings stripped).
+- Step 5 (Cline): cardlib grade.py, cli.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 6 (Cline): cardlib keep.py written. Claude reviewed: missing the blank last line - put back from the prototype; otherwise exact.
+- Step 7 (Cline): cardlib pdf.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 8 (Cline): bin/forgeos-reportcard-gui written. Claude reviewed: exact (Windows line endings stripped).
+- Step 9 (Cline): forgeos-setup.sh, forgeos-helper-krunner, rules.py, tools.py, looks2.py, actions.py, tools-2/seniors.jsonl, test-helper-ai.sh edited. Claude reviewed: 8 files exact; rules.py had 4 spaces missing on 3 lines of the report card rule (still worked, but not the tested text) - put back from the prototype.
+- Step 10 (Cline): tests/card-fakes.sh written. Claude reviewed: exact (Windows line endings stripped).
+- Step 11 (Cline): tests/test-reportcard.sh (A-C) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 12 (Cline): tests/test-reportcard-drives.sh (D-E) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 13 (Cline): tests/test-reportcard-more.sh (F-I) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 14 (Cline): tests/test-reportcard-keep.sh (J-K) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 15 (Cline): tests/test-reportcard-gui.sh (L) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 16 (Cline): tests/test-reportcard-files.sh (M) + CI step written. Claude reviewed: the M3 line lost its quote marks around the CR / tab checks (the check would break) - put back from the prototype; CI step exact.
+- 2026-11-09: All 16 steps reviewed (fixes: Step 3 missing ), Step 6 blank last line, Step 9 indent, Step 16 test quotes - all put back from the prototype). Tree = prototype; every test passes (except the 3 real-hardware tests, same as before). Code commit dcbeae3, tag v0.26.0.
