@@ -1,10 +1,10 @@
 """More look-only tools: GhostFinder, Guard, Undo, Privacy, Clean Sweep, Family Mode, Panic.
 
-Same shape as tools.py: each returns (text, actions, level). LOOK maps every tool name to its look.
+Same shape as tools.py. LOOK maps every tool name to its look (newer jobs' looks are in looks2.py).
 """
 import os
 
-from . import run, tools
+from . import looks2, run, tools
 from .tools import family, plain, win
 
 
@@ -127,4 +127,4 @@ def panic(_arg):
 
 
 
-LOOK = {name: globals().get(name) or getattr(tools, name, None) for name in tools.TOOLS}
+LOOK = {name: globals().get(name) or getattr(tools, name, None) or getattr(looks2, name, None) for name in tools.TOOLS}

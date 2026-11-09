@@ -1,7 +1,7 @@
 {"q": "the computer dont make sound no more", "tool": "pc_question"}
 {"q": "my internets broke", "tool": "pc_question"}
 {"q": "the screen froze up on me", "tool": "pc_question"}
-{"q": "computer is runnin real slow", "tool": "pc_question"}
+{"q": "computer is runnin real slow", "tool": "why_slow"}
 {"q": "got a call from windows saying my computer is sending viruses", "tool": "scam_check"}
 {"q": "a man on the phone wants me to buy gift cards for my grandson", "tool": "scam_check"}
 {"q": "email says my norton subscription renewed for $399 call to cancel", "tool": "scam_check"}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Why Is It Slow?
+GenericName=Find out why the PC is slow
+Comment=Finds out in plain English why the PC is slow, worst problem first, with a one-click fix for each
+Exec=/usr/bin/forgeos-slow-gui
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
+Keywords=slow;slowly;sluggish;lag;laggy;fast;faster;speed;speed up;memory;ram;full;startup;hot;fan;task manager;

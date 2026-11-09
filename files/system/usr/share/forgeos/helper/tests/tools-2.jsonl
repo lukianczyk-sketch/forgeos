@@ -80,3 +80,7 @@
 {"q": "my laptop was stolen what do i do", "tool": "find_my_pc"}
 {"q": "how can i find my pc if i lose it", "tool": "find_my_pc"}
 {"q": "i left my laptop on the bus", "tool": "find_my_pc"}
+{"q": "why is my computer so slow", "tool": "why_slow"}
+{"q": "my internet is really slow tonight", "tool": "why_slow"}
+{"q": "how can I speed up my pc", "tool": ["why_slow", "help_answer"]}
+{"q": "everything is laggy", "tool": "why_slow"}

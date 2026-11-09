@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Why Is It Slow? (Job 20): one button that finds out in plain English why the PC is slow - worst
+problem first, each with a one-click fix - and remembers what was slow in the last 7 days.
+It only reads, except for the fixes the person says Yes to. Nothing leaves the PC.
+Exit: 0 nothing slowing the PC, 1 something found, 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_SLOW_LIB") or "/usr/lib/forgeos-slow")
+from slowlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

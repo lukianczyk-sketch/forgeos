@@ -28,7 +28,7 @@ SAY = {"scam_check": "check it for scams", "pc_question": "check this PC", "find
        "privacy_report": "show your Privacy Report", "cleansweep_scan": "help check for viruses",
        "text_bigger": "make the text bigger (asks first)", "family_call": "call your helper (asks first)",
        "panic": "offer the Panic Button (asks first)", "help_answer": "answer from ForgeOS help",
-       "remember": "remember this", "memory_show": "show what it remembers", "forget_all": "forget everything (asks first)"}
+       "why_slow": "check this PC for what is slowing it", "remember": "remember this", "memory_show": "show what it remembers", "forget_all": "forget everything (asks first)"}
 
 
 def question_of(query):

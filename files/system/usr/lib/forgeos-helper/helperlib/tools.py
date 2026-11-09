@@ -1,8 +1,7 @@
-"""The fixed list of tools Forge Helper may use. The AI can only pick a name from TOOLS.
+"""Forge Helper's fixed tool list: the AI can only pick a name from TOOLS.
 
-Asking never changes the PC: these tools only LOOK. A change is offered as an action
-(see actions.py) that the window turns into a button. Each look returns (text, actions, level);
-actions are (action, argument, button label); level is Scam Shield's 0-2 (else -1).
+Tools only LOOK; a change is an action (actions.py) the window turns into a button. A look returns
+(text, actions, level); actions are (action, argument, label); level is Scam Shield's 0-2 or -1.
 """
 import os
 
@@ -24,6 +23,7 @@ TOOLS = {
     "tech_support": "a stranger wants to get into or control the PC, a remote-control app (AnyDesk, TeamViewer), or kick them out",
     "digital_will": "if I die or something happens to me: my family getting into my PC, accounts and passwords (Digital Will)",
     "find_my_pc": "this PC or laptop is lost or stolen: find, ring or lock it from my phone (Find My PC)",
+    "why_slow": "a slow or laggy PC, program or internet: why, and how to make it fast",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

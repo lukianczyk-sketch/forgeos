@@ -23,8 +23,12 @@ LOC = ("find_my_pc", r"find my (pc|computer|laptop|notebook)|anti.?theft|someone
                      r"(lost|stolen|misplaced) my (pc|computer|laptop)|where is my (laptop|notebook)|"
                      r"(pc|computer|laptop) (was|got|is|has been|been) (lost|stolen|missing|taken)(?!\s+(a|an|the|some|my|its)\b)|"
                      r"track (my|a) (lost |stolen )?(pc|computer|laptop)|(lost|stolen) (pc|computer|laptop)")
+# Why Is It Slow? (Job 20) goes right before the other PC problems ("my internet is slow" is checked there too).
+SLOW = ("why_slow", r"\bslow(ly|er|ness|s|ed|ing)?\b|sluggish|\blag(gy|ging|s)?\b|takes (forever|ages)|"
+                    r"speed (it |this |my \w+ )?up|(make|making|get) (it|my \w+|this \w+) (faster|quicker)")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
-RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:]
+AT3 = [tool for tool, _rx in RULES].index("pc_question")
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [SLOW] + RULES[AT3:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
 COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)

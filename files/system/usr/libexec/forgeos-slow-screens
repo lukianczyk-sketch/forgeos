@@ -1,0 +1,42 @@
+# shellcheck shell=bash
+# ForgeOS Why Is It Slow? (Job 20): the window's other screens - Free up space and Choose what starts with
+# the PC. Sourced by forgeos-slow-gui.
+# shellcheck disable=SC2154  # TITLE, TAB, TMP, ENGINE and the small helpers come from forgeos-slow-gui
+
+space_screen() {
+  local items=() path bytes days pick p
+  "$ENGINE" space > "$TMP/space" 2>/dev/null
+  items+=(trash "Empty the Trash ($(size "$(awk -F "$TAB" '$1 == "TRASH" {print $2}' "$TMP/space")"))" on)
+  items+=(thumbs "Clear picture previews ($(size "$(awk -F "$TAB" '$1 == "THUMBS" {print $2}' "$TMP/space")"))" on)
+  items+=(unused "Remove app parts no app uses any more" on)
+  : > "$TMP/big"
+  while IFS="$TAB" read -r _ path bytes days; do
+    echo "$path" >> "$TMP/big"
+    items+=("big$(wc -l < "$TMP/big")" "Move to Trash: $(basename "$path") ($(size "$bytes"), not opened for $days days)" off)
+  done < <(grep "^BIG${TAB}" "$TMP/space")
+  pick="$(kdialog --title "$TITLE" --separate-output --checklist "Free up space. Pick what can go (big downloads only go to the Trash, so you can still get them back):" "${items[@]}")" || return 0
+  : > "$TMP/done"
+  for p in $pick; do
+    case "$p" in
+      trash) fix empty-trash >> "$TMP/done" ;; thumbs) fix thumbs >> "$TMP/done" ;; unused) fix unused-apps >> "$TMP/done" ;;
+      big*) fix trash "$(sed -n "${p#big}p" "$TMP/big")" >> "$TMP/done" ;;
+    esac
+  done
+  [ -s "$TMP/done" ] && kdialog --title "$TITLE" --textbox "$TMP/done" 600 300
+  return 0
+}
+
+startup_screen() {
+  local items=() id name state pick
+  "$ENGINE" startup > "$TMP/startup" 2>/dev/null
+  while IFS="$TAB" read -r _ id name state; do items+=("$id" "$name" "$state"); done < <(grep "^APP${TAB}" "$TMP/startup")
+  [ "${#items[@]}" -gt 0 ] || { info "No programs start with the PC (apart from the desktop itself)."; return 0; }
+  pick="$(kdialog --title "$TITLE" --separate-output --checklist "Programs that start with the PC. Untick the ones you don't need - you can tick them again any time:" "${items[@]}")" || return 0
+  : > "$TMP/done"
+  while IFS="$TAB" read -r _ id name state; do
+    if grep -qx "$id" <<< "$pick"; then [ "$state" = off ] && fix startup-on "$id" >> "$TMP/done"
+    else [ "$state" = on ] && fix startup-off "$id" >> "$TMP/done"; fi
+  done < <(grep "^APP${TAB}" "$TMP/startup")
+  [ -s "$TMP/done" ] && kdialog --title "$TITLE" --textbox "$TMP/done" 600 300
+  return 0
+}

@@ -88,6 +88,13 @@ def check_hog():
     return None
 
 
+def check_slow():
+    code, out = run(["forgeos-slow", "quick"], 60)
+    if code != 1 or not out.strip():
+        return None
+    return ("slow", out.strip().splitlines()[0] + " Want to see why and fix it?", "open", "slow", "Show me")
+
+
 def check_drive():
     code, out = run(["forgeos-drivehealth", "status"], 30)
     if code != 1:

@@ -6,6 +6,7 @@ chmod 0755 /usr/bin/forgeos-cleansweep /usr/bin/forgeos-cleansweep-gui /usr/bin/
 chmod 0755 /usr/bin/forgeos-techguard /usr/bin/forgeos-techguard-gui /usr/libexec/forgeos-techguard-money /usr/libexec/forgeos-techguard-trust
 chmod 0755 /usr/bin/forgeos-digitalwill /usr/bin/forgeos-digitalwill-gui /usr/libexec/forgeos-digitalwill-unlock
 chmod 0755 /usr/bin/forgeos-locate /usr/bin/forgeos-locate-gui /usr/libexec/forgeos-locate-root
+chmod 0755 /usr/bin/forgeos-slow /usr/bin/forgeos-slow-gui
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -82,3 +83,7 @@ systemctl --global enable forgeos-digitalwill-remind.timer
 # and reports where the PC is only after your phone marked it lost; every user's session rings and shows the message.
 systemctl enable forgeos-locate.service
 systemctl --global enable forgeos-locate-alert.service
+
+# Why Is It Slow? (Job 20): for every user, a tiny sample of what the PC is doing every 5 minutes (kept on the PC
+# for 7 days), so it can still say what was slow after the slowness is gone.
+systemctl --global enable forgeos-slow-sample.timer

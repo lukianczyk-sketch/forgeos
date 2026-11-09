@@ -8,7 +8,7 @@ import os
 import time
 
 from . import actions, append_line, read_json, run, state_dir, write_json
-from .checks import check_backup, check_disk, check_drive, check_guard, check_health, check_hog, check_update
+from .checks import check_backup, check_disk, check_drive, check_guard, check_health, check_hog, check_slow, check_update
 
 PER_DAY = 3
 SNOOZE = 3 * 86400
@@ -49,7 +49,7 @@ def tick():
     today, now = time.strftime("%Y-%m-%d"), time.time()
     if st.get("day") != today:
         st.update(day=today, count=0)
-    found = [check_disk(), check_drive(), check_update(), check_guard(st), check_health(), check_hog(), check_backup()]
+    found = [check_disk(), check_drive(), check_update(), check_guard(st), check_health(), check_hog(), check_slow(), check_backup()]
     note = None
     for f in (x for x in found if x):
         topic = f[0]

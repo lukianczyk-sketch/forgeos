@@ -1,0 +1,9 @@
+[Unit]
+Description=ForgeOS Why Is It Slow? - a tiny sample of what the PC is doing (kept on this PC for 7 days)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-slow sample
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=2min

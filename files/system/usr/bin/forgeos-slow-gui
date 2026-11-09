@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# ForgeOS Why Is It Slow? window (Job 20), a kdialog front end for forgeos-slow: check now (worst problem
+# first, red / yellow), one fix per problem (each asks first), "Fix the safe ones", free up space, choose what
+# starts with the PC, "It was slow a few minutes ago", and a report for a family helper.
+# --space / --startup / --earlier open those screens straight away (Forge Helper uses them).
+set -uo pipefail
+
+TITLE="Why Is It Slow?"
+ENGINE="${FORGEOS_SLOW_ENGINE:-/usr/bin/forgeos-slow}"
+SCREENS="${FORGEOS_SLOW_SCREENS:-/usr/libexec/forgeos-slow-screens}"
+TAB=$'\t'
+BR="<br>"
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-slow report in a terminal." >&2
+  exit 3
+fi
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+ask() { kdialog --title "$TITLE" --yesno "$1" --yes-label "$2" --no-label "${3:-Cancel}"; }
+size() { awk -v n="$1" 'BEGIN { if (n >= 1073741824) printf "%.1f GB", n / 1073741824; else printf "%d MB", n / 1048576 }'; }
+esc() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' <<< "$1"; }
+
+check() {
+  kdialog --title "$TITLE" --passivepopup "Checking your PC... (about 15 seconds)" 8 >/dev/null 2>&1 &
+  "$ENGINE" check > "$TMP/check" 2>/dev/null
+  case $? in 0|1) grep -q "^OK${TAB}" "$TMP/check" && return 0 ;; esac
+  printf 'PROBLEM\tengine\tyellow\tWhy Is It Slow? could not check the PC right now. Try again, or restart the PC.\t-\t-\n' > "$TMP/check"
+}
+
+summary() {
+  local n t="" level text
+  n="$(grep -c "^PROBLEM${TAB}" "$TMP/check")"
+  if [ "$n" = 0 ]; then t="<b>Your PC looks fine right now</b> - nothing is slowing it down.${BR}"
+  else t="<b>Found $n thing$([ "$n" = 1 ] || echo s) slowing your PC</b> (worst first):${BR}"; fi
+  while IFS="$TAB" read -r _ _ level text _; do
+    if [ "$level" = red ]; then t+="${BR}<span style=\"color:#c62828\"><b>RED</b></span> $(esc "$text")"
+    else t+="${BR}<span style=\"color:#b26a00\"><b>YELLOW</b></span> $(esc "$text")"; fi
+  done < <(grep "^PROBLEM${TAB}" "$TMP/check")
+  t+="${BR}${BR}<span style=\"color:#2e7d32\">OK:</span> $(awk -F "$TAB" '$1 == "OK" {printf "%s ", $3}' "$TMP/check" | sed 's/[<>&]/ /g')"
+  printf '%s' "$t"
+}
+
+say() { kdialog --title "$TITLE" --passivepopup "$1" 6 >/dev/null 2>&1 || true; }
+fix() { "$ENGINE" fix "$@" 2>/dev/null | head -n 3; }
+# shellcheck source=files/system/usr/libexec/forgeos-slow-screens
+. "$SCREENS"
+
+do_fix() {
+  local f="$1" button="$2" what
+  read -r -a what <<< "$f"
+  case "${what[0]}" in  # only the fixes this window knows; each one that changes something asks first
+    close) ask "$button?${BR}${BR}Unsaved work in it may be lost. Save first if you can." "$button" || return 0
+           say "$(fix "${what[@]}")" ;;
+    space) space_screen ;;
+    startup) startup_screen ;;
+    restart) ask "Restart the PC now?${BR}${BR}Save your work first. Open programs are asked to close." "Restart now" "Later" || return 0
+             fix restart >/dev/null ;;
+    internet) ask "Restart the internet on this PC?${BR}${BR}It is off for a few seconds." "Restart the internet" || return 0
+              say "$(fix internet)" ;;
+    power|pause|cleansweep|drivehealth) say "$(fix "${what[@]}")" ;;
+  esac
+}
+
+safe_ones() {
+  local f done=""
+  while IFS="$TAB" read -r _ _ _ _ f _; do
+    case "$f" in "power balanced"|"pause find") read -r -a w <<< "$f"; done+="$(fix "${w[@]}")${BR}" ;; esac
+  done < <(grep "^PROBLEM${TAB}" "$TMP/check")
+  info "${done:-Nothing safe to fix by itself. Use the other buttons - each one asks first.}"
+}
+
+earlier() {
+  local m
+  m="$(kdialog --title "$TITLE" --menu "When was it slow?" 15 "In the last 15 minutes" 60 "In the last hour" 1440 "Today (last 24 hours)")" || return 0
+  info "$("$ENGINE" earlier "$m" 2>/dev/null)"
+}
+
+report() {
+  local f="$HOME/Documents/Why-Is-It-Slow-report.txt"
+  mkdir -p "$HOME/Documents"
+  { echo "Why Is It Slow? report - $(date '+%Y-%m-%d %H:%M')"; echo; "$ENGINE" report 2>/dev/null; echo; echo "Earlier today: $("$ENGINE" earlier 1440 2>/dev/null)"; } > "$f"
+  kdialog --title "$TITLE - saved in Documents as Why-Is-It-Slow-report.txt" --textbox "$f" 760 520 || true
+}
+
+main_menu() {
+  local pick items n f b
+  check
+  while true; do
+    items=()
+    n=0
+    while IFS="$TAB" read -r _ _ _ _ f b; do
+      n=$((n + 1)); [ "$f" = - ] || items+=("fix$n" "Fix: $b")
+    done < <(grep "^PROBLEM${TAB}" "$TMP/check")
+    items+=(safe "Fix the safe ones (power mode, pausing background jobs)" again "Check again"
+            earlier "It was slow a few minutes ago" space "Free up space" startup "Choose what starts with the PC"
+            report "Make a report for my family helper")
+    pick="$(kdialog --title "$TITLE" --menu "$(summary)" "${items[@]}")" || return 0
+    case "$pick" in
+      fix*) IFS="$TAB" read -r _ _ _ _ f b < <(grep "^PROBLEM${TAB}" "$TMP/check" | sed -n "${pick#fix}p"); do_fix "$f" "$b"; check ;;
+      safe) safe_ones; check ;; again) check ;; earlier) earlier ;; report) report ;;
+      space) space_screen; check ;; startup) startup_screen ;;
+    esac
+  done
+}
+
+case "${1:-}" in
+  --space) space_screen ;;
+  --startup) startup_screen ;;
+  --earlier) earlier ;;
+  "") main_menu ;;
+  *) echo "usage: forgeos-slow-gui [--space | --startup | --earlier]" >&2; exit 3 ;;
+esac

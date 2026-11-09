@@ -22,7 +22,7 @@
 {"q": "my computer wont make any noise", "tool": "pc_question"}
 {"q": "the internet is not working", "tool": "pc_question"}
 {"q": "wifi keeps dropping", "tool": "pc_question"}
-{"q": "my computer is so slow today", "tool": "pc_question"}
+{"q": "my computer is so slow today", "tool": "why_slow"}
 {"q": "everything is frozen", "tool": "pc_question"}
 {"q": "the taskbar disappeared", "tool": "pc_question"}
 {"q": "the fan is really loud and the pc is hot", "tool": "pc_question"}
@@ -35,7 +35,7 @@
 {"q": "my pc keeps hanging", "tool": "pc_question"}
 {"q": "do a health check", "tool": "pc_question"}
 {"q": "the network says no connection", "tool": "pc_question"}
-{"q": "computer sluggish after lunch", "tool": "pc_question"}
+{"q": "computer sluggish after lunch", "tool": "why_slow"}
 {"q": "sound stopped working after an update", "tool": "pc_question"}
 {"q": "my wi-fi is not connecting", "tool": "pc_question"}
 {"q": "I can't find my tax papers from 2023", "tool": "find"}

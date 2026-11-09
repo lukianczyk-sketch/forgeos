@@ -1,0 +1,10 @@
+[Unit]
+Description=ForgeOS Why Is It Slow? samples - 5 minutes after login, then every 5 minutes
+
+[Timer]
+OnStartupSec=5min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

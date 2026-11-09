@@ -232,3 +232,15 @@ jobs:
           bash tests/test-locate-gui.sh .
           bash tests/test-locate-page.sh .
           bash tests/test-locate-files.sh .
+
+      - name: Run Why Is It Slow? tests (a pretend /proc and /sys; one test on this runner's real /proc)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils
+          bash tests/test-slow.sh .
+          bash tests/test-slow-more.sh .
+          bash tests/test-slow-fix.sh .
+          bash tests/test-slow-space.sh .
+          bash tests/test-slow-history.sh .
+          bash tests/test-slow-gui.sh .
+          bash tests/test-slow-safe.sh .
+          bash tests/test-slow-files.sh .
