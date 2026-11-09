@@ -26,9 +26,14 @@ LOC = ("find_my_pc", r"find my (pc|computer|laptop|notebook)|anti.?theft|someone
 # Why Is It Slow? (Job 20) goes right before the other PC problems ("my internet is slow" is checked there too).
 SLOW = ("why_slow", r"\bslow(ly|er|ness|s|ed|ing)?\b|sluggish|\blag(gy|ging|s)?\b|takes (forever|ages)|"
                     r"speed (it |this |my \w+ )?up|(make|making|get) (it|my \w+|this \w+) (faster|quicker)")
+# PC Report Card (Job 21) goes right before Why Is It Slow? (emergencies like ransomware or a scam win first).
+CARD = ("report_card", r"report ?card|how (healthy|good|well) is (my|this|the) (pc|computer|laptop)|"
+                       r"(pc|computer|laptop).{0,3} (overall )?(health|grade|score)\b|grade (does )?(my|this) (pc|computer|laptop)|"
+                       r"(health|check).?up (on|for) (my|this) (pc|computer|laptop)|"
+                       r"is (my|this) (pc|computer|laptop) (healthy|in good shape)\b(?! enough)")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 AT3 = [tool for tool, _rx in RULES].index("pc_question")
-RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [SLOW] + RULES[AT3:]
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW] + RULES[AT3:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
 COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)

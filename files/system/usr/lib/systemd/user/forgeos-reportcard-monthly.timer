@@ -1,0 +1,10 @@
+[Unit]
+Description=ForgeOS PC Report Card - 10 minutes after login and daily (saves one card a month)
+
+[Timer]
+OnStartupSec=10min
+OnCalendar=*-*-* 10:00
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=ForgeOS PC Report Card - this month's report card (once a month, kept on this PC)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/forgeos-reportcard monthly
+Nice=19
+IOSchedulingClass=idle
+TimeoutStartSec=2h
+# "Show me" opens the window from here: let it stay open after this job ends
+KillMode=process

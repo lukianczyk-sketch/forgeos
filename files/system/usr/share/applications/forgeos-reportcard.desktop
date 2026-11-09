@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PC Report Card
+GenericName=How healthy is my PC?
+Comment=A school-style report card for the whole PC: a grade for each part, an overall grade, and what raises it
+Exec=/usr/bin/forgeos-reportcard-gui
+Icon=view-certificate
+Terminal=false
+Categories=System;Monitor;
+Keywords=report card;grade;health;healthy;checkup;check up;score;how is my pc;status;overview;

@@ -7,6 +7,7 @@ chmod 0755 /usr/bin/forgeos-techguard /usr/bin/forgeos-techguard-gui /usr/libexe
 chmod 0755 /usr/bin/forgeos-digitalwill /usr/bin/forgeos-digitalwill-gui /usr/libexec/forgeos-digitalwill-unlock
 chmod 0755 /usr/bin/forgeos-locate /usr/bin/forgeos-locate-gui /usr/libexec/forgeos-locate-root
 chmod 0755 /usr/bin/forgeos-slow /usr/bin/forgeos-slow-gui
+chmod 0755 /usr/bin/forgeos-reportcard /usr/bin/forgeos-reportcard-gui
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -87,3 +88,7 @@ systemctl --global enable forgeos-locate-alert.service
 # Why Is It Slow? (Job 20): for every user, a tiny sample of what the PC is doing every 5 minutes (kept on the PC
 # for 7 days), so it can still say what was slow after the slowness is gone.
 systemctl --global enable forgeos-slow-sample.timer
+
+# PC Report Card (Job 21): for every user, this month's report card 10 minutes after login (once a month, kept
+# on the PC for 12 months); Forge Helper says so once if the grade went down.
+systemctl --global enable forgeos-reportcard-monthly.timer

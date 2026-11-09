@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS PC Report Card (Job 21): one page, a school-style grade for each part of the PC (A to F), an
+overall grade, one plain-English sentence each and the ForgeOS tool that raises the grade.
+It only reads what the other ForgeOS tools already found. It never fixes anything. Nothing leaves the PC.
+Exit: 0 all A or B, 1 something C or lower (or nothing could be checked), 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_CARD_LIB") or "/usr/lib/forgeos-reportcard")
+from cardlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

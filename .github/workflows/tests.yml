@@ -244,3 +244,13 @@ jobs:
           bash tests/test-slow-gui.sh .
           bash tests/test-slow-safe.sh .
           bash tests/test-slow-files.sh .
+
+      - name: Run PC Report Card tests (pretend ForgeOS tools; a real one-page PDF read back with pdftotext)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils poppler-utils
+          bash tests/test-reportcard.sh .
+          bash tests/test-reportcard-drives.sh .
+          bash tests/test-reportcard-more.sh .
+          bash tests/test-reportcard-keep.sh .
+          bash tests/test-reportcard-gui.sh .
+          bash tests/test-reportcard-files.sh .

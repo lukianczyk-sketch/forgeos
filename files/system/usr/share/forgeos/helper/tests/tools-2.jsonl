@@ -84,3 +84,6 @@
 {"q": "my internet is really slow tonight", "tool": "why_slow"}
 {"q": "how can I speed up my pc", "tool": ["why_slow", "help_answer"]}
 {"q": "everything is laggy", "tool": "why_slow"}
+{"q": "how healthy is my pc", "tool": "report_card"}
+{"q": "show me my pc report card", "tool": "report_card"}
+{"q": "what grade does my computer get", "tool": "report_card"}

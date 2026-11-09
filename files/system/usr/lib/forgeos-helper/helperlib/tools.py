@@ -24,6 +24,7 @@ TOOLS = {
     "digital_will": "if I die or something happens to me: my family getting into my PC, accounts and passwords (Digital Will)",
     "find_my_pc": "this PC or laptop is lost or stolen: find, ring or lock it from my phone (Find My PC)",
     "why_slow": "a slow or laggy PC, program or internet: why, and how to make it fast",
+    "report_card": "how healthy the whole PC is: its report card, grades and score (PC Report Card)",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",
@@ -107,10 +108,3 @@ def find(arg):
         return ("Find Anything has not finished reading your files yet. Open it and it will build"
                 " its search list."), win("find", "Open Find Anything"), -1
     return ("I could not find it. Try other words, or a word you know is inside the file."), win("find", "Open Find Anything"), -1
-
-
-def will_it_run(arg):
-    code, out = run(["forgeos-willitrun", "check", arg], SLOW)
-    if code in (3, 127):
-        return "Will It Run? could not check \"%s\". Open it and pick the file." % arg, win("willitrun", "Open Will It Run?"), -1
-    return plain(out), win("willitrun", "Open Will It Run?"), -1

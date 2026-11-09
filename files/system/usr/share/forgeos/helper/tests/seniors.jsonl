@@ -13,3 +13,4 @@
 {"q": "how do i get on the wifi", "tool": "help_answer"}
 {"q": "can you call my son so he can see the screen", "tool": "family_call"}
 {"q": "i deleted my sons pictures by accident get them back", "tool": "undo_open"}
+{"q": "is my computer in good shape", "tool": "report_card"}
