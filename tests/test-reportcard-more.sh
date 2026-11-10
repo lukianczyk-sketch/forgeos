@@ -61,7 +61,8 @@ check H4 'grep -q "^SUBJECT${T}ready${T}D${T}60${T}Ready for trouble${T}Raise th
 
 # I1-I2: no ForgeOS tool answers at all (and the slow library is broken): nothing is graded, exit 1, no crash
 for t in forgeos-guard forgeos-tripwire forgeos-techguard forgeos-autopilot forgeos-drivehealth forgeos-undo \
-         forgeos-digitalwill forgeos-locate rpm-ostree systemctl; do rm -f "$WORK/bin/$t"; done
+         forgeos-digitalwill forgeos-locate rpm-ostree; do rm -f "$WORK/bin/$t"; done
+fake systemctl 'echo "Failed to connect to bus"; exit 1'  # the GitHub runner has a real systemctl in /usr/bin
 rm -rf "$WORK/data" "$WORK/state"; unset FORGEOS_CARD_SPACE
 OUT="$(HOME=/nonexistent FORGEOS_SLOW_LIB=/nonexistent PATH="$WORK/bin:/usr/bin:/bin" RC check)"; CODE=$?
 check I1 '[ "$CODE" = 1 ] && grep -qx "OVERALL${T}-${T}-${T}Not checked yet${T}Nothing could be checked yet. Open each tool once, then look again." <<< "$OUT"'
