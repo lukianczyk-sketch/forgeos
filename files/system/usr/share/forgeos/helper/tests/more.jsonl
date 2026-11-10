@@ -48,3 +48,5 @@
 {"q": "say something nice", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
 {"q": "who won the world series", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
 {"q": "can you hear me", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
+{"q": "show me how to call my daughter so she can help", "tool": "family_call"}
+{"q": "show me how to fix my slow computer", "tool": "why_slow"}
