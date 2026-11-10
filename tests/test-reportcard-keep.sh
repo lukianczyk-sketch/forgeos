@@ -15,7 +15,8 @@ check() { if eval "$2"; then pass "$1"; else fail "$1"; fi; }
 # shellcheck source=tests/card-fakes.sh
 . "$ROOT/tests/card-fakes.sh"
 CARDS="$WORK/state/forgeos/reportcard/cards.jsonl"
-JUNE="$(date -d 2026-06-15T12:00 +%s)"; JULY="$(date -d 2026-07-15T12:00 +%s)"
+JUNE="$(python3 -c 'import datetime; print(int(datetime.datetime(2026, 6, 15, 12).timestamp()))')"
+JULY="$(python3 -c 'import datetime; print(int(datetime.datetime(2026, 7, 15, 12).timestamp()))')"
 at() { FORGEOS_CARD_NOW="$1" RC "${@:2}"; }
 notes() { grep -c "^notify-send" "$WORK/calls.log" 2>/dev/null; }
 
