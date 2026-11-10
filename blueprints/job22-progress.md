@@ -1,0 +1,28 @@
+# Job 22 Show Me How — progress log
+
+- 2026-11-09: Design approved by Robert. Claude wrote and tested the prototype (tests A-L pass, plus every other ForgeOS test); an independent review found 15 issues, all fixed and tested.
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-showme, showlib __init__.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 2 (Cline): showlib guides.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 3 (Cline): showlib screen.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 4 (Cline): showlib walk.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 5 (Cline): showlib ai.py, desktop file, help card written. Claude reviewed: exact (Windows line endings stripped).
+- Step 6 (Cline): showlib cli.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 7 (Cline): showlib session.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 8 (Cline): showlib show.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 9 (Cline): overlay.qml written. Claude reviewed: exact (Windows line endings stripped).
+- Step 10 (Cline): guides 1-12 written. Claude reviewed: all 12 exact (Windows line endings stripped).
+- Step 11 (Cline): guides 13-24 written. Claude reviewed: all 12 exact (Windows line endings stripped).
+- Step 12 (Cline): bin/forgeos-showme-gui, helperlib showme.py written. Claude reviewed: exact (Windows line endings stripped).
+- Step 13 (Cline): forgeos-setup.sh, forgeos-helper-gui, forgeos-helper-krunner, rules.py, tools.py, looks2.py edited. Claude reviewed: all 6 exact.
+- Step 14 (Cline): actions.py, talk.py, tools-2/seniors.jsonl, test-helper-ai.sh edited. Claude reviewed: all 5 exact.
+- Step 15 (Cline): tests/showme-make.py, tests/showme-fakes.sh written. Claude reviewed: exact (Windows line endings stripped).
+- Step 16 (Cline): tests/test-showme.sh (A-C) written. Claude reviewed: line 71 had an extra " (a syntax error) - put back from the prototype.
+- Step 17 (Cline): tests/test-showme-walk.sh (D) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 18 (Cline): tests/test-showme-steps.sh (E-F) written. Claude reviewed: extra blank lines inside the python blocks + a changed last line - put back from the prototype.
+- Step 19 (Cline): tests/test-showme-ai.sh (G) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 20 (Cline): tests/test-showme-dbus.sh (H) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 21 (Cline): tests/test-showme-gui.sh (I-J) written. Claude reviewed: missing last newline - put back from the prototype.
+- Step 22 (Cline): tests/test-showme-real.sh (K) written. Claude reviewed: exact (Windows line endings stripped).
+- Step 23 (Cline): tests/test-showme-files.sh (L) + CI step written. Claude reviewed: CI step exact; test L3 lost quote marks - put back from the prototype. All 60 Job 22 files = the prototype.
+- 2026-11-10: Steps 1-23 reviewed; all 60 files = the prototype. Commit 4338328 (code), tests pass on the PC. Tag v0.27.0.
