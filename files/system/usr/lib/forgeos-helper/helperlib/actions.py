@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 
-from . import SHARE, config_dir, read_lines, run
+from . import SHARE, config_dir, read_lines, run, showme
 from .ai import QUICK_DEFAULT
 
 FIX_IDS = ("restart-internet restart-sound unmute-sound restart-taskbar close-busy-app clear-thumbnails "
@@ -20,8 +20,9 @@ WINDOWS = {"cleansweep": "forgeos-cleansweep-gui", "undo": "forgeos-undo-gui", "
            "digitalwill": "forgeos-digitalwill-gui", "locate": "forgeos-locate-gui", "slow": "forgeos-slow-gui",
            "reportcard": "forgeos-reportcard-gui"}
 SIZES = ("big", "bigger")
-# The ONLY actions 'do' runs. Each needs the user's Yes click first (the window asks).
-ACTIONS = ("pc_fix", "text_size", "family_on", "family_call", "panic", "open", "open_file", "forget_all", "get_model")
+# The ONLY actions 'do' runs. Each needs the user's Yes click first (the window asks); showme only points.
+ACTIONS = ("pc_fix", "text_size", "family_on", "family_call", "panic", "open", "open_file", "forget_all", "get_model",
+           "showme")
 
 
 def libexec():
@@ -70,6 +71,8 @@ def check_action(action, arg):
     home = os.path.realpath(os.path.expanduser("~")) + "/"
     if action == "open_file" and not (os.path.realpath(arg).startswith(home) and os.path.isfile(arg)):
         return "Forge Helper only opens your own files."
+    if action == "showme" and not showme.ok(arg):
+        return "Show Me How has no such guide."
     if action == "get_model" and arg not in allowed_models():
         return "Forge Helper only downloads the free AI models on its own list."
     return None
@@ -99,6 +102,8 @@ def do(action, arg):
     if action == "open":
         ok = start([WINDOWS[arg]])
         return (0 if ok else 1), "Opening..." if ok else "That window could not be opened."
+    if action == "showme":
+        return showme.go(arg, start)
     if action == "open_file":
         ok = start(["xdg-open", arg])
         return (0 if ok else 1), "Opening " + os.path.basename(arg)

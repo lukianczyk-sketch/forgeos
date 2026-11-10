@@ -25,6 +25,7 @@ TOOLS = {
     "find_my_pc": "this PC or laptop is lost or stolen: find, ring or lock it from my phone (Find My PC)",
     "why_slow": "a slow or laggy PC, program or internet: why, and how to make it fast",
     "report_card": "how healthy the whole PC is: its report card, grades and score (PC Report Card)",
+    "show_me": "show me how to do something on the screen, step by step, with an arrow (text = the task)",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

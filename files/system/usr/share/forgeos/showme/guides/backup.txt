@@ -1,0 +1,6 @@
+# Back up your files
+words: backup back up save copy files usb drive pika
+open: app org.gnome.World.PikaBackup
+step: say | Plug in the USB drive you want to keep the copy on.
+step: word Set Up Backup | Click Set Up Backup, then pick your USB drive.
+step: word Back Up Now | Click Back Up Now.

@@ -1,0 +1,6 @@
+# Connect a Bluetooth device
+words: bluetooth pair headphones earbuds speaker wireless mouse keyboard
+open: settings kcm_bluetooth
+step: say | Put your device in pairing mode (see its manual), then click Next here.
+step: word Pair a Device | Click Pair a Device.
+step: say | Pick your device from the list and follow the steps on the screen.

@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# ForgeOS Show Me How window (Job 22), a kdialog front end for forgeos-showme: pick a guide (the most used
+# first) or type what you want to do, then a glowing arrow on the screen points at each thing to click.
+# It only points. It never clicks, types or changes anything.
+# Usage: forgeos-showme-gui [--guide NAME | --ask "QUESTION"]
+set -uo pipefail
+
+TITLE="Show Me How"
+ENGINE="${FORGEOS_SHOWME_ENGINE:-/usr/bin/forgeos-showme}"
+TAB=$'\t'
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-showme in a terminal." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# go <guide|ask> <name or question>: the walk runs until it is done or stopped
+go() {
+  kdialog --title "$TITLE" --passivepopup "Getting ready... a yellow arrow will point at what to click." 5 >/dev/null 2>&1 &
+  "$ENGINE" "$1" "$2" >/dev/null 2>&1
+}
+
+ask_words() {
+  local q
+  q="$(kdialog --title "$TITLE" --inputbox "What do you want to do? Type it in your own words.${NL}For example:  print a letter   -   connect to Wi-Fi   -   make the text bigger" "")" || return 0
+  [ -n "${q//[[:space:]]/}" ] && go ask "$q"
+}
+
+menu() {
+  local -a items=()
+  local name title pick
+  while IFS="$TAB" read -r _ name title; do
+    [ -n "$name" ] && items+=("$name" "$title")
+  done < <(grep "^GUIDE${TAB}" <<< "$LIST")
+  pick="$(kdialog --title "$TITLE" --menu "What should I show you?${NL}A yellow arrow points at each thing to click. You do the clicking." \
+    "${items[@]}" other "Something else (type what you want to do)")" || return 1
+  case "$pick" in
+    other) ask_words ;;
+    "") return 1 ;;
+    *) go guide "$pick" ;;
+  esac
+}
+
+case "${1:-}" in
+  --guide) [ -n "${2:-}" ] || { echo "usage: forgeos-showme-gui [--guide NAME | --ask QUESTION]" >&2; exit 3; }
+           go guide "$2"; exit 0 ;;
+  --ask) [ -n "${2:-}" ] || { echo "usage: forgeos-showme-gui [--guide NAME | --ask QUESTION]" >&2; exit 3; }
+         go ask "$2"; exit 0 ;;
+  "") ;;
+  *) echo "usage: forgeos-showme-gui [--guide NAME | --ask QUESTION]" >&2; exit 3 ;;
+esac
+LIST="$("$ENGINE" list 2>/dev/null)"
+if ! grep -q "^GUIDE${TAB}" <<< "$LIST"; then
+  info "Show Me How has no guides on this PC right now. Ask Forge Helper (Meta+H) instead."
+  exit 1
+fi
+menu || exit 0

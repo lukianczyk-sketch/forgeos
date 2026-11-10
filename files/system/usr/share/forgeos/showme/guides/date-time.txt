@@ -1,0 +1,6 @@
+# Date and time
+words: date time clock time zone wrong time
+open: settings kcm_clock
+step: word Set date and time automatically | Turn on Set date and time automatically.
+step: word Time Zone | Click Time Zone and pick where you live.
+step: word Apply | Click Apply. Then click Next in the Show Me How box to finish.

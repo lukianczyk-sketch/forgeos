@@ -1,0 +1,5 @@
+# Warmer screen at night
+words: night light night mode blue light warm screen eyes evening
+open: settings kcm_nightlight
+step: say | Choose when the screen gets warmer, for example from sunset to sunrise.
+step: word Apply | Click Apply. Then click Next in the Show Me How box to finish.

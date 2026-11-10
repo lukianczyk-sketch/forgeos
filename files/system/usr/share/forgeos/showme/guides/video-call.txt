@@ -1,0 +1,5 @@
+# Make a video call
+words: video call zoom meet teams facetime skype talk camera grandkids
+open: app com.brave.Browser
+step: say | Click the link someone sent you, or go to your video call website.
+step: word Allow | When Brave asks to use the camera and microphone, click Allow.

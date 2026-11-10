@@ -1,0 +1,5 @@
+# Choose your microphone
+words: microphone mic headset recording input voice hear me
+open: settings kcm_pulseaudio
+step: word Recording Devices | Look at Recording Devices. Your microphones are listed there.
+step: say | Click the one you use and move its slider. Speak and watch the bar move.

@@ -254,3 +254,15 @@ jobs:
           bash tests/test-reportcard-keep.sh .
           bash tests/test-reportcard-gui.sh .
           bash tests/test-reportcard-files.sh .
+
+      - name: Run Show Me How tests (a pretend screen; real D-Bus on this runner; real Tesseract OCR on a real picture)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils tesseract-ocr tesseract-ocr-eng poppler-utils python3-dbus python3-gi dbus
+          bash tests/test-showme.sh .
+          bash tests/test-showme-walk.sh .
+          bash tests/test-showme-steps.sh .
+          bash tests/test-showme-ai.sh .
+          bash tests/test-showme-dbus.sh .
+          bash tests/test-showme-gui.sh .
+          bash tests/test-showme-real.sh .
+          bash tests/test-showme-files.sh .

@@ -1,0 +1,5 @@
+# Use a webcam
+words: webcam camera video cam
+open: none
+step: say | Plug the camera into a USB port. It works by itself, no download needed.
+step: say | When an app asks to use the camera, click Allow.

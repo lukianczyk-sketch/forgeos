@@ -1,0 +1,5 @@
+# Set up email
+words: email e-mail mail thunderbird gmail outlook inbox account
+open: app org.mozilla.thunderbird
+step: say | Type your name, your email address and your email password.
+step: word Continue | Click Continue. Thunderbird finds the right settings by itself.

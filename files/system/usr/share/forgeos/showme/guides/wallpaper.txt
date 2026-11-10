@@ -1,0 +1,5 @@
+# Change the desktop picture
+words: wallpaper background desktop picture photo
+open: settings kcm_wallpaper
+step: say | Click a picture you like, or Add to use your own photo.
+step: word Apply | Click Apply. Then click Next in the Show Me How box to finish.

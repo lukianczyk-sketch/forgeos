@@ -1,0 +1,5 @@
+# Restart into Windows
+words: windows switch dual boot windows 11 restart into windows
+open: window forgeos-switch-gui
+step: say | Save your work first. Open programs will close.
+step: word Restart into Windows | Click Restart into Windows now.

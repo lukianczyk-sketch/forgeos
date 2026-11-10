@@ -1,0 +1,5 @@
+# Make text bigger
+words: bigger text larger letters font size zoom scale hard to read small words
+open: settings kcm_kscreen
+step: word Scale | Find Scale and pick a bigger size, like 150%.
+step: word Apply | Click Apply, then Keep. Then click Next in the Show Me How box.

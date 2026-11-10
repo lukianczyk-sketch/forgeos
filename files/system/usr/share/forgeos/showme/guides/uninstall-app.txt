@@ -1,0 +1,5 @@
+# Remove an app
+words: uninstall remove delete app application program get rid of
+open: app io.github.kolunmi.Bazaar
+step: say | Search for the app you want to remove and click it.
+step: word Uninstall | Click Uninstall.

@@ -1,0 +1,5 @@
+# Change the volume
+words: sound volume louder quieter speakers headphones audio mute
+open: none
+step: place tray | Click the speaker icon.
+step: say | Move the slider to change the volume. Pick speakers or headphones below it.

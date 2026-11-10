@@ -87,3 +87,8 @@
 {"q": "how healthy is my pc", "tool": "report_card"}
 {"q": "show me my pc report card", "tool": "report_card"}
 {"q": "what grade does my computer get", "tool": "report_card"}
+{"q": "show me how to print a letter", "tool": "show_me"}
+{"q": "walk me through connecting to wifi", "tool": "show_me"}
+{"q": "where do i click to change the wallpaper", "tool": "show_me"}
+{"q": "show me how to call my daughter so she can help", "tool": "family_call"}
+{"q": "show me how to fix my slow computer", "tool": "why_slow"}

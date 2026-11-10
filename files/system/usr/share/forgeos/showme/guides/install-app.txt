@@ -1,0 +1,6 @@
+# Install a new app
+words: install app application program software store download get new app
+open: app io.github.kolunmi.Bazaar
+step: say | Click the search box and type the name of the app you want.
+step: say | Click the app you want in the list. Then click Next here.
+step: word Install | Click Install.

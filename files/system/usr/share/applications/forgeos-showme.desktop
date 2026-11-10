@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Show Me How
+GenericName=Show me where to click
+Comment=Ask how to do something and a yellow arrow on the screen points at each thing to click
+Exec=/usr/bin/forgeos-showme-gui
+Icon=help-hint
+Terminal=false
+Categories=System;Utility;
+Keywords=show me how;how do i;guide;help;tutorial;where do i click;teach me;walk me through;arrow;
+X-KDE-Shortcuts=Meta+Shift+H

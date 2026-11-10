@@ -1,0 +1,6 @@
+# Add a printer
+words: printer new printer set up printer connect printer install printer
+open: settings kcm_printer_manager
+step: say | Turn the printer on. Connect it with USB, or to the same Wi-Fi as this PC.
+step: word Add Printer | Click Add Printer.
+step: say | Pick your printer from the list and follow the steps on the screen.

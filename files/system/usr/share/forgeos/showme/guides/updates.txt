@@ -1,0 +1,5 @@
+# Updates
+words: update updates upgrade new version latest
+open: window forgeos-autopilot-gui
+step: say | This window shows if an update is waiting. ForgeOS updates by itself.
+step: say | A new version is used the next time you restart the PC.

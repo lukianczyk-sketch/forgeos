@@ -1,0 +1,5 @@
+# Dark or light look
+words: dark mode dark theme light mode colors black background look
+open: settings kcm_lookandfeel
+step: say | Click a dark picture for a dark look, or a light one for a light look.
+step: word Apply | Click Apply. Then click Next in the Show Me How box to finish.

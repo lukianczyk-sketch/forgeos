@@ -1,0 +1,5 @@
+# Print something
+words: print printing printer paper copy
+open: none
+step: key Ctrl+P | Open what you want to print, then press Ctrl and P together.
+step: word Print | Pick your printer and how many copies, then click Print.

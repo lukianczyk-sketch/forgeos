@@ -1,0 +1,6 @@
+# Connect to Wi-Fi
+words: wifi wi-fi wireless network internet connect router hotspot
+open: none
+step: place tray | Click the network icon.
+step: say | Click your Wi-Fi name in the list.
+step: word Connect | Type the Wi-Fi password, then click Connect.

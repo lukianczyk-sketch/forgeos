@@ -1,0 +1,4 @@
+# Lock the screen
+words: lock screen lock computer step away
+open: none
+step: key Meta+L | Press the Windows key and L together. Your password opens it again.

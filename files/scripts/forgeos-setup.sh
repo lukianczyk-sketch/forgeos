@@ -8,6 +8,7 @@ chmod 0755 /usr/bin/forgeos-digitalwill /usr/bin/forgeos-digitalwill-gui /usr/li
 chmod 0755 /usr/bin/forgeos-locate /usr/bin/forgeos-locate-gui /usr/libexec/forgeos-locate-root
 chmod 0755 /usr/bin/forgeos-slow /usr/bin/forgeos-slow-gui
 chmod 0755 /usr/bin/forgeos-reportcard /usr/bin/forgeos-reportcard-gui
+chmod 0755 /usr/bin/forgeos-showme /usr/bin/forgeos-showme-gui
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service

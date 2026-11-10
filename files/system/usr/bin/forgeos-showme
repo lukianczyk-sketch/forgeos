@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Show Me How (Job 22): ask "how do I print?" and the PC SHOWS you. A glowing arrow and ring point at
+the thing to click, with one short sentence. You click it yourself; the arrow moves on. It only points: it
+never clicks, types or changes anything. Nothing leaves the PC.
+Exit: 0 done, 1 could not find or finish, 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_SHOWME_LIB") or "/usr/lib/forgeos-showme")
+from showlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

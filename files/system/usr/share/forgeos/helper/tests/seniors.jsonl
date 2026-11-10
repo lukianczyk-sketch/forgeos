@@ -14,3 +14,4 @@
 {"q": "can you call my son so he can see the screen", "tool": "family_call"}
 {"q": "i deleted my sons pictures by accident get them back", "tool": "undo_open"}
 {"q": "is my computer in good shape", "tool": "report_card"}
+{"q": "can you show me how to change the desktop picture", "tool": "show_me"}

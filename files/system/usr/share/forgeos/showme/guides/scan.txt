@@ -1,0 +1,5 @@
+# Scan a paper
+words: scan scanner scanning document paper copy
+open: app org.kde.skanpage
+step: word Scan | Put the page on the scanner, then click Scan.
+step: word Save | Click Save to keep it as a PDF or a picture.

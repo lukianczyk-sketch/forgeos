@@ -31,9 +31,13 @@ CARD = ("report_card", r"report ?card|how (healthy|good|well) is (my|this|the) (
                        r"(pc|computer|laptop).{0,3} (overall )?(health|grade|score)\b|grade (does )?(my|this) (pc|computer|laptop)|"
                        r"(health|check).?up (on|for) (my|this) (pc|computer|laptop)|"
                        r"is (my|this) (pc|computer|laptop) (healthy|in good shape)\b(?! enough)")
+# Show Me How (Job 22) goes right after Why Is It Slow? (emergencies, Undo, Find, bigger text, calling the
+# helper, the report card and slowness win first; it comes before the other PC problems like Wi-Fi).
+SHOW = ("show_me", r"\bshow me (how|where (to|do i) click)\b|walk me through|guide me (through|to)|"
+                   r"where do i click|point (to|at|out) (it|where|the)")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 AT3 = [tool for tool, _rx in RULES].index("pc_question")
-RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW] + RULES[AT3:]
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW, SHOW] + RULES[AT3:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
 COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
@@ -65,7 +69,7 @@ def match(question):
                 return (tool, "bigger" if EVEN_BIGGER.search(q) else "big")
             if tool == "will_it_run":
                 return (tool, program_name(q))
-            if tool in ("scam_check", "find", "pc_question", "help_answer"):
+            if tool in ("scam_check", "find", "pc_question", "help_answer", "show_me"):
                 return (tool, q)
             return (tool, "")
     return None

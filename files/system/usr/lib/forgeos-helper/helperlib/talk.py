@@ -5,7 +5,7 @@ the help cards, the question or what the user asked Forge Helper to remember.
 """
 import re
 
-from . import ai, clean, helpdocs, memory
+from . import ai, clean, helpdocs, memory, showme
 
 ME = ("You are Forge Helper, the private helper built into ForgeOS, a home computer system based on"
       " Fedora Linux with the KDE Plasma desktop. You help regular people, including seniors. Answer in"
@@ -57,9 +57,9 @@ def help_answer(question, use_ai=True):
             card = cards[titles.index(out["card"])]
             text = honest(clean(out["answer"], 1500), card["body"] + question + " ".join(memory.facts()))
             if text:
-                return "From ForgeOS help: %s\n%s" % (card["title"], text), []
+                return "From ForgeOS help: %s\n%s" % (card["title"], text), showme.button(card["name"])
     card = cards[0]
-    return "From ForgeOS help: %s\n%s" % (card["title"], card["body"]), []
+    return "From ForgeOS help: %s\n%s" % (card["title"], card["body"]), showme.button(card["name"])
 
 
 def just_answer(question, use_ai=True):

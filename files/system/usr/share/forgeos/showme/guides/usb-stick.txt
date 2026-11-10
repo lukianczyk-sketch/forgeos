@@ -1,0 +1,6 @@
+# Use a USB stick
+words: usb stick flash drive thumb drive memory stick external drive
+open: none
+step: say | Plug in the USB stick and wait a moment.
+step: word Open with File Manager | Click Open with File Manager.
+step: say | Before you pull it out, click the eject icon next to it in the file manager.

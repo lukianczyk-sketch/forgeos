@@ -1,0 +1,6 @@
+# Take a screenshot
+words: screenshot screen shot capture picture of the screen print screen snip
+open: none
+step: key PrtSc | Press the Print Screen key (PrtSc) on the keyboard.
+step: say | Draw a box around what you want, or press Enter to take all of it.
+step: word Save | Click Save. It goes in your Pictures folder.

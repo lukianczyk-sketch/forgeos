@@ -48,11 +48,11 @@ brains() {
   done <<< "$("$ENGINE" brains 2>/dev/null)"
 }
 
-# do_action <action> <arg> <label>: opening a window just opens it; a change asks Yes first.
+# do_action <action> <arg> <label>: opening a window or Show Me How just starts it; a change asks Yes first.
 do_action() {
   local act="$1" arg="$2" label="$3" out
   case "$act" in
-    open|open_file) "$ENGINE" run "$act" "$arg" --yes >/dev/null 2>&1; return ;;
+    open|open_file|showme) "$ENGINE" run "$act" "$arg" --yes >/dev/null 2>&1; return ;;
   esac
   kdialog --title "$TITLE" --yes-label "Yes, do it" --no-label "No" --yesno "${label}?${NL}${NL}Forge Helper will do this only if you click Yes." || return 0
   [ "$act" = get_model ] && busy_start "Downloading..."
