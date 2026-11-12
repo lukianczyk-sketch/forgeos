@@ -1,0 +1,39 @@
+# Job 23 Plain-English Errors — progress log
+
+- 2026-11-10: Design approved by Robert. Claude wrote and tested the prototype (tests A-G pass, plus every other ForgeOS test); an independent review found 24 issues, all fixed and tested.
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-errors, errlib __init__.py written. Claude reviewed: exact.
+- Step 2 (Cline): errlib library.py written. Claude reviewed: exact.
+- Step 3 (Cline): errlib fixes.py written. Claude reviewed: exact.
+- Step 4 (Cline): errlib scam.py, explain.py written. Claude reviewed: exact.
+- Step 5 (Cline): errlib history.py, watcher service, two desktop files written. Claude reviewed: exact.
+- Step 6 (Cline): errlib system.py, help card written. Claude reviewed: exact.
+- Step 7 (Cline): errlib ai.py written. Claude reviewed: exact.
+- Step 8 (Cline): errlib cli.py written. Claude reviewed: exact.
+- Step 9 (Cline): errlib watch.py written. Claude reviewed: exact.
+- Step 10 (Cline): bin/forgeos-errors-gui written. Claude reviewed: exact.
+- Step 11 (Cline): error library 01-windows-programs.txt written. Claude reviewed: exact.
+- Step 12 (Cline): error library 02-games.txt written. Claude reviewed: exact.
+- Step 13 (Cline): error library 03-websites.txt written. Claude reviewed: exact.
+- Step 14 (Cline): error library 04-certificates.txt, 08-space-memory.txt written. Claude reviewed: exact.
+- Step 15 (Cline): error library 05-internet.txt written. Claude reviewed: exact.
+- Step 16 (Cline): error library 06-printer.txt, 15-windows-codes.txt written. Claude reviewed: exact.
+- Step 17 (Cline): error library 07-drives-usb.txt written. Claude reviewed: exact.
+- Step 18 (Cline): error library 09-updates-apps.txt written. Claude reviewed: exact.
+- Step 19 (Cline): error library 10-sound-camera.txt written. Claude reviewed: exact.
+- Step 20 (Cline): error library 11-bluetooth-screen.txt written. Claude reviewed: exact.
+- Step 21 (Cline): error library 12-signin-files.txt written. Claude reviewed: exact.
+- Step 22 (Cline): error library 13-system.txt written. Claude reviewed: exact.
+- Step 23 (Cline): error library 14-office-calls.txt written. Claude reviewed: exact.
+- Step 24 (Cline): error library 16-browser.txt written. Claude reviewed: exact.
+- Step 25 (Cline): tests/errors-fakes.sh, tests/errors-monitor-sample.txt written. Claude reviewed: exact.
+- Step 26 (Cline): tests/test-errors.sh (A) written. Claude reviewed: exact.
+- Step 27 (Cline): tests/test-errors-ai.sh (B) written. Claude reviewed: exact.
+- Step 28 (Cline): tests/test-errors-watch.sh (C) written. Claude reviewed: exact.
+- Step 29 (Cline): tests/test-errors-fix.sh (D) written. Claude reviewed: exact.
+- Step 30 (Cline): tests/test-errors-gui.sh (E) written. Claude reviewed: exact.
+- Step 31 (Cline): tests/test-errors-dbus.sh (F) written. Claude reviewed: exact.
+- Step 32 (Cline): forgeos-setup.sh, rules.py, tools.py, looks2.py, actions.py edited. Claude reviewed: exact.
+- Step 33 (Cline): forgeos-helper-krunner, more.jsonl, test-helper-ai.sh, CI step edited. Claude reviewed: exact.
+- Step 34 (Cline): tests/test-errors-files.sh (G) written. Claude reviewed: exact.
+- 2026-11-11: All 34 steps reviewed (Cline slips in steps 4, 8, 15, 25, 30, 31, 34 fixed by Claude to the tested copy); tests A-G pass on Robert's PC; commit c188072, tag v0.28.0.
