@@ -1,0 +1,110 @@
+# Games: anti-cheat, Steam and graphics errors
+
+id: game-anticheat
+match: easy ?anti.?cheat (is not installed|error|launch error|failed|untrusted|not supported)
+match: battleye( service)?:? (failed|not (installed|supported|responding)|launcher)
+match: anti.?cheat (is not|not) (installed|supported|running)
+match: (game security violation|vanguard|ricochet) (detected|not initialized|error)
+level: green
+title: The game's anti-cheat blocks this PC
+say: The game uses an anti-cheat program. Some game makers do not allow it on Linux, so the game can't play online here.
+do: Open Will It Run? to see if this game works on ForgeOS. If not, restart into Windows to play it.
+fix: open:willitrun
+example: Easy Anti-Cheat is not installed
+example: BattlEye Service: Failed to initialize
+
+id: steam-disk-write
+match: disk write error
+match: (an error occurred while (updating|installing) .{1,80})?\(disk write error\)
+level: yellow
+title: Steam could not save game files
+say: Steam could not write the game's files to the drive. The drive may be full, or a game file is still in use.
+do: Restart Steam and try again. If it happens again, check the drive's space and health.
+fix: open:drivehealth
+example: An error occurred while updating Cyberpunk 2077 (disk write error)
+
+id: steam-file-locked
+match: content file locked
+match: corrupt (update files|disk|content)
+level: yellow
+title: Steam could not finish the update
+say: Steam found a game file it could not change or that came down damaged.
+do: Restart the PC, then in Steam use Verify integrity of game files on that game.
+example: An error occurred while updating Starfield (content file locked)
+
+id: steam-missing-exe
+match: missing executable
+match: failed to start game \(missing executable\)
+level: green
+title: Steam can't find the game's program
+say: The game's start-up file is missing, often after a broken download or a virus checker moving it.
+do: In Steam use Verify integrity of game files on that game. Check Always-On Guard did not lock it away.
+fix: open:guard
+example: Failed to start game (missing executable).
+
+id: steam-offline
+match: steam needs to be online to update
+match: could not connect to (the )?steam network
+match: steam (is|was) unable to (sync|connect)
+level: green
+title: Steam can't reach the internet
+say: Steam could not connect to its servers. Either the internet is down here or Steam's servers are busy.
+do: Check the internet. If it works, wait a little; Steam's servers are sometimes down for a while.
+fix: askpc:restart-internet
+example: Could not connect to the Steam network. This may be caused by a problem with your internet connection.
+
+id: gpu-device-removed
+match: dxgi_error_device_(removed|hung|reset)
+match: (gpu|graphics) (crash|crashed|device (was )?(lost|removed))
+match: vk_error_device_lost
+level: yellow
+title: The graphics card stopped answering
+say: The game pushed the graphics card until it stopped answering, so the game closed. It is usually the game or the driver, rarely the card.
+do: Restart the game. If it keeps happening, lower the game's graphics settings and check for driver updates.
+fix: open:autopilot
+example: DXGI_ERROR_DEVICE_REMOVED: The GPU device instance has been suspended.
+example: vkQueueSubmit failed: VK_ERROR_DEVICE_LOST
+
+id: gpu-vulkan
+match: vk_error_incompatible_driver
+match: vkcreateinstance failed
+match: vulkan (is not supported|not supported|initiali[sz]ation failed|1\.\d is required)
+match: (requires|needs) (a )?(directx|dx) ?1[12]( capable| compatible)?( graphics card| gpu)?
+level: yellow
+title: The graphics card can't run this
+say: This program needs graphics features (Vulkan or DirectX 11/12) that the graphics card or its driver does not give it.
+do: Check for driver updates. If the card is old, Will It Run? can say if the program will ever work here.
+fix: open:autopilot
+example: vkCreateInstance failed with VK_ERROR_INCOMPATIBLE_DRIVER
+example: This game requires a DirectX 12 compatible graphics card
+
+id: gpu-opengl
+match: opengl (\d\.\d|es \d\.\d) (or (later|higher|newer) )?(is )?(required|not supported)
+match: (requires|needs) opengl \d\.\d
+level: yellow
+title: The graphics card is too old for this program
+say: This program needs a newer kind of graphics (OpenGL) than this graphics card or driver gives it.
+do: Check for driver updates first. If nothing changes, the card may be too old for this program.
+fix: open:autopilot
+example: OpenGL 3.3 is required to run this application
+
+id: gpu-amd-reset
+match: amdgpu.{0,40}(ring \S+ timeout|gpu reset|gpu recovery)
+log: yes
+level: yellow
+title: The graphics card froze and was restarted
+say: The graphics card froze for a moment and ForgeOS restarted it. A game or program may have closed.
+do: If it happens again, check for driver updates. If it happens often, the card may be overheating; Why Is It Slow? checks heat.
+fix: open:autopilot
+example: amdgpu 0000:03:00.0: amdgpu: ring gfx_0.0.0 timeout, signaled seq=1234, emitted seq=1236
+example: amdgpu: GPU reset begin!
+
+id: gpu-nvidia-xid
+match: nvrm: xid \(\S+\): (13|31|43|45|61|62|69|79|119)\b
+log: yes
+level: yellow
+title: The NVIDIA graphics card had a problem
+say: The NVIDIA graphics card reported a fault. Often it is one game or program; if it is fault 79 the card fell off the bus.
+do: Check for driver updates. If it happens often, ask Forge Helper; the card may be overheating or need its power checked.
+fix: open:autopilot
+example: NVRM: Xid (PCI:0000:01:00): 79, pid=1234, GPU has fallen off the bus.

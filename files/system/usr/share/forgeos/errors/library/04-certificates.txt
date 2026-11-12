@@ -1,0 +1,57 @@
+# Website safety certificates: a warning can mean a fake site
+
+id: cert-date
+match: net::err_cert_date_invalid
+match: sec_error_expired_certificate
+match: (your clock is (behind|ahead)|certificate (has )?expired)
+level: yellow
+title: The website's safety check failed (date)
+say: The website's safety certificate looks out of date. Often the PC's clock is wrong; sometimes the site forgot to renew it.
+do: Check the date and time on this PC. If they are right, do not type passwords or card numbers on that site.
+fix: settings:kcm_clock
+example: Your connection is not private. NET::ERR_CERT_DATE_INVALID
+example: Your clock is behind
+
+id: cert-authority
+match: net::err_cert_authority_invalid
+match: sec_error_unknown_issuer
+match: mozilla_pkix_error_self_signed_cert
+level: red
+title: This website may be a fake
+say: The website could not prove who it is. It may be a fake copy of a real site, or someone may be listening in.
+do: Do not type passwords or card numbers. Close the page. If it is your bank or a store, type its address yourself.
+fix: open:scamshield
+example: Your connection is not private. Attackers might be trying to steal your information. NET::ERR_CERT_AUTHORITY_INVALID
+
+id: cert-name
+match: net::err_cert_common_name_invalid
+match: ssl_error_bad_cert_domain
+level: red
+title: This website is not who it says
+say: The website's safety certificate belongs to a different site. It may be a fake site.
+do: Do not type passwords or card numbers. Close the page and type the real address yourself.
+fix: open:scamshield
+example: This server could not prove that it is bank-of-amerlca.com. NET::ERR_CERT_COMMON_NAME_INVALID
+
+id: cert-generic
+general: yes
+match: your connection is not private
+match: (warning: )?potential security risk ahead
+match: (net::)?err_cert_[a-z_]+
+level: red
+title: The website's safety check failed
+say: The browser could not check that this website is safe and real. It could be a fake site.
+do: Do not type passwords or card numbers. Close the page. If it is your bank or a store, type its address yourself.
+fix: open:scamshield
+example: Warning: Potential Security Risk Ahead
+example: NET::ERR_CERT_REVOKED
+
+id: ssl-protocol
+match: err_ssl_protocol_error
+match: err_ssl_version_or_cipher_mismatch
+match: (secure connection failed|ssl_error_[a-z_]+)
+level: yellow
+title: The website's safe connection did not work
+say: The browser and the website could not agree on a safe way to talk. The site may be very old or set up wrong.
+do: Try again later. Do not type passwords or card numbers on that site until it works normally.
+example: This site can't provide a secure connection. ERR_SSL_PROTOCOL_ERROR

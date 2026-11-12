@@ -35,9 +35,16 @@ CARD = ("report_card", r"report ?card|how (healthy|good|well) is (my|this|the) (
 # helper, the report card and slowness win first; it comes before the other PC problems like Wi-Fi).
 SHOW = ("show_me", r"\bshow me (how|where (to|do i) click)\b|walk me through|guide me (through|to)|"
                    r"where do i click|point (to|at|out) (it|where|the)")
+# Plain-English Errors (Job 23): an error's words or code go right after Show Me How ("show me how to fix
+# this error" is a walk); loose words ("it shows an error") only right after the other PC problems (Wi-Fi...).
+ERR = ("explain_error", r"what does (this|that|the|my|it) .{0,20}(error|message|code|warning) mean|"
+                        r"explain (this|that|the) (error|message)|\b(error|stop) (code|number)\b|\b0x[0-9a-f]{8}\b|"
+                        r"\berr_[a-z_]{4,}|\.dll\b.{0,30}(missing|not found)")
+ERR2 = ("explain_error", r"\b(error|warning) message\b|(got|getting|keep getting|says|said|shows|showing|popped up with)"
+                         r" (an |this |a )?(weird |strange )?error\b")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 AT3 = [tool for tool, _rx in RULES].index("pc_question")
-RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW, SHOW] + RULES[AT3:]
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW, SHOW, ERR] + RULES[AT3:AT3 + 1] + [ERR2] + RULES[AT3 + 1:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
 COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
@@ -69,7 +76,7 @@ def match(question):
                 return (tool, "bigger" if EVEN_BIGGER.search(q) else "big")
             if tool == "will_it_run":
                 return (tool, program_name(q))
-            if tool in ("scam_check", "find", "pc_question", "help_answer", "show_me"):
+            if tool in ("scam_check", "find", "pc_question", "help_answer", "show_me", "explain_error"):
                 return (tool, q)
             return (tool, "")
     return None

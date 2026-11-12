@@ -1,0 +1,105 @@
+# Wi-Fi and internet (NetworkManager and the Plasma network pop-ups)
+
+id: wifi-password
+match: no secrets were provided
+match: secrets were required,? but not provided
+match: (802\.1x supplicant (took too long|failed)|the supplicant timed out)
+match: no-secrets
+match: (wrong|incorrect|invalid) (wi-?fi|wireless|network) (password|key)
+log: yes
+level: green
+title: The Wi-Fi password was not accepted
+say: The Wi-Fi network did not accept the password, so the PC could not join it.
+do: Check the password on the router's sticker (capital letters matter) and type it again in the Wi-Fi settings.
+show: wifi
+example: Connection 'HomeNet' deactivated. No secrets were provided.
+example: Error: Connection activation failed: Secrets were required, but not provided.
+
+id: wifi-not-found
+match: (the )?wi-?fi network could not be found
+match: no network with ssid
+match: ssid-not-found
+level: green
+title: The Wi-Fi network is out of reach
+say: The PC can't see that Wi-Fi network right now. The router may be off, too far away, or restarting.
+do: Move closer to the router or check it is on, then pick the network again.
+show: wifi
+example: The Wi-Fi network could not be found
+example: Error: No network with SSID 'HomeNet' found.
+
+id: net-no-address
+match: ip configuration could not be reserved
+match: (dhcp|ip-config)[\w -]{0,20}(failed|timeout|unavailable)
+match: the device could not get an ip
+log: yes
+level: yellow
+title: The router did not let the PC in
+say: The PC joined the network, but the router did not give it an address, so the internet can't work.
+do: Turn the router off, wait 30 seconds, and turn it on again. Then use the Fix it button.
+fix: askpc:restart-internet
+example: The IP configuration could not be reserved (no available address, timeout, etc.)
+
+id: net-activation-failed
+general: yes
+match: connection activation failed
+match: connection '.{1,60}' deactivated
+level: green
+title: The network connection did not start
+say: The PC tried to connect to the network but it did not work this time.
+do: The Fix it button turns the connection off and on again.
+fix: askpc:restart-internet
+example: Error: Connection activation failed: (53) The Wi-Fi network could not be connected.
+
+id: net-dns
+match: temporary failure in name resolution
+match: (could not|couldn.?t) resolve host
+match: name or service not known
+match: (unable to|could not) look up
+level: yellow
+title: The PC can't look up internet addresses
+say: The PC can't turn website names into addresses right now. Usually the internet or the router is down.
+do: Check the router's lights. The Fix it button turns the connection off and on again.
+fix: askpc:restart-internet
+example: curl: (6) Could not resolve host: example.com
+example: Temporary failure in name resolution
+
+id: net-unreachable
+match: network is unreachable
+match: no route to host
+level: yellow
+title: The PC is not on a network
+say: The PC is not connected to any network that leads to the internet.
+do: Check the Wi-Fi or the network cable. The Fix it button turns the connection off and on again.
+fix: askpc:restart-internet
+show: wifi
+example: connect: Network is unreachable
+
+id: net-limited
+match: (limited|no) connectivity
+match: connected,? (but )?no internet
+match: (network|internet) connection (lost|dropped|was lost)
+level: green
+title: Connected, but no internet
+say: The PC is on the network, but the network itself has no internet right now.
+do: Check the router and the internet company's lights. Turn the router off and on if needed.
+fix: askpc:restart-internet
+example: Limited connectivity
+example: Network connection lost
+
+id: net-captive
+match: (sign in to|log ?in to) (the )?(wi-?fi )?network
+match: captive portal
+level: green
+title: This Wi-Fi wants you to sign in
+say: Public Wi-Fi (hotel, airport, café) wants you to accept its terms on a web page before the internet works.
+do: Open the browser and accept the terms. Do not type bank passwords on public Wi-Fi.
+example: Sign in to Wi-Fi network
+
+id: vpn-failed
+match: vpn connection (failed|error)
+match: (openvpn|wireguard|vpn).{0,30}(failed|could not|error)
+level: green
+title: The VPN did not connect
+say: The private tunnel (VPN) could not connect. The normal internet still works without it.
+do: Try again. If it keeps failing, check the VPN account's settings or ask your helper.
+example: VPN connection failed: the VPN service stopped unexpectedly

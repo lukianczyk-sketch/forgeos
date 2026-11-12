@@ -1,0 +1,120 @@
+# Websites: page codes and "can't reach" errors in the browser
+
+id: web-404
+match: \b404\b.{0,20}(not found|page|error)
+match: (error|http) 404
+match: page (you (requested|were looking for)|was) not found
+level: green
+title: That web page does not exist
+say: The website is working, but the page you asked for is not there. The link may be old or typed wrong.
+do: Check the address for typos, or go to the site's home page and search there.
+example: 404 Not Found - The requested URL was not found on this server.
+
+id: web-403
+match: \b403\b.{0,15}forbidden
+match: (error|http) 403
+level: green
+title: The website won't show this page
+say: The website is working but does not allow you to see this page.
+do: You may need to sign in first. If you followed a link, the page may be private.
+example: 403 Forbidden
+
+id: web-401
+match: \b401\b.{0,15}(unauthori[sz]ed|authorization required)
+level: green
+title: The website wants you to sign in
+say: This page needs a user name and password before it will open.
+do: Sign in on the website's own page. Never type your password into a pop-up you did not expect.
+example: 401 Unauthorized
+
+id: web-429
+match: \b429\b.{0,15}too many requests
+match: too many requests
+level: green
+title: The website says slow down
+say: The website got too many visits from here in a short time and asked you to wait.
+do: Wait a few minutes, then try again.
+example: 429 Too Many Requests
+
+id: web-500
+match: \b500\b.{0,15}internal server error
+match: internal server error
+level: green
+title: The website is having a problem
+say: The website itself broke for a moment. It is not your PC or your internet.
+do: Wait a few minutes and reload the page (press F5).
+example: 500 Internal Server Error
+
+id: web-502-504
+match: \b50[234]\b.{0,15}(bad gateway|service (temporarily )?unavailable|gateway time-?out)
+match: (bad gateway|service (temporarily )?unavailable|gateway time-?out)
+level: green
+title: The website is down or busy
+say: The website's computers are down, busy or being worked on. It is not your PC or your internet.
+do: Wait a while and reload the page (press F5).
+example: 502 Bad Gateway
+example: 503 Service Temporarily Unavailable
+
+id: web-nxdomain
+match: dns_probe_finished_nxdomain
+match: err_name_not_resolved
+match: (server ip address could not be found|we.?re having trouble finding that site)
+level: green
+title: That website address was not found
+say: The PC asked for this website's address and nobody knows it. The name may be typed wrong, or the site is gone.
+do: Check the spelling of the address. If every website does this, the internet is down; try restarting it.
+fix: askpc:restart-internet
+example: This site can't be reached. Check if there is a typo in example.cmo. DNS_PROBE_FINISHED_NXDOMAIN
+
+id: web-no-internet
+match: err_internet_disconnected
+match: dns_probe_finished_no_internet
+match: (you are|you.?re) offline
+match: no internet( connection)?\b
+level: yellow
+title: The internet is not connected
+say: This PC is not connected to the internet right now, so no website can open.
+do: Check the Wi-Fi or cable. The Fix it button turns the connection off and on again.
+fix: askpc:restart-internet
+show: wifi
+example: No internet. ERR_INTERNET_DISCONNECTED
+
+id: web-timeout
+match: err_connection_timed_out
+match: err_timed_out
+match: (took too long to respond|the connection has timed out)
+level: green
+title: The website did not answer
+say: The website took too long to answer. It may be busy, or the internet here is slow or down.
+do: Reload the page (press F5). If no website opens, restart the internet.
+fix: askpc:restart-internet
+example: This site can't be reached. example.com took too long to respond. ERR_CONNECTION_TIMED_OUT
+
+id: web-refused
+match: err_connection_refused
+match: err_connection_reset
+match: (refused to connect|unable to connect|the connection was reset)
+level: green
+title: The website would not connect
+say: The website turned the connection away or cut it off. Usually the site is down, sometimes a blocker stopped it.
+do: Try again in a few minutes. If only this site does it, the problem is on their side.
+example: This site can't be reached. example.com refused to connect. ERR_CONNECTION_REFUSED
+
+id: web-network-changed
+match: err_network_changed
+match: err_address_unreachable
+level: green
+title: The connection changed while loading
+say: The internet connection changed or dropped while the page was loading.
+do: Reload the page (press F5).
+example: Your connection was interrupted. A network change was detected. ERR_NETWORK_CHANGED
+
+id: web-redirects
+match: err_too_many_redirects
+match: redirected you too many times
+match: the page isn.?t redirecting properly
+level: green
+title: The website is going in circles
+say: The website keeps sending the browser back and forth between pages. Often an old saved login confuses it.
+do: Sign out of the site and back in. If that does not help, clear that site's cookies in the browser.
+example: This page isn't working. example.com redirected you too many times. ERR_TOO_MANY_REDIRECTS

@@ -1,0 +1,94 @@
+# The PC itself: crashes, background parts, heat, time
+
+id: segfault
+match: segmentation fault
+match: \(core dumped\)
+match: (segfault|general protection( fault)?) (at|ip)
+level: green
+title: A program crashed
+say: The program had a fault inside itself and stopped. This is a fault in the program, not a virus and not your PC.
+do: Open it again. If it keeps happening, an update to that program usually fixes it.
+example: Segmentation fault (core dumped)
+
+id: closed-unexpectedly
+match: (closed|quit|exited|stopped) unexpectedly
+match: has (stopped working|crashed)
+match: (the application|this program) (crashed|has crashed)
+level: green
+title: A program closed by itself
+say: The program stopped working and closed. This happens now and then; it is not a virus.
+do: Open it again. Anything you saved is safe.
+example: Dolphin closed unexpectedly.
+
+id: service-failed
+match: failed to start .{1,80}(service|daemon)
+match: \.service: (main process exited|failed with result)
+log: yes
+level: yellow
+title: A background part of the PC did not start
+say: One of the small programs that run in the background did not start. Most of the time you won't notice anything.
+do: Restart the PC. If it keeps happening, Ask Your PC can check the PC's health.
+fix: open:askpc
+example: Failed to start bluetooth.service - Bluetooth service.
+example: cups.service: Failed with result 'exit-code'.
+
+id: heat-throttle
+match: (temperature|thermal).{0,40}(above threshold|critical|throttl)
+match: (cpu|gpu|package) (clock )?throttled
+match: (overheat|over-heat|too hot)
+log: yes
+level: yellow
+title: The PC is getting too hot
+say: The PC got hot and slowed itself down to cool off. Dust in the fans or a blocked air vent is the usual cause.
+do: Keep the air vents clear (not on a bed or blanket). Why Is It Slow? checks the heat and what is working hard.
+fix: open:slow
+example: CPU0: Package temperature above threshold, cpu clock throttled
+
+id: clock-wrong
+match: (clock|time) (is |seems |appears )?(wrong|incorrect|not set|out of sync)
+match: (system )?time (is )?(in the future|in the past)
+level: yellow
+title: The PC's clock is wrong
+say: The PC's date or time is wrong. Websites check the date, so many sites stop working when it is off.
+do: Open the date and time settings and turn on Set date and time automatically.
+fix: settings:kcm_clock
+example: Your computer's clock is wrong
+
+id: battery
+match: battery (is )?(low|critical|very low|nearly empty)
+match: (low|critical) battery
+level: yellow
+title: The battery is almost empty
+say: The laptop's battery is nearly empty. It will shut down soon.
+do: Plug in the charger now and save your work.
+example: Battery Low: 5% remaining
+
+id: power-supply
+match: (charger|power adapter|ac adapter) (is )?(not (charging|recogni[sz]ed|supported)|too weak|underpowered)
+match: (plugged in,? )?not charging
+level: green
+title: The laptop is not charging
+say: The laptop sees the charger but is not charging, or the charger is too weak.
+do: Check both ends of the cable. Use the charger that came with the laptop.
+example: Plugged in, not charging
+
+id: kernel-mce
+match: (machine check|mce:).{0,40}(error|hardware error)
+match: hardware error
+log: yes
+level: yellow
+title: The PC's hardware reported a fault
+say: A part inside the PC (often memory or the processor) reported a fault. Once can be chance; often means a part may be failing.
+do: If it happens again, ask your helper or a repair shop to test the memory. PC Report Card checks the health.
+fix: open:askpc
+example: mce: [Hardware Error]: Machine check events logged
+
+id: login-failed
+match: (session|login) (could not be started|failed to start)
+match: (could not|failed to) start (the )?(desktop|session|plasma)
+level: yellow
+title: The desktop did not start
+say: Logging in did not finish starting the desktop.
+do: Restart the PC and log in again. If it keeps happening, call your helper.
+fix: family-call
+example: Could not start the desktop session

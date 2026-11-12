@@ -1,0 +1,15 @@
+# ForgeOS - Plain-English Errors (Job 23): notices error pop-ups, crashes and hidden problems, and offers to
+# explain them in plain English. It never sends anything anywhere.
+[Unit]
+Description=ForgeOS Plain-English Errors - explains what went wrong in plain English
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/forgeos-errors watch
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,76 @@
+# Office, email and video calls
+
+id: mail-server
+match: (could not|unable to|failed to) (connect to|reach) (the )?(mail|imap|smtp|pop3?) server
+match: (imap|smtp|pop3?) (server )?(connection )?(failed|timed out|error)
+level: green
+title: Email could not reach the mail server
+say: The email program could not reach your email company's computer. The internet may be down, or their server is busy.
+do: Check the internet. If websites work, wait a few minutes and try again.
+fix: askpc:restart-internet
+example: Could not connect to the mail server imap.gmail.com
+
+id: mail-login
+match: (imap|smtp|mail|email).{0,30}(authentication|login) (failed|unsuccessful)
+match: (application-specific|app) password required
+level: green
+title: The email password was not accepted
+say: Your email company did not accept the password. Some (like Gmail) want a special app password or a sign-in through the browser.
+do: Show Me How can walk you through email set-up again. Never send your password in an email.
+show: email
+example: Login to server imap.mail.yahoo.com failed. Authentication failed
+
+id: mail-size
+match: \b(message|attachment|email)\b.{0,15}\b(too (large|big)|exceeds .{0,20}(maximum|size limit))
+match: 552 .{0,20}(size|exceed)
+level: green
+title: The email is too big to send
+say: The email with its attachments is bigger than your email company allows (often 20-25 MB).
+do: Send fewer or smaller pictures, or send them in two emails.
+example: Sending failed: message size exceeds fixed maximum message size
+
+id: mail-bounce
+match: (undeliverable|delivery status notification \(failure\)|mail delivery (failed|subsystem)|address not found)
+match: 550 .{0,30}(user unknown|no such user|does not exist|mailbox unavailable)
+level: green
+title: The email did not arrive
+say: The email came back: the address may be typed wrong or no longer works.
+do: Check the spelling of the address and send it again. Be careful: fake "undeliverable" emails with links are a common trick.
+example: Delivery Status Notification (Failure) - Address not found
+
+id: office-recovery
+match: (document recovery|recover(ed)? (the )?documents?|autorecover)
+match: (libreoffice|soffice).{0,30}(crash|closed unexpectedly)
+level: green
+title: The office program is getting your work back
+say: The office program closed unexpectedly last time and saved a recovery copy of your work.
+do: Click Start Recovery (or Recover) and then save the file again.
+example: LibreOffice Document Recovery: Due to an error, LibreOffice crashed.
+
+id: call-no-audio
+match: (others|they|participants) can.?t hear you
+match: (your )?(microphone|mic|audio) (is )?not working
+level: green
+title: Others can't hear you on the call
+say: The call program is not getting sound from your microphone.
+do: Check you are not muted in the call. Show Me How can show where to pick the right microphone.
+show: microphone
+example: Others can't hear you. Check your microphone.
+
+id: call-connection
+match: (poor|unstable|weak) (network |internet )?connection
+match: (internet|network) connection is (unstable|poor|weak)
+match: (reconnecting|connection (lost|interrupted))\W*\.{0,3}$
+level: green
+title: The call's internet connection is weak
+say: The internet is too slow or unsteady for a smooth video call right now.
+do: Move closer to the Wi-Fi, close other downloads, or turn your video off to keep the sound.
+example: Your internet connection is unstable
+
+id: print-pdf
+match: (could not|unable to|failed to) (save|export|print) (to |as )?pdf
+level: green
+title: Saving as PDF did not work
+say: The PDF could not be saved, often because the place you picked is full or read-only.
+do: Save it to your Documents folder instead.
+example: Failed to save as PDF

@@ -1,0 +1,69 @@
+# Space and memory
+
+id: disk-full
+match: no space left on device
+match: (disk|drive|storage) (is )?full
+match: not enough (disk |free )?space
+match: running out of disk space
+match: low disk space
+log: yes
+level: yellow
+title: The drive is full
+say: The drive has no free space left, so files can't be saved and programs can act strangely.
+do: Why Is It Slow? shows what takes the space and frees it up safely. Empty the trash too.
+fix: open:slow
+example: cp: error writing 'video.mp4': No space left on device
+example: Your Home folder is running out of disk space, you have 512 MiB remaining
+
+id: disk-quota
+match: disk quota exceeded
+level: yellow
+title: Your share of the drive is full
+say: You have used all the space you are allowed on this drive.
+do: Delete or move files you don't need. Why Is It Slow? can show what is big.
+fix: open:slow
+example: write failed: Disk quota exceeded
+
+id: oom-killed
+match: out of memory: killed process
+match: killed process \d+ \(\S+\).{0,80}(oom|memory)
+match: (oom-kill|oom_reaper)
+log: yes
+level: yellow
+title: A program was closed to free up memory
+say: The PC ran out of memory, so it closed the biggest program to keep everything else working.
+do: Close programs and browser tabs you are not using. Why Is It Slow? shows what uses the memory.
+fix: open:slow
+example: Out of memory: Killed process 4242 (brave) total-vm:9801234kB
+example: oom-kill:constraint=CONSTRAINT_NONE,task=chrome
+
+id: oomd-killed
+match: systemd-oomd.{0,40}killed
+match: killed .{1,120} due to memory (pressure|used)
+log: yes
+level: yellow
+title: The PC closed a program to stay fast
+say: Memory was nearly full and the PC was getting stuck, so it closed one program to keep the rest working.
+do: Close programs and tabs you don't need. Why Is It Slow? shows what uses the most memory.
+fix: open:slow
+example: systemd-oomd[812]: Killed /user.slice/user-1000.slice/app-firefox.scope due to memory pressure
+
+id: no-memory
+match: cannot allocate memory
+match: (not enough|insufficient|out of) memory
+level: yellow
+title: Not enough memory for that
+say: There was not enough free memory to do that.
+do: Close programs and tabs you don't need, then try again.
+fix: open:slow
+example: fork: Cannot allocate memory
+
+id: swap-full
+match: swap (is )?(full|exhausted)
+match: (free swap|swap space) (is )?(low|exhausted)
+level: yellow
+title: The PC's spare memory is full
+say: The PC's spare memory on the drive (swap) is used up, so things may slow down or close.
+do: Close programs you don't need. Why Is It Slow? shows what uses the memory.
+fix: open:slow
+example: Free swap = 0kB. Swap is exhausted

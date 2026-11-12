@@ -1,0 +1,3 @@
+{"type":"signal","endian":"l","flags":1,"version":1,"cookie":2,"timestamp-realtime":1800000000100000,"sender":"org.freedesktop.DBus","destination":":1.9","path":"/org/freedesktop/DBus","interface":"org.freedesktop.DBus","member":"NameAcquired","payload":{"type":"s","data":[":1.9"]}}
+{"type":"method_call","endian":"l","flags":0,"version":1,"cookie":7,"timestamp-realtime":1800000001200000,"sender":":1.50","destination":"org.freedesktop.Notifications","path":"/org/freedesktop/Notifications","interface":"org.freedesktop.Notifications","member":"Notify","payload":{"type":"susssasa{sv}i","data":["Printer Manager",0,"printer","Printer \"HP\" stopped","Filter failed.\nCheck the driver.",["default"],{"urgency":{"type":"y","data":1}},-1]}}
+not json at all

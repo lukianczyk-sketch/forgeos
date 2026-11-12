@@ -1,0 +1,106 @@
+# Windows programs (Wine, Proton, Bottles): missing parts they need to start
+
+id: win-0xc000007b
+match: 0xc000007b
+match: application was unable to start correctly \(0x0*c000007b\)
+level: green
+title: A Windows program could not start
+say: This Windows program is missing a part it needs to start, or a part of the wrong kind (32-bit or 64-bit) got mixed in.
+do: Your files are fine. Open Will It Run? to check this program and the best way to run it on ForgeOS.
+fix: open:willitrun
+example: The application was unable to start correctly (0xc000007b). Click OK to close the application.
+
+id: win-vcruntime
+match: (msvcp|vcruntime)14\d(_\d)?\.dll
+match: api-ms-win-crt-[a-z-]+l1-1-0\.dll
+level: green
+title: A Windows program is missing a helper part
+say: This Windows program needs a free helper package from Microsoft (Visual C++ 2015-2022) that is not set up for it yet.
+do: Nothing is broken. Open Will It Run? to check the program; running it through Steam or Bottles usually adds the part by itself.
+fix: open:willitrun
+example: The code execution cannot proceed because MSVCP140.dll was not found. Reinstalling the program may fix this problem.
+example: The program can't start because VCRUNTIME140_1.dll is missing from your computer.
+example: api-ms-win-crt-runtime-l1-1-0.dll is missing
+
+id: win-vcruntime-old
+match: msvc[pr](100|110|120|71|80|90)\.dll
+level: green
+title: A Windows program needs an older helper part
+say: This older Windows program needs an older free helper package from Microsoft (Visual C++ 2005-2013) that is not set up for it.
+do: Nothing is broken. Open Will It Run? to check the program and the best way to run it.
+fix: open:willitrun
+example: The program can't start because MSVCR100.dll is missing from your computer.
+
+id: win-directx9
+match: (d3dx9_\d\d|d3dx10_\d\d|d3dx11_\d\d|xinput1_[1-3]|x3daudio1_\d|xapofx1_\d|d3dcompiler_4[0-6])\.dll
+level: green
+title: A game is missing its DirectX parts
+say: This Windows game needs the old free DirectX parts from Microsoft that are not set up for it yet.
+do: Open the game through Steam if you can (it adds them by itself), or open Will It Run? to check it.
+fix: open:willitrun
+example: The program can't start because d3dx9_43.dll is missing from your computer.
+example: XINPUT1_3.dll was not found
+
+id: win-dotnet
+match: 0xc0000135
+match: \.net framework (\d[\d.]*|runtime)( or later)? (is )?(required|must be installed|not (found|installed))
+match: (to run this application, you must install|you must install or update) \.net
+match: mscoree\.dll
+level: green
+title: A Windows program needs .NET
+say: This Windows program is built with Microsoft .NET, a free part it needs that is not set up for it yet.
+do: Open Will It Run? to check the program and the best way to run it on ForgeOS.
+fix: open:willitrun
+example: To run this application, you must install .NET Desktop Runtime 6.0
+example: The application was unable to start correctly (0xc0000135).
+
+id: win-0xc0000142
+match: 0xc0000142
+level: green
+title: A Windows program failed while starting
+say: One of the parts this Windows program loads at start-up did not start properly.
+do: Try it once more. If it happens again, open Will It Run? to check the program.
+fix: open:willitrun
+example: The application was unable to start correctly (0xc0000142).
+
+id: win-access-violation
+match: 0xc0000005
+match: access violation (at|reading|writing) (address|location)
+level: green
+title: A Windows program crashed
+say: The Windows program tried to use memory it was not allowed to use, so it stopped. This is a fault in the program, not in your PC.
+do: Open it again. If it keeps happening, check for an update to the program, or open Will It Run?.
+fix: open:willitrun
+example: Exception 0xc0000005: Access violation reading location 0x00000000
+
+id: win-page-fault
+match: unhandled (page fault|exception)
+match: wine: unhandled
+level: green
+title: A Windows program stopped working
+say: The Windows program ran into a problem inside itself and stopped. Your PC is fine.
+do: Open it again. If it keeps happening, open Will It Run? to see the best way to run it.
+fix: open:willitrun
+example: wine: Unhandled page fault on read access to 0000000000000000 at address 0000000140012345
+
+id: win-wine-dll
+match: err:module:import_dll library \S+ \S* ?not found
+match: err:module:import_dll
+level: green
+title: A Windows program is missing a part
+say: The Windows program needs a part (a file it loads) that is not there.
+do: Open Will It Run? to check this program and the best way to run it.
+fix: open:willitrun
+example: err:module:import_dll Library MFC42.DLL (which is needed by L"C:\\Program Files\\Old\\app.exe") not found
+
+id: win-cant-run
+match: this app can.?t run on your pc
+match: not a valid win32 application
+match: (is )?not compatible with the version of windows
+level: green
+title: This program does not fit this PC
+say: This program was made for a different kind of computer or an older or newer Windows.
+do: Open Will It Run? to see if there is a version or a way that works here.
+fix: open:willitrun
+example: This app can't run on your PC. To find a version for your PC, check with the software publisher.
+example: setup.exe is not a valid Win32 application.

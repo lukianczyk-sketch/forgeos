@@ -1,0 +1,109 @@
+# Updates and installing apps (rpm-ostree, Flatpak, Bazaar)
+
+id: update-failed
+match: rpm-ostree.{0,80}(error|failed)
+match: (system |os )?update(s)? (failed|could not be (installed|applied)|did not (finish|work))
+match: failed to (update|upgrade|deploy)
+log: yes
+level: yellow
+title: An update did not finish
+say: A ForgeOS update could not finish. Nothing was changed: the PC keeps working on the version it has.
+do: Make sure the internet works and try again later. It usually fixes itself on the next try.
+show: updates
+example: error: rpm-ostree upgrade failed: Could not depsolve transaction
+example: System update failed
+
+id: update-reboot
+match: (restart|reboot) (is )?(required|needed|pending) to (finish|complete|apply)
+match: pending (deployment|reboot)
+level: green
+title: Restart to finish the update
+say: An update is ready and waiting. It takes effect the next time the PC starts.
+do: Restart the PC when it suits you. Save your work first.
+example: A restart is required to finish installing updates
+
+id: flatpak-remote
+match: unable to load summary from remote
+match: no remote refs found
+match: (remote|repository) .{1,40} not found
+level: green
+title: The app store could not be reached
+say: The app store (Flathub) could not be reached or answered with nothing. Usually the internet or the store is down for a moment.
+do: Check the internet, then try again in a few minutes.
+fix: askpc:restart-internet
+example: error: Unable to load summary from remote flathub: Could not connect: Network is unreachable
+
+id: app-not-installed
+match: \b(app|application|program|package)\b.{0,60}\bnot installed
+match: (command|program) not found
+level: green
+title: That program is not on this PC
+say: The program that was asked for is not installed on this PC.
+do: Show Me How can walk you through installing an app from the app store.
+show: install-app
+example: error: app/org.videolan.VLC/x86_64/stable not installed
+example: bash: vlc: command not found
+
+id: app-install-failed
+match: (failed|unable) to install
+match: install(ation)? (failed|was not successful)
+level: green
+title: The program did not install
+say: Installing the program did not finish. Often the download was cut off or there was not enough space.
+do: Check the internet and the free space, then try again.
+fix: open:slow
+example: Installation failed: error: Failed to install org.gimp.GIMP
+
+id: app-checksum
+match: (checksum|signature|gpg) (mismatch|verification failed|invalid|is bad)
+match: (bad|invalid) signature
+match: no signatures found
+level: yellow
+title: A download did not pass its safety check
+say: The downloaded file is not exactly what the maker sent: it was damaged, or someone changed it.
+do: Do not run it. Try the download again from the official app store. If it fails again, ask your helper.
+fix: open:scamshield
+example: error: GPG verification enabled, but no signatures found
+example: Checksum mismatch for downloaded file
+
+id: appimage
+match: \.appimage.{0,40}(not executable|permission denied)
+match: error loading libfuse
+match: appimages? require fuse
+level: green
+title: This downloaded program won't open
+say: This AppImage program needs a yes before it can run, or an older part it expects is missing.
+do: Prefer the app store version of the same program. Will It Run? can check this file first.
+fix: open:willitrun
+example: dlopen(): error loading libfuse.so.2. AppImages require FUSE to run.
+
+id: windows-installer
+match: \.(exe|msi) (file )?(cannot|can.?t) be opened
+match: (no application|no app).{0,60}\.(exe|msi)\b
+level: green
+title: This is a Windows program
+say: This file is a Windows program. ForgeOS can run many of them, but checks them first.
+do: Open Will It Run? and pick the file; it scans it for viruses and says the best way to run it.
+fix: open:willitrun
+example: No application is registered as handling this file (setup.exe)
+
+id: firmware-update
+match: (fwupd|firmware).{0,40}(failed|error)
+log: yes
+level: green
+title: A device update did not finish
+say: An update for a device in the PC (its firmware) did not finish. The device keeps its old version and keeps working.
+do: Driver & BIOS Autopilot tries again by itself. Open it to see what happened.
+fix: open:autopilot
+example: fwupd: failed to write firmware: device is busy
+
+id: driver-missing
+match: (no driver|driver (is )?(not )?(found|missing|loaded)|could not load (the )?driver)
+match: firmware: failed to load
+log: yes
+level: yellow
+title: A part of the PC has no driver
+say: A part of the PC (like Wi-Fi, sound or a camera) is missing the small program it needs to work.
+do: Open Driver & BIOS Autopilot; it finds and installs the right free driver if there is one.
+fix: open:autopilot
+example: iwlwifi 0000:00:14.3: firmware: failed to load iwlwifi-so-a0-gf-a0-89.ucode (-2)

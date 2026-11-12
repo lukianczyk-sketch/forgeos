@@ -1,0 +1,81 @@
+# Browser: crashed tabs, blocked things, downloads and media
+
+id: web-blocked-client
+match: err_blocked_by_client
+match: err_blocked_by_administrator
+level: green
+title: This part of the page was blocked
+say: The browser's blocker stopped this part of the page, usually because it looked like an ad or a tracker.
+do: That is normal and keeps you safe. If a site you trust does not work, turn its shield off for that site only.
+example: This page has been blocked by Brave. ERR_BLOCKED_BY_CLIENT
+
+id: web-cache-miss
+match: err_cache_miss
+match: confirm form resubmission
+level: green
+title: The browser asks before sending a form again
+say: You went back to a page that sent a form. Sending it again could do it twice (like paying twice).
+do: Do not reload if it was a payment or an order. Go to the site's home page instead.
+example: Confirm Form Resubmission. ERR_CACHE_MISS
+
+id: web-aw-snap
+match: aw,? snap
+match: (he.?s dead,? jim)
+match: (sad_tab|status_access_violation|result_code_hung|out of memory) ?(error code)?
+level: green
+title: The web page crashed
+say: The browser tab stopped working. Only that tab closed; the browser and your PC are fine.
+do: Reload the page (press F5). If it happens a lot, close some tabs.
+example: Aw, Snap! Something went wrong while displaying this webpage. Error code: STATUS_ACCESS_VIOLATION
+
+id: dl-failed
+match: failed\W+(network error|forbidden|no file|insufficient permissions|disk full|download error)
+match: download (failed|interrupted|was interrupted)
+level: green
+title: The download did not finish
+say: The file did not finish downloading: the internet dropped, the drive is full, or the site removed it.
+do: Try the download again. If it keeps failing, check the free space.
+fix: open:slow
+example: Failed - Network error
+example: Download interrupted
+
+id: dl-dangerous
+match: (this (type of )?file (can|may) harm your (computer|device)|dangerous (file|download))
+match: failed\W+virus (scan failed|detected)
+match: (download|file) (blocked|was blocked)( as)? (dangerous|unsafe|malicious)
+level: red
+title: The browser stopped a dangerous download
+say: The browser warns that this download may be harmful, or a virus was found in it.
+do: Do not keep or open it. Delete it. Always-On Guard shows what it caught.
+fix: open:guard
+example: This type of file can harm your computer. Do you want to keep setup.exe anyway?
+example: Failed - Virus detected
+
+id: deceptive-site
+match: deceptive site ahead
+match: (dangerous|suspicious|phishing|malware) (site|page) (ahead|blocked|detected)
+match: (reported|known) (attack|phishing|malware) (site|page)
+level: red
+title: The browser blocked a fake or dangerous site
+say: This website is known for stealing passwords or spreading viruses, so the browser stopped it.
+do: Do not go on. Close the tab. If an email or message sent you here, it was a scam.
+fix: open:scamshield
+example: Deceptive site ahead. Attackers on example-login.top may trick you into doing something dangerous.
+
+id: popup-blocked
+match: pop-?ups? (were |was )?blocked
+match: (pop-?up|window) blocked
+level: green
+title: The browser stopped a pop-up window
+say: The website tried to open a new window and the browser stopped it. That keeps you safe from pop-up ads and tricks.
+do: Nothing to do. If a site you trust needs it (like a bank's statement), allow pop-ups for that site only.
+example: Pop-ups were blocked on this page
+
+id: media-unsupported
+match: (video|audio|media|file) (format|type|codec) (is )?not supported
+match: (no video with supported format and mime type found|the media could not be loaded)
+level: green
+title: This video or sound can't play
+say: The browser or player does not support this kind of video or sound, or the file is damaged.
+do: Try another browser or open the file with VLC. Check that the file downloaded fully.
+example: No video with supported format and MIME type found.

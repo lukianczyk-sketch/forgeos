@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Explain This Error
+GenericName=What does this error mean?
+Comment=Explains the error on your screen (or the one you copied) in plain English, with one Fix it button
+Exec=/usr/bin/forgeos-errors-gui --explain
+Icon=dialog-question
+Terminal=false
+Categories=System;Utility;
+Keywords=error;explain;what does this mean;error message;error code;warning;problem;plain english;
+X-KDE-Shortcuts=Meta+Shift+E

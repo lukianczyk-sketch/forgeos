@@ -50,3 +50,6 @@
 {"q": "can you hear me", "tool": ["just_answer", "help_answer"], "not_tool": "panic"}
 {"q": "show me how to call my daughter so she can help", "tool": "family_call"}
 {"q": "show me how to fix my slow computer", "tool": "why_slow"}
+{"q": "what does this error mean: The code execution cannot proceed because MSVCP140.dll was not found", "tool": "explain_error"}
+{"q": "I keep getting an error that says ERR_NAME_NOT_RESOLVED", "tool": "explain_error"}
+{"q": "what does error code 0x80070005 mean", "tool": "explain_error"}

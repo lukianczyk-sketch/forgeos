@@ -1,6 +1,9 @@
 """Looks for the newer jobs (looks.py and tools.py are full). Same shape as tools.py: each returns (text, actions, level)."""
 from . import run
+from .actions import WINDOWS
 from .tools import SLOW, plain, win
+
+ERR_OPEN = {"open": "open", "askpc": "pc_fix", "showme": "showme"}
 
 
 def why_slow(_arg):
@@ -33,3 +36,23 @@ def show_me(arg):
     text = ("There is no built-in guide for that yet. Show Me How can still try with the private AI,"
             " pointing only at words that are really on your screen.")
     return text, [("showme", "ask:" + arg[:200], "Try Show Me How")], -1
+
+
+def explain_error(arg):
+    """Plain-English Errors (Job 23): the error's card. Only fixes the helper itself knows become buttons."""
+    code, out = run(["forgeos-errors", "explain", "-"], SLOW, stdin=arg)
+    if code != 0:
+        recent = [x.split("\t")[4] for x in run(["forgeos-errors", "recent", "7"], 20)[1].splitlines()
+                  if x.startswith("ITEM\t") and len(x.split("\t")) > 4][:3]
+        text = ("Copy the error's words and paste them here, or press Meta+Shift+E while the error is on the screen."
+                + (" This week: " + "; ".join(recent) + "." if recent else ""))
+        return text, win("errors", "Open What Went Wrong"), -1
+    acts = []
+    for line in out.splitlines():
+        p = line.split("\t")
+        kind, _, what = p[1].partition(":") if p[0] == "FIX" and len(p) == 3 else ("", "", "")
+        if kind in ERR_OPEN and (kind != "open" or what in WINDOWS):
+            acts.append((ERR_OPEN[kind], what, p[2]))
+        elif p[0] == "SHOW" and len(p) == 2:
+            acts.append(("showme", p[1], "Show me where to click"))
+    return plain(out), acts + win("errors", "Open What Went Wrong"), -1

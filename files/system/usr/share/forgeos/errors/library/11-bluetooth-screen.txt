@@ -1,0 +1,97 @@
+# Bluetooth, screens and the desktop
+
+id: bt-no-adapter
+match: no bluetooth adapters? (have been |were )?found
+match: bluetooth (adapter )?(is )?(not available|unavailable)
+level: yellow
+title: The PC has no working Bluetooth
+say: The PC can't find its Bluetooth part. It may be switched off, missing, or need a driver.
+do: Check for a Bluetooth or airplane key on a laptop. Driver & BIOS Autopilot checks for a missing driver.
+fix: open:autopilot
+example: No Bluetooth adapters have been found.
+
+id: bt-off
+match: org\.bluez\.error\.notready
+match: bluetooth (is )?(off|disabled|turned off|blocked)
+level: green
+title: Bluetooth is turned off
+say: Bluetooth is turned off, so headphones, mice and phones can't connect.
+do: Turn Bluetooth on in the Bluetooth settings (or the Bluetooth icon at the bottom right).
+fix: settings:kcm_bluetooth
+example: org.bluez.Error.NotReady: Resource Not Ready
+example: Bluetooth is disabled
+
+id: bt-auth
+match: org\.bluez\.error\.authentication(failed|rejected|canceled|timeout)
+match: (pairing|authentication) (failed|was rejected|timed out)
+level: green
+title: The Bluetooth device did not pair
+say: The device and the PC did not finish pairing. The code may not have been confirmed in time.
+do: Put the device in pairing mode again (see its manual) and pair it from the Bluetooth settings.
+show: bluetooth
+example: org.bluez.Error.AuthenticationFailed
+
+id: bt-connect
+match: org\.bluez\.error\.(failed|inprogress|connectionattemptfailed)
+match: br-connection-[a-z-]+
+match: le-connection-abort-by-local
+match: (bluetooth )?(connection|connecting) (to .{1,40} )?failed
+level: green
+title: The Bluetooth device did not connect
+say: The PC could not connect to the Bluetooth device. It may be off, out of battery, too far away, or connected to another device.
+do: Turn the device off and on, keep it close, and make sure your phone is not holding on to it. Then connect again.
+show: bluetooth
+example: org.bluez.Error.Failed br-connection-profile-unavailable
+example: Connection to Headphones failed
+
+id: screen-not-responding
+match: (application )?.{1,60} is not responding
+match: (window|program|application) (is )?not responding
+level: green
+title: A program is stuck
+say: The program stopped answering. It may be busy and come back, or it may be stuck.
+do: Wait about 30 seconds. If it does not come back, close it (Terminate) and open it again; unsaved work in it may be lost.
+example: Application "LibreOffice Writer" is not responding
+
+id: screen-display
+match: (could not|failed to) (apply|set) (the )?(display|screen|monitor) (configuration|settings|mode)
+match: (mode|resolution|refresh rate) (is )?not supported
+match: (input )?signal (out of range|not supported)
+level: green
+title: The screen setting did not work
+say: The screen could not use the size or speed it was set to.
+do: Wait 15 seconds: it goes back to the old setting by itself. Then pick a different size in the screen settings.
+fix: settings:kcm_kscreen
+example: Failed to apply display configuration
+example: Input signal out of range
+
+id: plasma-panel
+match: plasma(shell)? (has )?(crashed|closed unexpectedly|stopped)
+match: (taskbar|panel) (disappeared|is gone|crashed|missing)
+level: green
+title: The taskbar stopped
+say: The taskbar and desktop part of ForgeOS stopped. Your open windows are fine.
+do: The Fix it button starts the taskbar again.
+fix: askpc:restart-taskbar
+example: Plasma has crashed
+example: The taskbar disappeared
+
+id: wallet
+match: kwallet.{0,40}(failed|could not|denied|wrong password)
+match: (could not|unable to) (open|unlock) (the )?wallet
+level: green
+title: The saved-passwords wallet did not open
+say: The KDE wallet that keeps some saved passwords (like Wi-Fi) could not be opened.
+do: It usually opens with your login password. If you changed your password, ask your helper to update the wallet.
+example: KWallet: Unable to open wallet kdewallet
+
+id: kio-failed
+match: (could not|cannot|unable to) (enter|read|open|connect to) (folder|the folder|smb|share|network folder)
+match: (the|that) (folder|share) (is not available|could not be found|does not exist)
+level: green
+title: A folder could not be opened
+say: The folder could not be opened. It may have been moved or deleted, or it is on another computer that is off.
+do: Check the other computer or drive is on. If it was deleted, Undo Button may get it back.
+fix: open:undo
+example: Could not enter folder /home/robert/Taxes 2025.
+example: The share could not be found

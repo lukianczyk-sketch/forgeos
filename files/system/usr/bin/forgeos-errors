@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Plain-English Errors (Job 23): when something goes wrong, the PC says what happened in plain
+English - what happened, is it serious, what to do - with one Fix it button from a short checked list.
+Fake "virus" errors are called out as scams. Nothing leaves the PC.
+Exit: 0 ok, 1 not understood or did not work, 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_ERRORS_LIB") or "/usr/lib/forgeos-errors")
+from errlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

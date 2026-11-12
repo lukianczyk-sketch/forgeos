@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# ForgeOS Plain-English Errors window (Job 23), a kdialog front end for forgeos-errors.
+#   forgeos-errors-gui --explain   Meta+Shift+E: explain the error you just copied, or the one on the screen
+#   forgeos-errors-gui --card KEY  one error's card (the pop-ups open this)
+#   forgeos-errors-gui             What Went Wrong: the last 30 days, in plain English
+# A card says what happened, how serious it is and what to do, with one Fix it button. Clicking Fix it is
+# your yes; nothing is fixed without it.
+set -uo pipefail
+
+TITLE="What Went Wrong"
+ENGINE="${FORGEOS_ERRORS_ENGINE:-/usr/bin/forgeos-errors}"
+TAB=$'\t'
+NL=$'\n'
+
+if ! command -v kdialog >/dev/null 2>&1; then
+  echo "kdialog is needed for this window. Use forgeos-errors in a terminal." >&2
+  exit 3
+fi
+
+info() { kdialog --title "$TITLE" --msgbox "$1" || true; }
+
+# card <engine output>: show it; Fix it / Show me / Close
+card() {
+  local out="$1" text key level fix label show code msg
+  text="$(grep -v "$TAB" <<< "$out")"
+  IFS="$TAB" read -r _ key level _ < <(grep "^CARD${TAB}" <<< "$out")
+  IFS="$TAB" read -r _ fix label < <(grep "^FIX${TAB}" <<< "$out")
+  IFS="$TAB" read -r _ show < <(grep "^SHOW${TAB}" <<< "$out")
+  local kind="--yesnocancel"
+  [ "${level:-}" = red ] && kind="--warningyesnocancel"
+  if [ -n "${fix:-}" ] && [ -n "${show:-}" ]; then
+    kdialog --title "$TITLE" "$kind" "$text" --yes-label "Fix it: $label" --no-label "Show me where to click" --cancel-label "Close"
+  elif [ -n "${fix:-}" ]; then
+    kdialog --title "$TITLE" "${kind/cancel/}" "$text" --yes-label "Fix it: $label" --no-label "Close"
+  elif [ -n "${show:-}" ]; then
+    if kdialog --title "$TITLE" --yesno "$text" --yes-label "Show me where to click" --no-label "Close"; then
+      forgeos-showme guide "$show" >/dev/null 2>&1 &
+    fi
+    return 0
+  else
+    info "$text"; return 0
+  fi
+  code=$?
+  if [ "$code" -eq 0 ]; then
+    msg="$("$ENGINE" fix "$fix" --yes 2>/dev/null)" && "$ENGINE" fixed "$key" >/dev/null 2>&1
+    kdialog --title "$TITLE" --passivepopup "${msg:-Done.}" 8 >/dev/null 2>&1 &
+  elif [ "$code" -eq 1 ] && [ -n "${show:-}" ]; then
+    forgeos-showme guide "$show" >/dev/null 2>&1 &
+  fi
+  return 0
+}
+
+explain() {
+  local out
+  out="$("$ENGINE" this 2>/dev/null)"
+  if grep -q "^CARD${TAB}" <<< "$out"; then card "$out"; else info "${out:-I could not read an error there.}"; fi
+}
+
+history_menu() {
+  local list pick
+  local -a items=(explain "Explain an error on my screen now (Meta+Shift+E)")
+  list="$("$ENGINE" recent 30 2>/dev/null)"
+  while IFS="$TAB" read -r _ key when level title fixed; do
+    [ -n "$key" ] || continue
+    case "$level" in red) level="SERIOUS" ;; yellow) level="needs a look" ;; *) level="not serious" ;; esac
+    [ "$fixed" = fixed ] && level="fixed"
+    items+=("$key" "$when - $title ($level)")
+  done < <(grep "^ITEM${TAB}" <<< "$list")
+  [ "${#items[@]}" -gt 2 ] || items+=(none "Nothing went wrong in the last 30 days.")
+  pick="$(kdialog --title "$TITLE" --menu "What went wrong on this PC in the last 30 days, in plain English.${NL}Pick one to see what it means and what to do." "${items[@]}")" || return 0
+  case "$pick" in
+    explain) explain ;;
+    none|"") ;;
+    *) card "$("$ENGINE" card "$pick" 2>/dev/null)" ;;
+  esac
+}
+
+case "${1:-}" in
+  --explain) [ $# -eq 1 ] || { echo "usage: forgeos-errors-gui [--explain | --card KEY]" >&2; exit 3; }; explain ;;
+  --card) [ $# -eq 2 ] || { echo "usage: forgeos-errors-gui [--explain | --card KEY]" >&2; exit 3; }
+          out="$("$ENGINE" card "$2" 2>/dev/null)"
+          if grep -q "^CARD${TAB}" <<< "$out"; then card "$out"; else info "${out:-That error is no longer in the history.}"; fi ;;
+  "") history_menu ;;
+  *) echo "usage: forgeos-errors-gui [--explain | --card KEY]" >&2; exit 3 ;;
+esac
+exit 0

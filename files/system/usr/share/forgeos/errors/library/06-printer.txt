@@ -1,0 +1,91 @@
+# Printers (CUPS and the Plasma printer pop-ups)
+
+id: print-filter-failed
+match: filter failed
+match: stopped:? ?(\(|-)?filter
+log: yes
+level: yellow
+title: The printer could not understand the print job
+say: The PC could not turn your document into something this printer understands. Usually the printer needs its driver set up again.
+do: Clear the stuck job, then remove the printer and add it again; Show Me How can walk you through it.
+fix: print-queue
+show: add-printer
+example: Printer 'HP_LaserJet' stopped: Filter failed
+
+id: print-not-responding
+match: (the )?printer (is not responding|may not be connected|is not connected)
+match: unable to locate printer
+match: waiting for printer to become available
+match: (connecting|unable to connect) to printer
+log: yes
+level: green
+title: The PC can't reach the printer
+say: The printer did not answer. It may be off, asleep, out of paper, or off the Wi-Fi.
+do: Check the printer is on and shows no error light. Turn it off and on, then print again.
+show: print
+example: The printer is not responding.
+example: Unable to locate printer "HP-Office.local".
+
+id: print-paused
+match: (printer|queue)\b.{0,60}\b(is|has been) (paused|stopped|disabled)
+match: (rejecting|not accepting) jobs
+level: green
+title: The printer is paused
+say: The printer is set to pause, so print jobs wait and nothing comes out.
+do: Open the printer settings and press Resume on that printer.
+fix: settings:kcm_printer_manager
+example: Printer "Office" is paused
+
+id: print-paper
+match: (out of paper|media-empty|paper (tray )?empty|load paper)
+level: green
+title: The printer is out of paper
+say: The printer has run out of paper.
+do: Put paper in the tray. The job prints by itself after that.
+example: media-empty-error: The printer is out of paper
+
+id: print-jam
+match: (paper jam|media-jam|paper is stuck)
+level: green
+title: Paper is stuck in the printer
+say: A sheet of paper is stuck inside the printer.
+do: Turn the printer off, gently pull the stuck paper out the way it goes, close all doors, and turn it on.
+example: media-jam-error: Paper jam
+
+id: print-ink
+match: (toner|ink|marker[ -]supply)[ -]?(low|empty|out)
+match: (low|out of) (ink|toner)
+level: green
+title: The printer needs ink or toner
+say: The printer is low on or out of ink or toner.
+do: Put in a new cartridge. Buy ink from the printer maker or a store you know, not from a pop-up or an email.
+example: marker-supply-low-warning: Black toner is low
+
+id: print-door
+match: (door|cover)[ -]open
+level: green
+title: A printer door is open
+say: A door or cover on the printer is open, so it won't print.
+do: Close all doors and covers on the printer.
+example: door-open-error: The printer door is open
+
+id: print-no-printer
+match: no (default )?printers? (found|installed|configured|available)
+match: (unable to|could not) add (the )?printer
+level: green
+title: No printer is set up
+say: This PC does not have the printer set up yet.
+do: Show Me How can walk you through adding the printer.
+show: add-printer
+example: No printers found
+example: Unable to add printer: client-error-not-possible
+
+id: print-stuck
+match: (print )?job (\d+ )?(is )?(stuck|held|on hold|pending)
+match: (processing|printing) since
+level: green
+title: A print job is stuck
+say: A print job is stuck in line, and the ones behind it wait too.
+do: The Fix it button clears your waiting print jobs. Then print again.
+fix: print-queue
+example: Job 23 is held

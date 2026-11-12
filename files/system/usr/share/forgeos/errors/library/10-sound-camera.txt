@@ -1,0 +1,95 @@
+# Sound, microphone and camera
+
+id: sound-dummy
+match: dummy output
+match: no (output|audio|sound) devices? (available|found)
+match: no output or input devices found
+level: yellow
+title: The PC can't find any speakers
+say: The sound system can't find any speakers or headphones right now, so there is no sound.
+do: Check the cable or Bluetooth headphones. The Fix it button restarts the sound system.
+fix: askpc:restart-sound
+show: sound
+example: Dummy Output
+example: No output or input devices found
+
+id: sound-pipewire
+match: (failed to connect to|connection refused.{0,20}) (pipewire|pulseaudio)
+match: (pipewire|pulseaudio|wireplumber).{0,30}(crashed|failed|not running)
+log: yes
+level: yellow
+title: The sound system stopped
+say: The part of the PC that plays sound stopped working.
+do: The Fix it button restarts the sound system. Your programs keep running.
+fix: askpc:restart-sound
+example: Failed to connect to PipeWire: Connection refused
+
+id: sound-muted
+match: (sound|audio|output|speaker)s? (is |are )?muted
+level: green
+title: The sound is turned off
+say: The sound is muted, so nothing can be heard.
+do: The Fix it button turns the sound on and sets the volume to half.
+fix: askpc:unmute-sound
+example: Audio output is muted
+
+id: mic-none
+match: no (microphone|input device|mic)s? (found|available|detected)
+match: (microphone|mic) (is )?not (found|detected|connected)
+level: yellow
+title: The PC can't find a microphone
+say: No microphone was found, so others can't hear you.
+do: Plug the headset or webcam in again. Show Me How can show where the microphone setting is.
+show: microphone
+example: No microphone found
+
+id: mic-blocked
+match: (microphone|mic) (access )?(is )?(blocked|denied|not allowed)
+match: permission (to use|for) (the )?(microphone|mic) (was )?denied
+level: green
+title: The microphone is blocked for this program
+say: This program or website was told no when it asked to use the microphone.
+do: If you trust it, allow the microphone in the browser's address bar (the lock icon) or in the program's settings.
+show: microphone
+example: Microphone access is blocked
+
+id: cam-none
+match: no (camera|webcam)s? (found|available|detected|connected)
+match: (camera|webcam) (is )?not (found|detected|connected)
+match: cannot open (video|camera) device
+level: yellow
+title: The PC can't find a camera
+say: No camera was found, so video calls can't show you.
+do: Plug the webcam in again or try another USB port. A laptop may have a camera switch or key.
+show: webcam
+example: No camera found
+example: Cannot open video device /dev/video0: No such file or directory
+
+id: cam-busy
+match: (camera|webcam) (is )?(already )?(in use|busy|being used)
+match: /dev/video\d+.{0,20}(busy|in use)
+level: green
+title: Another program is using the camera
+say: The camera is already being used by another program, so this one can't use it.
+do: Close the other video program. Privacy Report shows which program is using the camera.
+fix: open:privacy
+example: Could not start video source: the camera is already in use
+
+id: cam-blocked
+match: (camera|webcam) (access )?(is )?(blocked|denied|not allowed)
+match: permission (to use|for) (the )?(camera|webcam) (was )?denied
+level: green
+title: The camera is blocked for this program
+say: This program or website was told no when it asked to use the camera.
+do: If you trust it, allow the camera in the browser's address bar (the lock icon) or in the program's settings.
+show: webcam
+example: Camera access is blocked
+
+id: hdmi-sound
+match: (hdmi|displayport).{0,30}(unplugged|not connected|no sound)
+level: green
+title: Sound is going to the TV or monitor
+say: The sound is set to go through the HDMI or DisplayPort cable, but that screen is off or unplugged.
+do: Open the sound settings and pick your speakers or headphones.
+fix: settings:kcm_pulseaudio
+example: HDMI / DisplayPort 1 Output (unplugged)

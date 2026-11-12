@@ -266,3 +266,14 @@ jobs:
           bash tests/test-showme-gui.sh .
           bash tests/test-showme-real.sh .
           bash tests/test-showme-files.sh .
+
+      - name: Run Plain-English Errors tests (pretend pop-ups, crashes and system log; the real watcher on a real D-Bus)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils dbus
+          bash tests/test-errors.sh .
+          bash tests/test-errors-ai.sh .
+          bash tests/test-errors-watch.sh .
+          bash tests/test-errors-fix.sh .
+          bash tests/test-errors-gui.sh .
+          bash tests/test-errors-dbus.sh .
+          bash tests/test-errors-files.sh .

@@ -1,0 +1,48 @@
+# Windows error codes you may see in Windows programs, installers or when switching to Windows
+
+id: win-0x80004005
+match: 0x80004005
+level: green
+title: A Windows program hit an unspecified error
+say: The Windows program reported a general error without saying what went wrong.
+do: Try once more. If it keeps happening, open Will It Run? to check the program.
+fix: open:willitrun
+example: Error 0x80004005: Unspecified error
+
+id: win-msi
+match: (error )?(1603|1618|1619|2503|2502)\b.{0,40}(install|msi|package)
+match: (windows installer|msiexec).{0,40}(error|failed)
+level: green
+title: A Windows installer failed
+say: A Windows setup program could not finish installing.
+do: Open Will It Run? with the setup file; it says the best way to install it on ForgeOS.
+fix: open:willitrun
+example: Error 1603: A fatal error occurred during installation. msiexec
+
+id: win-bitlocker
+match: bitlocker (recovery|key)
+match: enter the recovery key
+level: yellow
+title: Windows asks for its BitLocker key
+say: Windows locked its drive and wants the recovery key, often after a BIOS change or update.
+do: The key is saved in your Microsoft account online, under Devices, or on a printout. Never give it to someone who calls you.
+example: BitLocker recovery - Enter the recovery key for this drive
+
+id: win-bsod
+match: your (pc|device) ran into a problem and needs to restart
+match: (stop code|bugcheck)[: ]
+level: yellow
+title: Windows crashed (blue screen)
+say: Windows had a serious fault and had to restart. A driver is the most common cause. ForgeOS is not affected.
+do: If it happens often in Windows, update Windows and its drivers there. Write down the stop code for your helper.
+example: Your PC ran into a problem and needs to restart. Stop code: IRQL_NOT_LESS_OR_EQUAL
+
+id: win-secure-boot
+match: secure boot (violation|failed|is not enabled|must be enabled)
+match: (invalid signature detected|verification failed: \(0x1a\) security violation)
+level: yellow
+title: The PC refused to start a program at power-on
+say: Secure Boot (a start-up safety check in the BIOS) blocked something that was not signed.
+do: Pick ForgeOS or Windows again from the start-up menu. If it keeps happening, call your helper; do not change BIOS settings for a stranger.
+fix: family-call
+example: Verification failed: (0x1A) Security Violation

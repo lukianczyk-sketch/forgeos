@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=What Went Wrong
+GenericName=Errors in plain English
+Comment=What went wrong on this PC in the last 30 days, in plain English, with what to do
+Exec=/usr/bin/forgeos-errors-gui
+Icon=dialog-information
+Terminal=false
+Categories=System;Utility;
+Keywords=what went wrong;errors;error history;crashes;problems;plain english;

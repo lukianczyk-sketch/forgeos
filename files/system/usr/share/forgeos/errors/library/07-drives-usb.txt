@@ -1,0 +1,123 @@
+# Drives and USB sticks (udisks, Dolphin, the kernel)
+
+id: usb-bad-fs
+match: wrong fs type,? bad option,? bad superblock
+match: (unknown|unsupported) (filesystem|file system)( type)?
+level: yellow
+title: The PC can't read this drive
+say: The drive is in a format the PC does not understand, or its table of contents is damaged.
+do: Do not format it if it has files you need. Try it in another computer; if the files matter, ask your helper.
+show: usb-stick
+example: mount: /run/media/robert/USB: wrong fs type, bad option, bad superblock on /dev/sdb1, missing codepage or helper program, or other error.
+
+id: usb-hibernated
+match: windows is hibernated
+match: (unclean file system|fast restart|metadata kept in windows cache)
+level: green
+title: Windows did not fully shut down this drive
+say: This drive was last used by Windows, and Windows Fast Startup left it half-closed, so ForgeOS opens it read-only to keep it safe.
+do: Start Windows, open the drive there and shut down fully (hold Shift while you click Shut down). Then it opens here normally.
+fix: showme:windows-forgeos
+example: The disk contains an unclean file system (0, 0). Metadata kept in Windows cache, refused to mount.
+example: Windows is hibernated, refused to mount.
+
+id: usb-not-authorized
+match: not authori[sz]ed to perform (this )?operation
+level: green
+title: The drive needs a yes first
+say: Opening or changing this drive needs your permission and it was not given.
+do: Try again and type your password when asked. If it still fails, ask your helper.
+example: Error mounting /dev/sdb1: GDBus.Error:org.freedesktop.UDisks2.Error.NotAuthorizedCanObtain: Not authorized to perform operation
+
+id: usb-busy
+match: (device or resource|target is) busy
+match: (unable to|could not|can.?t) (eject|unmount|safely remove)
+level: green
+title: The drive is still in use
+say: A program still has a file open on this drive, so it can't be removed safely yet.
+do: Close the programs and windows using files on it (Dolphin too), wait a moment, then eject again.
+example: umount: /run/media/robert/USB: target is busy.
+example: Could not eject the device. Device or resource busy
+
+id: drive-io-error
+match: input/output error
+match: (buffer )?i/o error,? dev \w+
+match: (medium|unrecovered read) error
+match: critical medium error
+log: yes
+level: red
+title: The drive had trouble reading or writing
+say: The drive could not read or write some data. It may be failing, or the cable or USB port is loose.
+do: Copy your important files off it now. Then open Drive Death Warning to check its health.
+fix: open:drivehealth
+example: cp: error reading 'photos/IMG_2041.jpg': Input/output error
+example: I/O error, dev sda, sector 123456 op 0x0:(READ)
+
+id: drive-readonly
+match: read-only file system
+match: (is )?write.?protected
+log: yes
+level: yellow
+title: The drive can only be read
+say: The drive is set to read-only, so nothing can be saved to it. A USB stick may have a lock switch, or the drive found a problem and protected itself.
+do: Check for a small lock switch on the stick or card. If there is none, open Drive Death Warning to check the drive.
+fix: open:drivehealth
+example: cannot create directory 'Backup': Read-only file system
+
+id: drive-too-big
+match: file too large
+match: (file|it) is too (big|large) for the destination
+level: green
+title: The file is too big for this drive
+say: This drive uses an older format (FAT32) that can't hold one file bigger than 4 GB.
+do: Copy it to a different drive, or ask your helper to change the drive to the exFAT format (that erases it first).
+example: cp: error writing '/run/media/robert/USB/movie.mkv': File too large
+
+id: drive-no-medium
+match: no medium found
+level: green
+title: There is no disc or card in it
+say: The reader is there, but no card or disc is inside.
+do: Put the card or disc in, and wait a few seconds.
+example: mount: /dev/sdc: no medium found
+
+id: drive-not-mounted
+match: (is not mounted|could not be (opened|accessed)|unable to access)
+general: yes
+level: green
+title: The drive is not open yet
+say: The drive or folder could not be opened right now. It may have been unplugged or is still starting.
+do: Unplug it, wait 5 seconds, plug it in again, and open it from the Disks & Devices pop-up.
+show: usb-stick
+example: Unable to access "USB DRIVE"
+
+id: drive-smart
+match: smart (error|failure|attribute|warning|prefail)
+match: (currently unreadable|offline uncorrectable) (\(pending\) )?sectors
+match: failing (drive|disk)|disk (is )?failing
+log: yes
+level: red
+title: A drive warns it may fail
+say: The drive's own health check reported a problem. Drives that do this can stop working soon.
+do: Back up your files now. Drive Death Warning shows how serious it is and helps you back up.
+fix: open:drivehealth
+example: Device: /dev/sda [SAT], 8 Currently unreadable (pending) sectors
+
+id: drive-format
+match: (you need to format the disk|disk is not formatted|the volume does not contain a recogni[sz]ed file system)
+level: yellow
+title: The drive asks to be formatted
+say: The drive asks to be formatted. Formatting ERASES everything on it.
+do: Do not format it if it has files you need. Try it in another computer first, or ask your helper.
+example: You need to format the disk in drive E: before you can use it.
+
+id: drive-sd-slow
+match: (usb|device) (descriptor read|not accepting address)
+match: device not accepting address
+match: unable to enumerate usb device
+log: yes
+level: green
+title: A USB device did not connect properly
+say: Something plugged into a USB port did not answer properly. The cable, the port or the device may be loose or worn.
+do: Unplug it and plug it into a different USB port. Try another cable if it has one.
+example: usb 1-2: device descriptor read/64, error -71

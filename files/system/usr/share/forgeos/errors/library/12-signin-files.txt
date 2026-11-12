@@ -1,0 +1,110 @@
+# Signing in, permissions and files
+
+id: wrong-password
+match: (wrong|incorrect|invalid) (user ?name or )?password
+match: (login|log-in|sign-in|signin|authentication) (failed|failure|incorrect)
+match: (password|passphrase) (is )?(incorrect|wrong|not correct)
+match: (unlocking|unlock) failed
+level: green
+title: The password was not accepted
+say: The password did not match. Capital letters count, and Caps Lock may be on.
+do: Check Caps Lock and type it again slowly. If you forgot it, Easy Passwords may have it saved.
+show: user-password
+example: Authentication failure
+example: Unlocking failed
+
+id: account-locked
+match: (account|user) (is |has been )?(temporarily )?(locked|disabled)( out)?
+match: too many (failed )?(login|sign-in|password) attempts
+level: yellow
+title: The account is locked for now
+say: Too many wrong passwords were typed, so the account is locked for a while to keep it safe.
+do: Wait the time it says (often 10 minutes), then try once, slowly. If a website says this and you did not try, change that password.
+example: Your account has been temporarily locked due to too many failed login attempts.
+
+id: permission-denied
+match: permission denied
+match: access (is )?denied
+match: you do not have (the )?(permission|rights|access)
+match: operation not permitted
+match: 0x80070005
+general: yes
+level: green
+title: Not allowed
+say: This file, folder or setting is protected, and the program was not allowed to use it.
+do: If it is your own file, check it is not on a read-only drive. System files are protected on purpose; that keeps the PC safe.
+example: bash: ./run.sh: Permission denied
+example: Error 0x80070005: Access is denied.
+
+id: file-not-found
+match: no such file or directory
+match: (the system cannot find the (file|path) specified)
+match: file (does not exist|not found|was not found|could not be found)
+general: yes
+level: green
+title: The file is not there
+say: The program looked for a file that is not where it expected. It may have been moved, renamed or deleted.
+do: Find Anything can search for it. If it was deleted, Undo Button may get it back.
+fix: open:undo
+example: cat: notes.txt: No such file or directory
+example: The system cannot find the file specified.
+
+id: file-corrupt
+match: \b(file|document|archive|image|zip)\b.{0,60}\b(is |appears to be |may be )(corrupt(ed)?|damaged|broken|unreadable)
+match: (unexpected end of (file|archive|data)|crc (error|failed)|bad zip)
+level: yellow
+title: The file is damaged
+say: The file is damaged or only half there, so it can't be opened properly. A download may have been cut off.
+do: Download it again or ask the sender for a new copy. Undo Button may have an older good copy.
+fix: open:undo
+example: The file 'Report.docx' is corrupt and cannot be opened.
+example: unzip: bad zip file
+
+id: file-format
+match: (unsupported|unknown|unrecogni[sz]ed) (file )?(format|type)
+match: could not (determine|recogni[sz]e) the (file )?type
+match: no (application|app) (found|available|installed) (to|for|that can) open
+level: green
+title: No program here opens this kind of file
+say: This PC has no program that opens this kind of file yet.
+do: Ask Forge Helper which free program opens it. Be careful with files you did not expect: Scam Shield can check them.
+fix: open:helper
+example: Unsupported file format
+example: No application found to open this file
+
+id: file-in-use
+match: (file|document) (is )?(locked|in use|open in another program|being used by another (process|program))
+match: (locked for editing|text file busy)
+level: green
+title: The file is open somewhere else
+say: Another program (or another person) has this file open, so it can't be changed right now.
+do: Close the file in the other program and try again. If nothing has it open, restart the PC.
+example: Document in Use: 'Budget.ods' is locked for editing by another user.
+
+id: file-name
+match: file name too long
+match: (invalid|illegal) (characters in )?(file ?name|path)
+match: (filename|file name) (contains|has) (invalid|illegal) characters
+level: green
+title: The file name won't work
+say: The file's name is too long or has characters that are not allowed (like : or ?).
+do: Give it a shorter, simpler name.
+example: cannot create file: File name too long
+
+id: file-exists
+match: \b(file|folder|directory)\b.{0,60}\b(already exists|exists already)
+match: directory not empty
+level: green
+title: Something with that name is already there
+say: A file or folder with that name is already there.
+do: Pick a different name, or choose Replace only if you are sure you no longer need the old one.
+example: A file named "Letter.odt" already exists.
+
+id: sudo-auth
+match: (is not in the sudoers file|sorry, try again|incorrect password attempts?)
+match: polkit.{0,40}(not authori[sz]ed|authentication failed|dismissed)
+level: green
+title: The admin password was not accepted
+say: Changing this needs the PC's admin password, and it was not accepted or the request was closed.
+do: Try again and type your login password. If someone told you to type this, check with your helper first.
+example: sudo: 3 incorrect password attempts

@@ -18,7 +18,7 @@ WINDOWS = {"cleansweep": "forgeos-cleansweep-gui", "undo": "forgeos-undo-gui", "
            "switch": "forgeos-switch-gui", "movingday": "forgeos-movingday-gui", "drivehealth": "forgeos-drivehealth-gui",
            "tripwire": "forgeos-tripwire-gui", "techguard": "forgeos-techguard-gui",
            "digitalwill": "forgeos-digitalwill-gui", "locate": "forgeos-locate-gui", "slow": "forgeos-slow-gui",
-           "reportcard": "forgeos-reportcard-gui"}
+           "reportcard": "forgeos-reportcard-gui", "errors": "forgeos-errors-gui"}
 SIZES = ("big", "bigger")
 # The ONLY actions 'do' runs. Each needs the user's Yes click first (the window asks); showme only points.
 ACTIONS = ("pc_fix", "text_size", "family_on", "family_call", "panic", "open", "open_file", "forget_all", "get_model",

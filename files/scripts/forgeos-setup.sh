@@ -9,6 +9,7 @@ chmod 0755 /usr/bin/forgeos-locate /usr/bin/forgeos-locate-gui /usr/libexec/forg
 chmod 0755 /usr/bin/forgeos-slow /usr/bin/forgeos-slow-gui
 chmod 0755 /usr/bin/forgeos-reportcard /usr/bin/forgeos-reportcard-gui
 chmod 0755 /usr/bin/forgeos-showme /usr/bin/forgeos-showme-gui
+chmod 0755 /usr/bin/forgeos-errors /usr/bin/forgeos-errors-gui
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -93,3 +94,7 @@ systemctl --global enable forgeos-slow-sample.timer
 # PC Report Card (Job 21): for every user, this month's report card 10 minutes after login (once a month, kept
 # on the PC for 12 months); Forge Helper says so once if the grade went down.
 systemctl --global enable forgeos-reportcard-monthly.timer
+
+# Plain-English Errors (Job 23): for every user, a watcher that notices error pop-ups, crashes and hidden
+# problems and offers to explain them in plain English (kept on the PC for 30 days, nothing sent anywhere).
+systemctl --global enable forgeos-errors-watch.service
