@@ -1,0 +1,31 @@
+# ForgeOS Ask Before Connecting (Job 24): the apps ForgeOS installs for everyone (recipes/common-modules.yml).
+# They may use the internet without a question. RustDesk is NOT here: as a remote-control app it gets the
+# Fake Tech Support Guard question, unless Family Mode is on (then it is the helper's app). One Flatpak app id per line.
+com.brave.Browser
+com.usebottles.bottles
+com.heroicgameslauncher.hgl
+com.jeffser.Alpaca
+com.github.tchx84.Flatseal
+org.onlyoffice.desktopeditors
+org.mozilla.thunderbird
+org.gimp.GIMP
+com.github.PintaProject.Pinta
+org.kde.kdenlive
+com.obsproject.Studio
+org.kde.haruna
+org.kde.elisa
+org.kde.gwenview
+org.keepassxc.KeePassXC
+org.gnome.World.PikaBackup
+io.missioncenter.MissionCenter
+org.localsend.localsend_app
+com.github.jeromerobert.pdfarranger
+org.kde.okular
+org.kde.skanpage
+org.kde.kcalc
+org.kde.filelight
+it.mijorus.gearlever
+net.mkiol.SpeechNote
+com.github.wwmm.easyeffects
+com.moonlight_stream.Moonlight
+io.gitlab.adhami3310.Impression

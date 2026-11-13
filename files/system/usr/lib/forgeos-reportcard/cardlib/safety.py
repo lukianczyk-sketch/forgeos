@@ -38,6 +38,14 @@ def safety():
             bad.append((30, name + " cut the internet - open it to see why", cmd[8:]))
         if one(t, "SHARING", 0, "-") not in ("", "-"):
             bad.append((40, "someone can see or control this PC right now", cmd[8:]))
+    code, out = run(["forgeos-netask", "status"], 60)
+    n = rows(out)
+    if "SERVICE" in n or code == 2:
+        heard += 1
+        if code == 2:
+            bad.append((15, "Ask Before Connecting is not running", "netask"))
+        elif one(n, "SERVICE") != "on":
+            bad.append((15, "Ask Before Connecting is off (new programs can use the internet without asking)", "netask"))
     if not heard:
         return subject("safety", "Safety guards", None, "The safety guards did not answer.", "guard")
     pts, why, tool = worst(bad, "All guards are on and the virus and scam lists are fresh.", "guard")

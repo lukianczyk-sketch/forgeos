@@ -1,7 +1,6 @@
 """Forge Helper's fixed tool list: the AI can only pick a name from TOOLS.
 
-Tools only LOOK; a change is an action (actions.py) the window turns into a button. A look returns
-(text, actions, level); actions are (action, argument, label); level is Scam Shield's 0-2 or -1.
+Tools only LOOK and return (text, actions, level); actions (action, argument, label) become buttons.
 """
 import os
 
@@ -27,6 +26,7 @@ TOOLS = {
     "report_card": "how healthy the whole PC is: its report card, grades and score (PC Report Card)",
     "show_me": "show me how to do something on the screen, step by step, with an arrow (text = the task)",
     "explain_error": "explain an error message in plain words (text = the error)",
+    "net_access": "apps using the internet: which ones, why one can't connect, block or unblock one",
     "undo_open": "get back a deleted or changed file or an older version",
     "privacy_report": "which apps used the camera, microphone or screen",
     "cleansweep_scan": "the user thinks the PC is hacked or has a virus",

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Who Uses the Internet
+GenericName=Ask Before Connecting
+Comment=Which apps may use the internet: change any answer, see today's list, Lock down for travel
+Exec=/usr/bin/forgeos-netask-gui
+Icon=network-workgroup
+Terminal=false
+Categories=System;Security;Network;
+Keywords=internet;firewall;block app;allow app;who uses the internet;ask before connecting;lock down;opensnitch;connections;

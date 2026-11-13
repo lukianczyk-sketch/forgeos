@@ -53,3 +53,6 @@
 {"q": "what does this error mean: The code execution cannot proceed because MSVCP140.dll was not found", "tool": "explain_error"}
 {"q": "I keep getting an error that says ERR_NAME_NOT_RESOLVED", "tool": "explain_error"}
 {"q": "what does error code 0x80070005 mean", "tool": "explain_error"}
+{"q": "is something on my computer using the internet?", "tool": "net_access"}
+{"q": "unblock Bottles", "tool": "net_access"}
+{"q": "why can't Bottles connect to the internet", "tool": "net_access"}

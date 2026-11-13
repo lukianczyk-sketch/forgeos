@@ -277,3 +277,16 @@ jobs:
           bash tests/test-errors-gui.sh .
           bash tests/test-errors-dbus.sh .
           bash tests/test-errors-files.sh .
+
+      - name: Run Ask Before Connecting tests (a pretend OpenSnitch daemon speaking the real UI protocol to the real service)
+        run: |
+          sudo apt-get install -y --no-install-recommends desktop-file-utils jq python3-grpcio python3-grpc-tools python3-protobuf
+          bash tests/test-netask.sh .
+          bash tests/test-netask-kinds.sh .
+          bash tests/test-netask-more.sh .
+          bash tests/test-netask-answers.sh .
+          bash tests/test-netask-gui.sh .
+          bash tests/test-netask-safety.sh .
+          bash tests/test-netask-tricks.sh .
+          bash tests/test-netask-files.sh .
+          bash tests/test-netask-hooks.sh .

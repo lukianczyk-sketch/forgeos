@@ -1,0 +1,23 @@
+# ForgeOS - Ask Before Connecting (Job 24): the service OpenSnitch (the program firewall) asks about each new
+# program that wants the internet. It shows the plain-English question on the person's own screen and keeps
+# the answers as OpenSnitch rules. If it is not running, OpenSnitch still applies every saved answer and blocks
+# programs it does not know. Needs root: the question must come from outside the person's account.
+[Unit]
+Description=ForgeOS Ask Before Connecting: asks you before a new program uses the internet
+After=local-fs.target systemd-logind.service
+Before=opensnitch.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/forgeos-netask-service
+Restart=always
+RestartSec=3
+StateDirectory=forgeos-netask
+StateDirectoryMode=0700
+RuntimeDirectory=forgeos-netask forgeos-netask-req
+RuntimeDirectoryMode=0755
+MemoryMax=300M
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -42,6 +42,9 @@ modules:
         - 7zip               # Digital Will (Job 18): 7z locks the Emergency Envelope (AES-256) and tests it
         - qrencode           # Find My PC (Job 19): the QR code your phone scans to set up
         - python3-cryptography  # Find My PC (Job 19): AES-256-GCM, the lock between this PC and your phone
+        - python3-grpcio     # Ask Before Connecting (Job 24): talks to OpenSnitch (its UI protocol, gRPC)
+        - python3-protobuf   # Ask Before Connecting (Job 24): the messages of that protocol
+        - python3-grpcio-tools  # Ask Before Connecting (Job 24): turns OpenSnitch's ui.proto into Python at build time
 
   # Build-time setup: install Ollama (pinned version, checksum-verified), then
   # make sure the Clean Sweep tool is executable inside the image.
@@ -49,6 +52,7 @@ modules:
   - type: script
     scripts:
       - install-ollama.sh
+      - install-opensnitch.sh   # Ask Before Connecting (Job 24): OpenSnitch 1.8.0, SHA-256 checked
       - forgeos-setup.sh
 
   # Apps every ForgeOS user gets. All sandboxed (Flatpak) and free.

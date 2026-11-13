@@ -4,6 +4,7 @@ Returns (tool, argument) or None when no rule is sure (then the AI picks).
 """
 import re
 
+from .netask import NET
 from .rulelist import LINK, PROGRAM_FILE, RULES
 
 # Ransomware Tripwire (Job 16) goes right before Clean Sweep's "virus" words (rulelist.py is full).
@@ -44,7 +45,7 @@ ERR2 = ("explain_error", r"\b(error|warning) message\b|(got|getting|keep getting
                          r" (an |this |a )?(weird |strange )?error\b")
 AT = [tool for tool, _rx in RULES].index("cleansweep_scan")
 AT3 = [tool for tool, _rx in RULES].index("pc_question")
-RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW, SHOW, ERR] + RULES[AT3:AT3 + 1] + [ERR2] + RULES[AT3 + 1:]
+RULES2 = RULES[:AT] + [RANSOM] + RULES[AT:AT3] + [CARD, SLOW, SHOW, ERR, NET] + RULES[AT3:AT3 + 1] + [ERR2] + RULES[AT3 + 1:]
 AT2 = [tool for tool, _rx in RULES2].index("scam_check")
 COMPILED = [(tool, re.compile(rx, re.I)) for tool, rx in [LOC, WILL] + RULES2[:AT2] + [TECH] + RULES2[AT2:]]
 REMEMBER = re.compile(r"^(please )?remember( that)?:? (.{3,200})$", re.I)
@@ -76,7 +77,7 @@ def match(question):
                 return (tool, "bigger" if EVEN_BIGGER.search(q) else "big")
             if tool == "will_it_run":
                 return (tool, program_name(q))
-            if tool in ("scam_check", "find", "pc_question", "help_answer", "show_me", "explain_error"):
+            if tool in ("scam_check", "find", "pc_question", "help_answer", "show_me", "explain_error", "net_access"):
                 return (tool, q)
             return (tool, "")
     return None

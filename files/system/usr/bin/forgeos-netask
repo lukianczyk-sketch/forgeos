@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+"""ForgeOS Ask Before Connecting (Job 24): the first time a program tries to use the internet, the PC asks
+you in plain English - Allow / Block / Just this once - and remembers. This command shows and changes your
+answers (through the root service, which double-checks anything that lets more through). Nothing leaves the PC.
+Exit: 0 ok, 1 not done, 2 the service is not running, 3 wrong use.
+"""
+import os
+import sys
+
+sys.dont_write_bytecode = True  # /usr is read-only; never leave cache files next to the code
+sys.path.insert(0, os.environ.get("FORGEOS_NETASK_LIB") or "/usr/lib/forgeos-netask")
+from netlib import cli  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(cli.main(sys.argv[1:]))

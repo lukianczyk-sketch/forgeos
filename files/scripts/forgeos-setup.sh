@@ -10,6 +10,7 @@ chmod 0755 /usr/bin/forgeos-slow /usr/bin/forgeos-slow-gui
 chmod 0755 /usr/bin/forgeos-reportcard /usr/bin/forgeos-reportcard-gui
 chmod 0755 /usr/bin/forgeos-showme /usr/bin/forgeos-showme-gui
 chmod 0755 /usr/bin/forgeos-errors /usr/bin/forgeos-errors-gui
+chmod 0755 /usr/bin/forgeos-netask /usr/bin/forgeos-netask-gui /usr/libexec/forgeos-netask-service
 mkdir -p /usr/share/forgeos
 echo "ForgeOS by RL Forge Works" > /usr/share/forgeos/about
 systemctl enable ollama.service
@@ -98,3 +99,7 @@ systemctl --global enable forgeos-reportcard-monthly.timer
 # Plain-English Errors (Job 23): for every user, a watcher that notices error pop-ups, crashes and hidden
 # problems and offers to explain them in plain English (kept on the PC for 30 days, nothing sent anywhere).
 systemctl --global enable forgeos-errors-watch.service
+
+# Ask Before Connecting (Job 24): OpenSnitch (the program firewall) stops each new connection and our root service
+# asks the person at the screen the first time a program wants the internet (answers kept as OpenSnitch rules).
+systemctl enable opensnitch.service forgeos-netask.service

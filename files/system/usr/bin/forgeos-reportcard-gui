@@ -43,7 +43,7 @@ summary() {
 open_tool() {
   local cmd
   case "$1" in  # only ForgeOS's own windows
-    guard|tripwire|techguard|autopilot|drivehealth|undo|privacy|ghost|digitalwill|locate) cmd=("forgeos-$1-gui") ;;
+    guard|tripwire|techguard|autopilot|drivehealth|undo|privacy|ghost|digitalwill|locate|netask) cmd=("forgeos-$1-gui") ;;
     slow) cmd=(forgeos-slow-gui) ;;
     space) cmd=(forgeos-slow-gui --space) ;;
     *) return 0 ;;

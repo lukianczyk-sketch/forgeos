@@ -1,6 +1,7 @@
 """Looks for the newer jobs (looks.py and tools.py are full). Same shape as tools.py: each returns (text, actions, level)."""
 from . import run
 from .actions import WINDOWS
+from .netask import net_access  # noqa: F401 - Ask Before Connecting (Job 24), found by looks.LOOK
 from .tools import SLOW, plain, win
 
 ERR_OPEN = {"open": "open", "askpc": "pc_fix", "showme": "showme"}

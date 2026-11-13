@@ -1,0 +1,12 @@
+#!/usr/bin/python3
+"""ForgeOS Ask Before Connecting (Job 24): the root service OpenSnitch asks about each new program
+(forgeos-netask.service). It shows the question on the person's own screen and keeps the answers."""
+import os
+import sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.environ.get("FORGEOS_NETASK_LIB") or "/usr/lib/forgeos-netask")
+from netlib import service  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(service.main())
