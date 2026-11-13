@@ -1,0 +1,37 @@
+# Job 24 Ask Before Connecting — progress log
+
+- 2026-11-11: Design approved by Robert. Claude wrote and tested the prototype (tests A-I pass, plus every other ForgeOS test); two independent review rounds found 14 + 8 issues, all fixed and tested.
+- STATUS: STEP 0 DONE — next: Step 1 (Cline)
+- Step 1 (Cline): bin/forgeos-netask, netlib __init__.py written. Claude reviewed: exact.
+- Step 2 (Cline): netlib proc.py, netlib trust.py written. Claude reviewed: exact.
+- Step 3 (Cline): netlib flatpak.py, netlib history.py written. Claude reviewed: exact.
+- Step 4 (Cline): netlib names.py written. Claude reviewed: exact.
+- Step 5 (Cline): netlib who.py written. Claude reviewed: exact.
+- Step 6 (Cline): netlib store.py written. Claude reviewed: exact.
+- Step 7 (Cline): netlib later.py written. Claude reviewed: exact.
+- Step 8 (Cline): netlib decide.py written. Claude reviewed: exact.
+- Step 9 (Cline): netlib dialog.py written. Claude reviewed: exact.
+- Step 10 (Cline): netlib askui.py written. Claude reviewed: exact.
+- Step 11 (Cline): netlib server.py written. Claude reviewed: exact.
+- Step 12 (Cline): netlib requests.py written. Claude reviewed: exact.
+- Step 13 (Cline): netlib service.py, netlib explain.py, libexec/forgeos-netask-service, lib/systemd/system/forgeos-netask.service written. Claude reviewed: exact.
+- Step 14 (Cline): netlib cli.py written. Claude reviewed: exact.
+- Step 15 (Cline): bin/forgeos-netask-gui written. Claude reviewed: exact.
+- Step 16 (Cline): share/forgeos/netask/ui.proto written. Claude reviewed: exact.
+- Step 17 (Cline): share/forgeos/netask/trusted-apps.txt, share/forgeos/netask/rules/001-forgeos-system.json, share/applications/forgeos-netask.desktop, share/forgeos/helper/help/ask-before-connecting.md, lib/systemd/system/opensnitch.service.d/forgeos.conf, lib/sysctl.d/60-forgeos-netask.conf written. Claude reviewed: exact.
+- Step 18 (Cline): files/scripts/install-opensnitch.sh written. Claude reviewed: exact.
+- Step 19 (Cline): lib/forgeos-helper/helperlib/netask.py written. Claude reviewed: exact.
+- Step 20 (Cline): tests/netask-fake-daemon.py, tests/netask-proc.sh written. Claude reviewed: exact.
+- Step 21 (Cline): tests/netask-fakes.sh written. Claude reviewed: exact.
+- Step 22 (Cline): tests/test-netask.sh written. Claude reviewed: exact.
+- Step 23 (Cline): tests/test-netask-kinds.sh written. Claude reviewed: exact.
+- Step 24 (Cline): tests/test-netask-more.sh written. Claude reviewed: exact.
+- Step 25 (Cline): tests/test-netask-answers.sh written. Claude reviewed: exact.
+- Step 26 (Cline): tests/test-netask-gui.sh written. Claude reviewed: exact.
+- Step 27 (Cline): tests/test-netask-safety.sh written. Claude reviewed: exact.
+- Step 28 (Cline): tests/test-netask-tricks.sh written. Claude reviewed: exact.
+- Step 29 (Cline): tests/test-netask-files.sh written. Claude reviewed: exact.
+- Step 30 (Cline): forgeos-setup.sh, common-modules.yml, rules.py, tools.py, looks2.py, actions.py edited. Claude reviewed: exact.
+- Step 31 (Cline): forgeos-helper-krunner, more.jsonl, test-helper-ai.sh, safety.py, forgeos-reportcard-gui, CI step edited. Claude reviewed: exact.
+- Step 32 (Cline): tests/test-netask-hooks.sh (G) written. Claude reviewed: exact.
+- 2026-11-13: All 32 steps reviewed (Cline slips in steps 11, 12, 16, 19, 23, 26-29, 32 fixed by Claude to the tested copy; step 30 PROGRESS line added by Claude); tests A-I pass on Robert's PC; commit e4c4468, tag v0.29.0.
